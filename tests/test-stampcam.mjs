@@ -38,6 +38,8 @@ const waitFor = async (expr, ms = 8000) => {
   for (let t = 0; t < ms; t += 100) { if (await ev(expr).catch(() => false)) return true; await sleep(100); }
   return false;
 };
+/* 촬영 화면이 한가해질 때까지 (찍기·취소가 끝날 때까지) */
+const idle = () => waitFor(`!window.StampCam || !StampCam._debug.ui || !StampCam._debug.ui.busy`);
 const shot = async (name) => {
   const { data } = await cdp.send('Page.captureScreenshot', { format: 'png' });
   writeFileSync(OUT + name, Buffer.from(data, 'base64'));
@@ -48,6 +50,7 @@ const shotsInList = () => ev(`new Promise(r=>{const q=indexedDB.open('stampcam',
 
 await cdp.send('DOM.enable');
 await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: path.resolve(DL), eventsEnabled: true });
+await cdp.send('Browser.setPermission', { permission: { name: 'automatic-downloads' }, setting: 'granted', origin: BASE }).catch((e) => console.log('  (자동 다운로드 허용 실패 : ' + e.message + ')'));
 /* 다운로드는 조금 늦게 디스크에 닿는다 — 기다렸다 센다 */
 const dlFiles = async (n) => {
   for (let i = 0; i < 40; i++) {
@@ -147,8 +150,63 @@ await ev(`document.querySelector('[data-role="photo"]').click(); true`);
 await ev(`document.getElementById('btnStampCam').click(); true`);
 await waitFor(`!document.querySelector('.sc-ov [data-sc="shutter"]').disabled`, 10000);
 await ev(`document.querySelector('.sc-ov [data-sc="shutter"]').click(); true`);
-await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===4`);
+await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===4`); await idle();
 eq(await ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[0];return m.rptTag||m.eqTag})()`), '15', '빈 사진번호 칸에 15');
+await ev(`document.querySelector('.sc-ov [data-sc="close"]').click(); document.getElementById('btnPhotoModalClose').click(); true`);
+
+/* ── 3-2. 방금 찍은 것 취소 ─────────────────────────────── */
+console.log('\n[3-2] 방금 찍은 것 취소');
+const tag = () => ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[0];return m.rptTag||m.eqTag||''})()`);
+const nPhotos = () => ev(`__markerDbg.getActiveDrawing().markers[0].photos.length`);
+await ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[0]; m.rptTag=''; m.eqTag=''; return true})()`);
+await ev(`document.querySelector('[data-role="photo"]').click(); true`);
+await ev(`document.getElementById('btnStampCam').click(); true`);
+await waitFor(`!document.querySelector('.sc-ov [data-sc="shutter"]').disabled`, 10000);
+ok(await ev(`document.querySelector('.sc-ov [data-sc="undo"]').disabled`), '찍기 전에는 취소 단추가 꺼져 있다');
+const listBefore = (await shotsInList()).length;
+await ev(`document.querySelector('.sc-ov [data-sc="shutter"]').click(); true`);
+await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===5`); await idle();
+eq([await tag(), (await settings()).current, (await shotsInList()).length], ['16', 17, listBefore + 1], '찍음 : 사진번호 16 · 번호 17 · 목록 +1');
+await ev(`document.querySelector('.sc-ov [data-sc="undo"]').click(); true`); await idle();
+ok(await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===4`), '취소 → 결함에서 사진이 빠진다');
+eq([await tag(), (await settings()).current, (await shotsInList()).length], ['', 16, listBefore], '취소 → 사진번호 비움 · 번호 16 으로 · 목록에서도 지움');
+eq(await ev(`document.querySelector('.sc-ov [data-sc="next"]').textContent`), '0016', '촬영 화면 다음 번호도 0016');
+ok((await ev(`(document.querySelector('.sc-ov .sc-toast')||{}).textContent||''`)).includes('다운로드된 파일은 직접'), '알림 : 다운로드 파일은 직접 지우라고 알려 준다');
+ok(await ev(`document.querySelector('.sc-ov [data-sc="undo"]').disabled`), '더 취소할 것이 없으면 단추가 꺼진다');
+/* 두 장 찍고 두 번 취소 → 차례로 거슬러 간다 */
+await ev(`document.querySelector('.sc-ov [data-sc="shutter"]').click(); true`);
+await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===5`); await idle();
+await ev(`document.querySelector('.sc-ov [data-sc="shutter"]').click(); true`);
+await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===6`); await idle();
+eq([await tag(), (await settings()).current], ['16', 18], '두 장 : 사진번호 16(첫 장) · 번호 18');
+await ev(`document.querySelector('.sc-ov [data-sc="undo"]').click(); true`); await idle();
+await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===5`); await idle();
+eq([await tag(), (await settings()).current], ['16', 17], '한 번 취소 : 둘째 장만 빠지고 사진번호 16 은 그대로 · 번호 17');
+await ev(`document.querySelector('.sc-ov [data-sc="undo"]').click(); true`); await idle();
+await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===4`); await idle();
+eq([await tag(), (await settings()).current, (await shotsInList()).length], ['', 16, listBefore], '두 번 취소 : 처음 상태로');
+/* 그 사이 다른 앱이 번호를 올렸으면 번호는 되돌리지 않는다(겹치지 않게) */
+await ev(`document.querySelector('.sc-ov [data-sc="shutter"]').click(); true`);
+await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===5`); await idle();
+await ev(`(()=>{const s=JSON.parse(localStorage.getItem('stampcam.settings.v1')); s.current=30; localStorage.setItem('stampcam.settings.v1', JSON.stringify(s)); return true})()`);
+await ev(`document.querySelector('.sc-ov [data-sc="undo"]').click(); true`); await idle();
+await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===4`); await idle();
+eq((await settings()).current, 30, '다른 앱이 번호를 올린 뒤의 취소는 번호를 그대로 둔다');
+ok((await ev(`(document.querySelector('.sc-ov .sc-toast')||{}).textContent||''`)).includes('번호는 그대로'), '알림 : 번호는 그대로');
+await ev(`(()=>{const s=JSON.parse(localStorage.getItem('stampcam.settings.v1')); s.current=16; localStorage.setItem('stampcam.settings.v1', JSON.stringify(s)); return true})()`);
+
+/* ── 3-3. 점검 앱용 파일이름 (카메라명+번호) ─────────────── */
+console.log('\n[3-3] 점검 앱용 파일이름 {cam}{no}');
+await ev(`(()=>{const s=JSON.parse(localStorage.getItem('stampcam.settings.v1')); s.fileName='{cam}{no}'; s.camName='KIM'; localStorage.setItem('stampcam.settings.v1', JSON.stringify(s)); return true})()`);
+const dlBefore = readdirSync(DL).length;
+await ev(`document.querySelector('.sc-ov [data-sc="shutter"]').click(); true`);
+await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===5`); await idle();
+ok((await dlFiles(dlBefore + 1)).includes('KIM0016.jpg'), '파일이름 KIM0016.jpg — 외관조사·체크리스트 앱이 찾는 이름', readdirSync(DL));
+eq(await tag(), '16', '사진번호 칸 16 (외관조사 앱 : 카메라 k + 사진번호 16 → KIM0016)');
+await ev(`document.querySelector('.sc-ov [data-sc="undo"]').click(); true`); await idle();
+await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===4`); await idle();
+await ev(`(()=>{const s=JSON.parse(localStorage.getItem('stampcam.settings.v1')); s.fileName='{date}_{no}_{memo}'; localStorage.setItem('stampcam.settings.v1', JSON.stringify(s)); return true})()`);
+eq((await settings()).current, 16, '되돌려 놓음(번호 16)');
 await ev(`document.querySelector('.sc-ov [data-sc="close"]').click(); document.getElementById('btnPhotoModalClose').click(); true`);
 
 /* ── 4. 스탬프 카메라 앱을 열면 번호가 이어진다 ─────────────── */
@@ -168,6 +226,23 @@ await ev(`(async()=>{const f=document.createElement('iframe');f.src='/defect-mar
 ok(await waitFor(`document.getElementById('nextText').textContent==='0040'`, 3000), '다른 문서에서 번호를 40 으로 → 스탬프 카메라 화면도 0040', await ev(`document.getElementById('nextText').textContent`));
 ok(await waitFor(`document.getElementById('memoText').textContent==='다른 앱 메모'`, 3000), '메모도 따라감');
 ok(await ev(`document.getElementById('btnUndo').disabled`), '남이 올린 번호는 되돌리기로 되감지 않는다(되돌리기 비움)');
+
+/* ── 6. 스탬프 카메라 설정 : 점검 앱용 파일이름 (v1.9.0) ── */
+console.log('\n[6] 스탬프 카메라 설정 화면의 「점검 앱용」 파일이름');
+const setSel = (id, v) => ev(`(()=>{const e=document.getElementById('${id}'); e.value=${JSON.stringify(v)}; e.dispatchEvent(new Event('input',{bubbles:true})); e.dispatchEvent(new Event('change',{bubbles:true})); return true})()`);
+ok(await ev(`[...document.getElementById('fileNamePreset').options].some(o=>o.value==='{cam}{no}')`), '파일명 목록에 「점검 앱용 : 카메라명+번호」');
+ok(await ev(`document.getElementById('camNameRow').hidden`), '다른 규칙일 때는 카메라명 칸이 숨어 있다');
+await setSel('fileNamePreset', '{cam}{no}');
+ok(!(await ev(`document.getElementById('camNameRow').hidden`)), '고르면 카메라명 칸이 나온다');
+eq(await ev(`document.getElementById('fileNamePreview').textContent`), 'KIM0040.jpg', '미리보기 KIM0040.jpg (기본 카메라명 KIM)');
+await setSel('s-camName', 'CHOI');
+eq(await ev(`document.getElementById('fileNamePreview').textContent`), 'CHOI0040.jpg', '카메라명 CHOI → CHOI0040.jpg');
+ok(await ev(`document.getElementById('camNameWarn').hidden`), '4자리면 경고 없음');
+await setSel('s-pad', '3');
+ok(!(await ev(`document.getElementById('camNameWarn').hidden`)), '자릿수 3 이면 「4자리여야 짝이 맞는다」 경고');
+await setSel('s-pad', '4');
+await setSel('fileNamePreset', '{date}_{no}_{memo}');
+ok(await ev(`document.getElementById('camNameRow').hidden`), '다른 규칙으로 돌리면 다시 숨는다');
 
 /* 콘솔 오류 */
 const errs = cdp.events.filter((e) => e.method === 'Runtime.exceptionThrown' ||

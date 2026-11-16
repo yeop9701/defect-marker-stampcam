@@ -12051,20 +12051,23 @@
     return parts.map(v=>String(v||'').trim()).filter(Boolean).join(' ');
   }
   // 찍은 사진 한 장을 결함에 붙인다. 사진번호 칸이 비어 있으면 그 번호를 넣는다.
-  // 돌려주는 글은 촬영 화면의 알림에 덧붙는다.
+  // 돌려주는 것 : { note : 촬영 화면 알림에 덧붙일 글, undo : 「방금 것 취소」 때 이 결함에서 되돌릴 일 }
   function attachStampShot(markerId, res){
     const d = getActiveDrawing();
     const m = d && d.markers.find(x=>x.id===markerId);
-    if(!m) return '결함을 찾지 못했습니다';
+    if(!m) return { note:'결함을 찾지 못했습니다' };
     if(!m.photos) m.photos = [];
-    m.photos.push(scaledPhotoDataURL(res.canvas, res.canvas.width, res.canvas.height));
+    const photo = scaledPhotoDataURL(res.canvas, res.canvas.width, res.canvas.height);
+    m.photos.push(photo);
     let note = '결함에 붙임';
     const key = photoTagKey(m);
+    let filled = null;                    // 이 사진 때문에 사진번호 칸에 넣은 값
     if(key){
       const cur = String(m[key]||'').trim();
       if(cur === ''){
         pushUndo();                       // 사진번호 칸을 바꾸는 것은 되돌릴 수 있게(사진은 원래대로 남는다)
         m[key] = String(res.number);
+        filled = m[key];
         note += ' · 사진번호 ' + res.number;
       } else if(cur !== String(res.number)){
         note += ' · 사진번호 칸은 ' + cur + ' 그대로';
@@ -12073,7 +12076,21 @@
     markImagesDirty();
     if(photoModalMarkerId===markerId) renderPhotoModal();
     renderTable();
-    return note;
+    // 「방금 것 취소」 : 붙인 사진을 빼고, 이 사진이 채운 사진번호면 다시 비운다(그 사이 손으로 바꿨으면 둔다)
+    const undo = ()=>{
+      const dd = getActiveDrawing();
+      const mm = dd && dd.markers.find(x=>x.id===markerId);
+      if(!mm) return '결함을 찾지 못해 사진은 그대로';
+      const i = (mm.photos||[]).lastIndexOf(photo);
+      let t = '';
+      if(i >= 0){ mm.photos.splice(i,1); t = '결함에서 뺌'; }
+      if(filled !== null && key && String(mm[key]||'') === filled){ mm[key] = ''; t += ' · 사진번호 비움'; }
+      markImagesDirty();
+      if(photoModalMarkerId===markerId) renderPhotoModal();
+      renderTable();
+      return t;
+    };
+    return { note, undo };
   }
   function refreshStampCamInfo(){
     const next = document.getElementById('stampCamNext');

@@ -45,15 +45,17 @@ function formatDate(d, fmt) {
   return fmt.replace(/YYYY|YY|MM|DD|HH|mm|ss/g, (t) => map[t]);
 }
 
-// 파일명 규칙: {no}/{번호} 번호, {date}/{날짜} 20261029, {time}/{시간} 143012, {memo}/{메모} 메모
+// 파일명 규칙: {no}/{번호} 번호, {date}/{날짜} 20261029, {time}/{시간} 143012, {memo}/{메모} 메모,
+//   {cam}/{카메라} 카메라명 — 외관조사·3종 체크리스트 등 점검 앱은 사진을 「카메라명+번호 4자리」(KIM0012.jpg)로 찾는다
 // 메모가 비어 있으면 {memo}와 붙어 있는 구분 기호(_ - 공백 하나)를 같이 뺀다: 날짜_번호_{memo} → 날짜_번호
-function buildFileName(pattern, numberText, d, memo = '') {
+function buildFileName(pattern, numberText, d, memo = '', cam = '') {
   const date = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}`;
   const time = `${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
   let name = (pattern || '{no}')
     .replace(/\{(no|번호)\}/g, numberText)
     .replace(/\{(date|날짜)\}/g, date)
-    .replace(/\{(time|시간)\}/g, time);
+    .replace(/\{(time|시간)\}/g, time)
+    .replace(/\{(cam|카메라)\}/g, String(cam || '').trim());
   const m = String(memo || '').trim();
   if (m) name = name.replace(/\{(memo|메모)\}/g, m);
   else {
@@ -112,6 +114,7 @@ const DEFAULTS = {
   saveMode: 'download',  // download | share | list
   keepInList: true,
   fileName: '{date}_{no}_{memo}', // 메모가 비면 {memo}와 그 앞 _ 는 빠진다
+  camName: 'KIM',      // 파일명 {cam} — 점검 앱의 카메라명(K = KIM, C = CHOI 처럼)
   quality: 92,
   // 카메라
   facing: 'environment',
@@ -728,13 +731,14 @@ async function stampAndStore(source, width, height, date, crop) {
   ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
   drawStamp(ctx, crop.w, crop.h, textsFor(s, date), s);
 
-  const name = buildFileName(s.fileName, numberText, date, memo);
+  const name = buildFileName(s.fileName, numberText, date, memo, s.camName);
   const blob = await canvasToBlob(c, s.quality / 100);
   /* 「공유」 방식은 찍을 때마다 공유 창이 떠서 결함 기록 흐름을 끊는다 → 앱 목록에만 둔다 */
   const mode = s.saveMode === 'download' ? 'download' : 'list';
+  let listId = null;
   if (s.keepInList || mode === 'list') {
     try {
-      await addShot({ name, numberText, memo, createdAt: date.getTime(), blob, thumb: await makeThumb(c), width: c.width, height: c.height });
+      listId = await addShot({ name, numberText, memo, createdAt: date.getTime(), blob, thumb: await makeThumb(c), width: c.width, height: c.height });
     } catch (e) {
       if (mode === 'list') throw new Error('스탬프 카메라 목록에 저장하지 못했습니다: ' + (e.message || e));
       console.warn(e);
@@ -744,12 +748,37 @@ async function stampAndStore(source, width, height, date, crop) {
 
   /* 저장이 끝난 뒤에만 번호를 올린다 (그 사이 스탬프 카메라에서 바뀐 값도 다시 읽어 반영) */
   const now = loadSettings();
+  const before = { current: now.current, sub: now.sub };
+  let bumped = false;
   if (now.current === s.current && now.sub === s.sub && now.sameOn === s.sameOn) {
     if (now.sameOn) now.sub++;
     else now.current = nextValue(now.current, now);
+    bumped = true;
   }
   saveSettings(now);
-  return { canvas: c, number, numberText, name, saved: mode, sameOn: s.sameOn };
+  return { canvas: c, number, numberText, name, saved: mode, sameOn: s.sameOn, listId,
+    counter: bumped ? { before, after: { current: now.current, sub: now.sub } } : null };
+}
+
+/* 방금 찍은 한 장을 없던 일로 : 스탬프 카메라 목록에서 지우고, 번호를 되돌린다.
+   번호는 그 뒤에 아무도(스탬프 카메라 앱 등) 올리지 않았을 때만 되돌린다 — 남이 쓴 번호를 다시 쓰면 겹친다.
+   다운로드 폴더에 이미 저장된 파일은 브라우저가 지울 수 없다. 돌려주는 값 : { numberBack, listRemoved } */
+async function undoStored(res) {
+  let listRemoved = false;
+  if (res.listId !== null && res.listId !== undefined) {
+    try { await deleteShot(res.listId); listRemoved = true; } catch (e) { console.warn(e); }
+  }
+  let numberBack = false;
+  if (res.counter) {
+    const s = loadSettings();
+    if (s.current === res.counter.after.current && s.sub === res.counter.after.sub) {
+      s.current = res.counter.before.current;
+      s.sub = res.counter.before.sub;
+      saveSettings(s);
+      numberBack = true;
+    }
+  }
+  return { numberBack, listRemoved };
 }
 
 /* ── 화면 ─────────────────────────────────────────────────────── */
@@ -776,6 +805,7 @@ const CSS = `
 @keyframes scfx{from{opacity:.85}to{opacity:0}}
 .sc-msg{position:absolute;left:12px;right:12px;top:40%;text-align:center;font-size:15px;line-height:1.6;}
 .sc-bot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:rgba(0,0,0,.6);}
+.sc-side{display:flex;flex-direction:column;gap:8px;align-items:stretch;}
 .sc-thumb{width:58px;height:58px;border-radius:10px;border:2px solid rgba(255,255,255,.5);background:#222 center/cover no-repeat;position:relative;}
 .sc-thumb span{position:absolute;right:-8px;top:-8px;background:#ffd84d;color:#000;border-radius:999px;font-size:12px;font-weight:800;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;padding:0 5px;}
 .sc-shutter{width:76px;height:76px;border-radius:50%;border:5px solid #fff;background:#fff;box-shadow:inset 0 0 0 4px #000;cursor:pointer;}
@@ -788,6 +818,7 @@ const CSS = `
   .sc-top,.sc-memo{grid-column:1 / -1;}
   .sc-view{grid-column:1;grid-row:3;}
   .sc-bot{grid-column:2;grid-row:3;flex-direction:column;justify-content:center;padding:10px 8px calc(10px + env(safe-area-inset-bottom));}
+  .sc-side .sc-btn{font-size:12px;padding:0 6px;}
 }`;
 
 let ui = null;            // 열려 있는 화면 (한 번에 하나)
@@ -822,7 +853,10 @@ function open(opts) {
       '<div class="sc-focus" data-sc="focus"></div><div class="sc-flashfx" data-sc="fx"></div></div>' +
       '<div class="sc-msg" data-sc="msg">카메라를 켜는 중…</div></div>' +
     '<div class="sc-bot">' +
-      '<button type="button" class="sc-btn" data-sc="flash"></button>' +
+      '<div class="sc-side">' +
+        '<button type="button" class="sc-btn" data-sc="flash"></button>' +
+        '<button type="button" class="sc-btn" data-sc="undo" title="방금 찍은 사진을 결함·목록에서 빼고 번호를 되돌린다" disabled>↶ 방금 것 취소</button>' +
+      '</div>' +
       '<button type="button" class="sc-shutter" data-sc="shutter" title="촬영 (Space)" disabled></button>' +
       '<div class="sc-thumb" data-sc="thumb" title="이번에 찍은 사진"></div>' +
     '</div>';
@@ -830,7 +864,7 @@ function open(opts) {
   const $ = (k) => ov.querySelector('[data-sc="' + k + '"]');
   const video = ov.querySelector('video');
   const camera = new Camera(video);
-  const state = { ov, camera, opts, busy: false, shots: 0, resume: false, toastT: 0 };
+  const state = { ov, camera, opts, busy: false, shots: 0, resume: false, toastT: 0, undo: [] };
   ui = state;
 
   const toast = (msg, ms) => {
@@ -898,11 +932,16 @@ function open(opts) {
       if (navigator.vibrate) navigator.vibrate(30);
       const res = await stampAndStore(shot.source, shot.width, shot.height, date, crop43(shot.width, shot.height));
       state.shots++;
-      $('thumb').style.backgroundImage = 'url(' + res.canvas.toDataURL('image/jpeg', 0.6) + ')';
-      $('thumb').innerHTML = '<span>' + state.shots + '</span>';
+      res.thumbURL = res.canvas.toDataURL('image/jpeg', 0.6);
       refreshTop();
-      let note = '';
-      try { note = (opts.onShot && opts.onShot(res)) || ''; } catch (e) { console.error(e); note = '결함에 붙이지 못했습니다'; }
+      let note = '', back = null;
+      try {
+        const r = opts.onShot && opts.onShot(res);
+        if (typeof r === 'string') note = r;
+        else if (r) { note = r.note || ''; back = r.undo || null; }
+      } catch (e) { console.error(e); note = '결함에 붙이지 못했습니다'; }
+      state.undo.push({ res, back });
+      showLast();
       toast(res.numberText + (res.saved === 'download' ? ' 저장됨' : ' 스탬프 카메라 목록에 저장됨') + (note ? ' · ' + note : ''));
     } catch (e) {
       console.error(e);
@@ -911,9 +950,38 @@ function open(opts) {
       if (lit) camera.setTorch(false);
       state.busy = false;
       $('shutter').disabled = !camera.active;
+      showLast();
     }
   }
   state.shoot = shoot;
+
+  /* 찍은 장수 · 마지막 사진 · 취소 단추 */
+  function showLast() {
+    const last = state.undo[state.undo.length - 1];
+    $('thumb').style.backgroundImage = last ? 'url(' + last.res.thumbURL + ')' : '';
+    $('thumb').innerHTML = state.shots ? '<span>' + state.shots + '</span>' : '';
+    $('undo').disabled = !state.undo.length || state.busy;
+  }
+  /* 방금 찍은 것 취소 : 결함에서 빼고(결함마킹) · 목록에서 지우고 · 번호를 되돌린다. 여러 번 누르면 차례로 거슬러 간다 */
+  async function undoLast() {
+    if (state.busy || !state.undo.length) return;
+    state.busy = true;
+    const it = state.undo.pop();
+    try {
+      let msg = it.res.numberText + ' 취소';
+      try { const t = it.back && it.back(); if (t) msg += ' · ' + t; } catch (e) { console.error(e); }
+      const u = await undoStored(it.res);
+      msg += u.numberBack ? ' · 번호 되돌림' : (it.res.counter ? ' · 그 뒤 번호가 쓰여 번호는 그대로' : '');
+      if (it.res.saved === 'download') msg += ' · 다운로드된 파일은 직접 지워 주세요';
+      state.shots = Math.max(0, state.shots - 1);
+      refreshTop();
+      toast(msg, 3200);
+    } finally {
+      state.busy = false;
+      showLast();
+    }
+  }
+  state.undoLast = undoLast;
 
   ov.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-sc]');
@@ -921,6 +989,7 @@ function open(opts) {
     const k = b.dataset.sc;
     if (k === 'close') close();
     else if (k === 'shutter') shoot();
+    else if (k === 'undo') undoLast();
     else if (k === 'flash') {
       const s = loadSettings();
       s.flashMode = FLASH_NEXT[s.flashMode || 'off'] || 'off';
