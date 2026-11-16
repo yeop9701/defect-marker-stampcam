@@ -1,0 +1,60 @@
+// 번호 계산과 표시 형식, 날짜 형식, 파일명 규칙.
+
+// sub: 같은 번호로 여러 장 찍을 때 뒤 번호 (0이면 없음) → 접두어 0012-2 접미어
+export function formatNumber(n, s, sub = 0) {
+  const neg = n < 0;
+  let body = String(Math.abs(n));
+  if (s.pad > 0) body = body.padStart(s.pad, '0');
+  const tail = sub > 0 ? (s.subSep ?? '-') + sub : '';
+  return s.prefix + (neg ? '-' : '') + body + tail + s.suffix;
+}
+
+export function nextValue(n, s) {
+  return n + s.step;
+}
+
+const p2 = (v) => String(v).padStart(2, '0');
+
+export const DATE_FORMATS = [
+  'YYYY-MM-DD HH:mm',
+  'YYYY-MM-DD HH:mm:ss',
+  'YYYY-MM-DD',
+  'YYYY.MM.DD HH:mm',
+  'YY.MM.DD HH:mm',
+  'YY.MM.DD',
+  'HH:mm:ss',
+  'HH:mm',
+];
+
+export function formatDate(d, fmt) {
+  const map = {
+    YYYY: String(d.getFullYear()),
+    YY: String(d.getFullYear()).slice(2),
+    MM: p2(d.getMonth() + 1),
+    DD: p2(d.getDate()),
+    HH: p2(d.getHours()),
+    mm: p2(d.getMinutes()),
+    ss: p2(d.getSeconds()),
+  };
+  return fmt.replace(/YYYY|YY|MM|DD|HH|mm|ss/g, (t) => map[t]);
+}
+
+// 파일명 규칙: {no}/{번호} 번호, {date}/{날짜} 20261029, {time}/{시간} 143012, {memo}/{메모} 메모
+// 메모가 비어 있으면 {memo}와 붙어 있는 구분 기호(_ - 공백 하나)를 같이 뺀다: 날짜_번호_{memo} → 날짜_번호
+export function buildFileName(pattern, numberText, d, memo = '') {
+  const date = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}`;
+  const time = `${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+  let name = (pattern || '{no}')
+    .replace(/\{(no|번호)\}/g, numberText)
+    .replace(/\{(date|날짜)\}/g, date)
+    .replace(/\{(time|시간)\}/g, time);
+  const m = String(memo || '').trim();
+  if (m) name = name.replace(/\{(memo|메모)\}/g, m);
+  else {
+    name = name
+      .replace(/^\{(memo|메모)\}[_\- ]?/, '')
+      .replace(/[_\- ]?\{(memo|메모)\}/g, '');
+  }
+  name = name.replace(/[\/:*?"<>|\u0000-\u001f]/g, '_').trim();
+  return (name || 'photo') + '.jpg';
+}

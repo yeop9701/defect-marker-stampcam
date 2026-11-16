@@ -1,6 +1,6 @@
 {
-  "name": "결함 위치 도면 마킹 도구",
-  "short_name": "결함마킹",
+  "name": "결함 위치 도면 마킹 도구 (스탬프 카메라 연동)",
+  "short_name": "결함마킹+스탬프",
   "description": "건축시설물 정밀안전진단/점검용 결함 위치 도면 마킹 도구",
   "start_url": "./index.html",
   "scope": "./",

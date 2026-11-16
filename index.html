@@ -403,6 +403,12 @@
   body.layout-tablet #btnOpenCamera{display:none;}
   #btnPhotoCaptureLabel{display:none;}
   body.layout-tablet #btnPhotoCaptureLabel{display:block;}
+  /* 스탬프 촬영 줄 (사진 창) */
+  .stampcam-row{display:flex;gap:8px;margin-top:8px;}
+  .stampcam-row .stampcam-main{flex:2;font-weight:700;}
+  .stampcam-row .stampcam-native{flex:1;display:block;}
+  .stampcam-next{font-weight:600;opacity:.75;margin-left:4px;}
+  .stampcam-hint{font-size:12px;color:var(--text-dim, #6b7280);margin-top:6px;line-height:1.5;}
   /* 결함 목록 표(헤더 숨김·칸 2열 쌓기 등)의 태블릿 전용 규칙은 표 grid 정의 옆(.marker-table 부근)에 모아뒀다. */
 
   /* 드래그가 필요한 슬라이더(아이콘 크기·브러시 굵기)는 태블릿에서 숨기고 +/- 버튼으로 대신한다. */
@@ -2062,6 +2068,16 @@
           </label>
           <button type="button" id="btnOpenCamera" class="add-drawing-btn" style="flex:1;"><svg class="icon"><use href="#i-camera"/></svg> 사진 촬영</button>
         </div>
+        <!-- 번호 스탬프 카메라 연결 : 찍으면 번호를 찍어 저장(스탬프 카메라 설정대로)하고, 이 결함에 붙이고,
+             사진번호 칸이 비어 있으면 그 번호를 넣는다. 번호는 스탬프 카메라 앱과 하나로 이어진다. -->
+        <div class="stampcam-row">
+          <button type="button" id="btnStampCam" class="add-drawing-btn stampcam-main"><svg class="icon"><use href="#i-camera"/></svg> 스탬프 촬영 <span class="stampcam-next" id="stampCamNext"></span></button>
+          <label class="file-label stampcam-native" title="폰 기본 카메라로 찍고 번호를 찍어 붙인다(화질·초점이 더 나은 기기에서)">
+            <button type="button" id="btnStampNative" class="add-drawing-btn" style="width:100%;">기본 카메라 + 번호</button>
+            <input type="file" id="stampNativeInput" accept="image/*" capture="environment" />
+          </label>
+        </div>
+        <div class="stampcam-hint" id="stampCamHint"></div>
         <div class="photo-grid" id="photoGrid" style="margin-top:10px;"></div>
         <div class="empty-marker-note" id="photoEmptyNote" style="display:none;">아직 추가된 사진이 없습니다.</div>
       </div>
@@ -2183,6 +2199,8 @@
   </div>
 </div>
 
+<!-- 번호 스탬프 카메라 연결 (stampcam/build.mjs 로 만든 파일). 사진 창의 「스탬프 촬영」이 쓴다. -->
+<script src="stampcam/stampcam.js"></script>
 <script>
 (function(){
   "use strict";
@@ -11894,6 +11912,7 @@
       });
       document.getElementById('photoModalFoot').textContent = photos.length ? `${photos.length}장` : '';
     }
+    refreshStampCamInfo();
   }
   // 현장 사진은 이 앱에서 유일하게 다시 만들 수 없는 데이터다(도면·마커는 다시 찍으면 되지만
   // 준공 후 현장 사진은 재촬영이 사실상 불가능). 그래서 다른 파괴적 동작과 동일하게 확인창을
@@ -12019,6 +12038,87 @@
   document.getElementById('btnAddPhotos').addEventListener('click', ()=> document.getElementById('photoFileInput').click());
   document.getElementById('btnPhotoCapture').addEventListener('click', ()=> document.getElementById('photoCaptureInput').click());
   document.getElementById('btnOpenCamera').addEventListener('click', openCameraView);
+
+  // ---------- 번호 스탬프 카메라 연결 ----------
+  // 이 결함의 「사진 #」 칸 이름 (결함 종류마다 rptTag / eqTag 로 다르다. 없는 종류도 있다)
+  function photoTagKey(m){
+    const f = quickInputSpecFor(m).find(x=>x.label==='사진 #');
+    return f ? f.k : null;
+  }
+  // 스탬프 카메라의 메모(파일이름 {메모})로 쓸 만한 이 결함의 정보 : 층수·위치·부재 / 부재·결함
+  function stampMemoSuggest(m){
+    const parts = (m.eqFloor||m.eqLoc||m.eqMember) ? [m.eqFloor, m.eqLoc, m.eqMember] : [m.rptType, m.rptDefect];
+    return parts.map(v=>String(v||'').trim()).filter(Boolean).join(' ');
+  }
+  // 찍은 사진 한 장을 결함에 붙인다. 사진번호 칸이 비어 있으면 그 번호를 넣는다.
+  // 돌려주는 글은 촬영 화면의 알림에 덧붙는다.
+  function attachStampShot(markerId, res){
+    const d = getActiveDrawing();
+    const m = d && d.markers.find(x=>x.id===markerId);
+    if(!m) return '결함을 찾지 못했습니다';
+    if(!m.photos) m.photos = [];
+    m.photos.push(scaledPhotoDataURL(res.canvas, res.canvas.width, res.canvas.height));
+    let note = '결함에 붙임';
+    const key = photoTagKey(m);
+    if(key){
+      const cur = String(m[key]||'').trim();
+      if(cur === ''){
+        pushUndo();                       // 사진번호 칸을 바꾸는 것은 되돌릴 수 있게(사진은 원래대로 남는다)
+        m[key] = String(res.number);
+        note += ' · 사진번호 ' + res.number;
+      } else if(cur !== String(res.number)){
+        note += ' · 사진번호 칸은 ' + cur + ' 그대로';
+      }
+    }
+    markImagesDirty();
+    if(photoModalMarkerId===markerId) renderPhotoModal();
+    renderTable();
+    return note;
+  }
+  function refreshStampCamInfo(){
+    const next = document.getElementById('stampCamNext');
+    const hint = document.getElementById('stampCamHint');
+    if(!window.StampCam){
+      document.getElementById('btnStampCam').disabled = true;
+      document.getElementById('btnStampNative').disabled = true;
+      if(hint) hint.textContent = '스탬프 카메라 파일(stampcam/stampcam.js)을 불러오지 못했습니다.';
+      return;
+    }
+    const p = StampCam.peek();
+    if(next) next.textContent = '· 다음 ' + p.numberText;
+    const m = currentPhotoMarker();
+    const key = m && photoTagKey(m);
+    if(hint){
+      hint.textContent = '번호는 스탬프 카메라 앱과 이어진다. 저장 : ' + (p.saveMode==='download' ? '다운로드 폴더' : '스탬프 카메라 앱 목록') +
+        (key ? (String(m[key]||'').trim() ? ' · 사진번호 칸에 이미 ' + m[key] + ' 이(가) 있어 그대로 둔다' : ' · 사진번호 칸이 비어 있어 첫 사진 번호가 들어간다') : '');
+    }
+  }
+  document.getElementById('btnStampCam').addEventListener('click', ()=>{
+    const m = currentPhotoMarker(); if(!m || !window.StampCam) return;
+    const markerId = m.id;
+    const d = getActiveDrawing();
+    const idx = d ? d.markers.indexOf(m) : 0;
+    StampCam.open({
+      title: '스탬프 촬영 · ' + [formatMarkerLabel(m, idx, d), stampMemoSuggest(m)].filter(Boolean).join(' '),
+      memoSuggest: stampMemoSuggest(m),
+      onShot: (res)=> attachStampShot(markerId, res),
+      onClose: ()=>{ if(photoModalMarkerId===markerId){ renderPhotoModal(); } },
+    });
+  });
+  document.getElementById('btnStampNative').addEventListener('click', ()=> document.getElementById('stampNativeInput').click());
+  document.getElementById('stampNativeInput').addEventListener('change', async e=>{
+    const m = currentPhotoMarker(); const files = e.target.files;
+    if(!m || !window.StampCam || !files || !files.length){ e.target.value=''; return; }
+    const markerId = m.id;
+    try{
+      const res = await StampCam.stampFiles(files, r=> attachStampShot(markerId, r));
+      if(res.length) showToast(res.map(r=>r.numberText).join(', ') + ' 번호를 찍어 붙였습니다' + (res[0].saved==='download' ? ' (다운로드 폴더에도 저장)' : ' (스탬프 카메라 목록에도 저장)'));
+    }catch(err){
+      showToast('번호를 찍지 못했습니다: ' + (err.message||err));
+    }
+    e.target.value = '';
+  });
+  window.addEventListener('storage', e=>{ if(photoModalMarkerId && (!e.key || e.key==='stampcam.settings.v1')) refreshStampCamInfo(); });
   document.getElementById('btnCameraCancel').addEventListener('click', closeCameraView);
   document.getElementById('btnCameraCapture').addEventListener('click', captureFromCamera);
   document.getElementById('photoFileInput').addEventListener('change', e=>{ addPhotoFiles(e.target.files); e.target.value=''; });
