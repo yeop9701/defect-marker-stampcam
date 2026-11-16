@@ -50,7 +50,8 @@ const shotsInList = () => ev(`new Promise(r=>{const q=indexedDB.open('stampcam',
 
 await cdp.send('DOM.enable');
 await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: path.resolve(DL), eventsEnabled: true });
-await cdp.send('Browser.setPermission', { permission: { name: 'automatic-downloads' }, setting: 'granted', origin: BASE }).catch((e) => console.log('  (자동 다운로드 허용 실패 : ' + e.message + ')'));
+/* 참고 : 크롬은 한 사이트가 잇달아 여러 파일을 내려받으면 「여러 파일 다운로드」 허용을 한 번 묻는다(폰도 같다).
+   새 프로필 headless 에서 가끔 두 번째 다운로드가 그 물음에 막혀 다운로드 칸 검사가 실패한다 — 다시 돌리면 통과한다. */
 /* 다운로드는 조금 늦게 디스크에 닿는다 — 기다렸다 센다 */
 const dlFiles = async (n) => {
   for (let i = 0; i < 40; i++) {
@@ -208,6 +209,83 @@ await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===4`); aw
 await ev(`(()=>{const s=JSON.parse(localStorage.getItem('stampcam.settings.v1')); s.fileName='{date}_{no}_{memo}'; localStorage.setItem('stampcam.settings.v1', JSON.stringify(s)); return true})()`);
 eq((await settings()).current, 16, '되돌려 놓음(번호 16)');
 await ev(`document.querySelector('.sc-ov [data-sc="close"]').click(); document.getElementById('btnPhotoModalClose').click(); true`);
+
+/* ── 3-4. 촬영 목록 (작은 사진을 누르면) ─────────────────── */
+console.log('\n[3-4] 촬영 목록');
+const sc = (k) => `document.querySelector('.sc-ov [data-sc="${k}"]')`;
+const clickSc = (k) => ev(`${sc(k)}.click(); true`);
+await ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[0]; m.rptTag=''; m.eqTag=''; return true})()`);
+await ev(`document.querySelector('[data-role="photo"]').click(); true`);
+await ev(`document.getElementById('btnStampCam').click(); true`);
+await waitFor(`!${sc('shutter')}.disabled`, 10000);
+await clickSc('shutter'); await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===5`); await idle();
+await clickSc('shutter'); await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===6`); await idle();
+eq([await tag(), (await settings()).current], ['16', 18], '두 장 찍음 (0016 · 0017)');
+await clickSc('thumb');
+ok(await waitFor(`!${sc('list')}.hidden && document.querySelectorAll('.sc-ov .sc-item').length===6`), '작은 사진을 누르면 촬영 목록 (스탬프 카메라 목록 6장)');
+eq(await ev(`[...document.querySelectorAll('.sc-ov .sc-item')].map(b=>b.querySelector('span').textContent.split(' ')[0])`),
+  ['0017', '0016', '0015', '0014', '0013', '0012'], '최근 것부터 · 번호가 보인다');
+eq(await ev(`document.querySelectorAll('.sc-ov .sc-item i').length`), 2, '이번에 찍어 결함에 붙인 2장에 「결함」 표시');
+ok((await ev(`${sc('lsum')}.textContent`)).startsWith('6장'), '장수·용량 요약');
+await shot('stampcam-4-list.png');
+/* 보기 → 삭제 */
+await ev(`document.querySelector('.sc-ov .sc-item').click(); true`);
+ok(await waitFor(`!${sc('viewer')}.hidden && ${sc('vimg')}.src.startsWith('blob:')`), '누르면 크게 보기');
+ok((await ev(`${sc('vname')}.textContent`)).includes('결함에 붙인 사진'), '보기 : 파일이름 · 크기 · 결함에 붙인 사진');
+await shot('stampcam-5-viewer.png');
+await clickSc('vdel');
+ok(await waitFor(`document.querySelectorAll('.sc-ov .sc-item').length===5`), '보기에서 삭제 → 목록 5장');
+eq(await nPhotos(), 5, '이번에 붙인 사진이라 결함에서도 빠진다');
+ok(await ev(`${sc('viewer')}.hidden`), '보기가 닫힌다');
+/* 선택 → 삭제 */
+await clickSc('lsel');
+ok(await ev(`${sc('lgrid')}.classList.contains('selecting') && !${sc('lselbar')}.hidden`), '[선택] → 선택 모드');
+await ev(`document.querySelector('.sc-ov .sc-item').click(); true`);
+eq(await ev(`${sc('lselcount')}.textContent`), '1장 선택', '한 장 고름');
+await clickSc('lseldel');
+ok(await waitFor(`document.querySelectorAll('.sc-ov .sc-item').length===4`), '선택 삭제 → 목록 4장');
+eq([await nPhotos(), await tag()], [4, ''], '결함에서도 빠지고, 그 사진이 채운 사진번호(16)도 비운다');
+eq((await settings()).current, 18, '목록에서 지워도 번호는 그대로(스탬프 카메라와 같다)');
+eq(await ev(`${sc('thumb')}.textContent`), '', '찍은 장수 0 · 「방금 것 취소」 할 것도 없음');
+ok(await ev(`${sc('undo')}.disabled`), '취소 단추 꺼짐');
+/* 길게 눌러 선택 */
+const it0 = await ev(`(()=>{const r=document.querySelector('.sc-ov .sc-item').getBoundingClientRect();return {x:r.x+20,y:r.y+20}})()`);
+await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: it0.x, y: it0.y, button: 'left', buttons: 1, clickCount: 1 });
+await sleep(650);
+await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: it0.x, y: it0.y, button: 'left', buttons: 0, clickCount: 1 });
+await sleep(100);
+eq(await ev(`${sc('lselcount')}.textContent`), '1장 선택', '길게 누르면 선택 모드로 들어가며 그 사진을 고른다');
+await clickSc('lselall');
+eq(await ev(`${sc('lselcount')}.textContent`), '4장 선택', '전체 선택');
+const zipBefore = readdirSync(DL).filter((f) => f.endsWith('.zip')).length;
+await clickSc('lselzip');
+let zips = [];
+for (let i = 0; i < 50 && zips.length <= zipBefore; i++) { await sleep(100); zips = readdirSync(DL).filter((f) => /^스탬프사진_.*\.zip$/.test(f)); }
+ok(zips.length > zipBefore, '선택 ZIP 이 다운로드된다', zips);
+await clickSc('lselcancel');
+ok(!(await ev(`${sc('lgrid')}.classList.contains('selecting')`)), '취소 → 선택 모드 끝');
+/* 저장 방식 : 목록에만 → 취소하면 완전히 지워진다 */
+ok(await ev(`${sc('lmode')}.checked`), '「찍을 때 다운로드 폴더에도 저장」 켜짐 (지금 설정 = 다운로드)');
+await ev(`(()=>{const c=${sc('lmode')}; c.checked=false; c.dispatchEvent(new Event('change',{bubbles:true})); return true})()`);
+eq((await settings()).saveMode, 'list', '끄면 스탬프 카메라 설정의 저장 방식이 「앱 목록에만」');
+await clickSc('lclose');
+ok(await ev(`${sc('list')}.hidden`), '목록 닫기');
+const dlCount = readdirSync(DL).length;
+await clickSc('shutter'); await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===5`); await idle();
+await sleep(500);
+eq(readdirSync(DL).length, dlCount, '목록에만 저장 : 다운로드 폴더에 파일이 생기지 않는다');
+eq((await shotsInList()).length, 5, '목록에는 들어간다');
+await clickSc('undo'); await idle();
+eq([(await shotsInList()).length, (await settings()).current, await nPhotos()], [4, 18, 4], '취소 → 목록·결함·번호 모두 처음대로 (남는 파일 없음)');
+ok(!(await ev(`(document.querySelector('.sc-ov .sc-toast')||{}).textContent||''`)).includes('직접 지워'), '이때는 「직접 지워 주세요」 안내가 없다');
+await ev(`(()=>{const s=JSON.parse(localStorage.getItem('stampcam.settings.v1')); s.saveMode='download'; s.current=16; localStorage.setItem('stampcam.settings.v1', JSON.stringify(s)); return true})()`);
+/* 목록이 열려 있을 때 Esc 는 목록만 닫는다 */
+await clickSc('thumb'); await waitFor(`!${sc('list')}.hidden`);
+await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+ok(await waitFor(`${sc('list')}.hidden`) && await ev(`!!document.querySelector('.sc-ov')`), 'Esc → 목록만 닫히고 촬영 화면은 남는다');
+await clickSc('close');
+await ev(`document.getElementById('btnPhotoModalClose').click(); true`);
 
 /* ── 4. 스탬프 카메라 앱을 열면 번호가 이어진다 ─────────────── */
 console.log('\n[4] 스탬프 카메라 앱과 번호 공유');

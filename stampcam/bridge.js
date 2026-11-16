@@ -124,6 +124,37 @@ const CSS = `
 .sc-flashfx{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;}
 .sc-flashfx.on{animation:scfx .25s ease-out;}
 @keyframes scfx{from{opacity:.85}to{opacity:0}}
+.sc-thumb{cursor:pointer;}
+/* 촬영 목록 (스탬프 카메라 목록과 같다) */
+.sc-list{position:absolute;inset:0;z-index:5;background:#15181d;display:flex;flex-direction:column;}
+.sc-list[hidden],.sc-viewer[hidden],.sc-list [hidden]{display:none !important;}
+.sc-lhead{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 8px;}
+.sc-lhead h2{flex:1;margin:0;font-size:17px;}
+.sc-lhead small{font-weight:500;opacity:.7;font-size:13px;margin-left:6px;}
+.sc-lbar{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px 8px;align-items:center;}
+.sc-lbar .sc-btn{min-height:38px;font-size:13px;}
+.sc-lbar .grow{flex:1;}
+.sc-btn.pri{background:#2a78d6;border-color:#2a78d6;}
+.sc-btn.dan{color:#ff8a80;border-color:rgba(255,138,128,.5);}
+.sc-lmode{font-size:12px;opacity:.85;padding:0 12px 6px;line-height:1.5;}
+.sc-lmode label{display:inline-flex;gap:6px;align-items:center;cursor:pointer;}
+.sc-ltip{font-size:12px;opacity:.7;padding:0 12px 6px;margin:0;}
+.sc-grid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px;padding:4px 12px calc(16px + env(safe-area-inset-bottom));align-content:start;}
+.sc-item{position:relative;border:0;padding:0;background:#222;border-radius:6px;overflow:hidden;aspect-ratio:1;cursor:pointer;color:#fff;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;}
+.sc-item img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+.sc-item span{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);font-size:11px;padding:3px 4px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sc-item i{position:absolute;right:4px;top:4px;background:#ffd84d;color:#000;font-style:normal;font-size:10px;font-weight:800;border-radius:4px;padding:1px 4px;}
+.sc-grid.selecting .sc-item::after{content:'';position:absolute;left:6px;top:6px;width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.35);}
+.sc-grid.selecting .sc-item.sel{outline:3px solid #2a78d6;outline-offset:-3px;}
+.sc-grid.selecting .sc-item.sel img{opacity:.7;}
+.sc-grid.selecting .sc-item.sel::after{content:'✓';background:#2a78d6;border-color:#2a78d6;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.sc-lempty{text-align:center;opacity:.7;font-size:14px;padding:30px 12px;}
+.sc-viewer{position:absolute;inset:0;z-index:6;background:#000;display:flex;flex-direction:column;}
+.sc-viewer img{flex:1;min-height:0;width:100%;object-fit:contain;}
+.sc-vbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(0,0,0,.7);}
+.sc-vbar span{font-size:13px;opacity:.9;word-break:break-all;}
+.sc-vbar div{display:flex;gap:8px;flex-wrap:wrap;}
 .sc-msg{position:absolute;left:12px;right:12px;top:40%;text-align:center;font-size:15px;line-height:1.6;}
 .sc-bot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:rgba(0,0,0,.6);}
 .sc-side{display:flex;flex-direction:column;gap:8px;align-items:stretch;}
@@ -179,8 +210,41 @@ function open(opts) {
         '<button type="button" class="sc-btn" data-sc="undo" title="방금 찍은 사진을 결함·목록에서 빼고 번호를 되돌린다" disabled>↶ 방금 것 취소</button>' +
       '</div>' +
       '<button type="button" class="sc-shutter" data-sc="shutter" title="촬영 (Space)" disabled></button>' +
-      '<div class="sc-thumb" data-sc="thumb" title="이번에 찍은 사진"></div>' +
-    '</div>';
+      '<div class="sc-thumb" data-sc="thumb" title="촬영 목록 열기"></div>' +
+    '</div>' +
+    /* 촬영 목록 — 스탬프 카메라 목록(IndexedDB)을 그대로 보여 준다 */
+    '<section class="sc-list" data-sc="list" hidden aria-label="촬영 목록">' +
+      '<div class="sc-lhead"><h2>촬영 목록<small data-sc="lsum"></small></h2><button type="button" class="sc-btn" data-sc="lclose">닫기</button></div>' +
+      '<div class="sc-lbar" data-sc="lacts">' +
+        '<button type="button" class="sc-btn" data-sc="lsel">선택</button>' +
+        '<button type="button" class="sc-btn pri" data-sc="lzip">전체 ZIP</button>' +
+        '<button type="button" class="sc-btn" data-sc="lcsv">목록 CSV</button>' +
+        '<button type="button" class="sc-btn dan" data-sc="lclear">전체 삭제</button>' +
+      '</div>' +
+      '<div class="sc-lbar" data-sc="lselbar" hidden>' +
+        '<b class="grow" data-sc="lselcount">0장 선택</b>' +
+        '<button type="button" class="sc-btn" data-sc="lselall">전체 선택</button>' +
+        '<button type="button" class="sc-btn" data-sc="lselcancel">취소</button>' +
+        '<button type="button" class="sc-btn" data-sc="lseldl">다운로드</button>' +
+        '<button type="button" class="sc-btn pri" data-sc="lselzip">ZIP</button>' +
+        '<button type="button" class="sc-btn" data-sc="lselshare">공유</button>' +
+        '<button type="button" class="sc-btn dan" data-sc="lseldel">삭제</button>' +
+      '</div>' +
+      '<div class="sc-lmode"><label><input type="checkbox" data-sc="lmode"> 찍을 때 다운로드 폴더에도 저장</label>' +
+        ' — 끄면 이 목록에만 저장되어, 취소·삭제하면 사진이 완전히 지워진다. 다 찍은 뒤 ZIP·다운로드로 꺼낸다.</div>' +
+      '<p class="sc-ltip" data-sc="ltip">사진을 길게 누르거나 [선택]을 눌러 여러 장을 고를 수 있다. <b style="color:#ffd84d">결함</b> 표시는 이번에 찍어 결함에 붙인 사진.</p>' +
+      '<div class="sc-grid" data-sc="lgrid"></div>' +
+      '<p class="sc-lempty" data-sc="lempty" hidden>아직 촬영한 사진이 없다.</p>' +
+    '</section>' +
+    '<section class="sc-viewer" data-sc="viewer" hidden aria-label="사진 보기">' +
+      '<img data-sc="vimg" alt="">' +
+      '<div class="sc-vbar"><span data-sc="vname"></span><div>' +
+        '<button type="button" class="sc-btn" data-sc="vdl">다운로드</button>' +
+        '<button type="button" class="sc-btn" data-sc="vshare">공유</button>' +
+        '<button type="button" class="sc-btn dan" data-sc="vdel">삭제</button>' +
+        '<button type="button" class="sc-btn" data-sc="vclose">닫기</button>' +
+      '</div></div>' +
+    '</section>';
   document.body.appendChild(ov);
   const $ = (k) => ov.querySelector('[data-sc="' + k + '"]');
   const video = ov.querySelector('video');
@@ -304,6 +368,196 @@ function open(opts) {
   }
   state.undoLast = undoLast;
 
+  /* ── 촬영 목록 (스탬프 카메라 목록과 같은 기능) ──────────────────
+     목록은 스탬프 카메라의 IndexedDB 그대로다. 여기서 지우면 스탬프 카메라 앱 목록에서도 지워진다.
+     이번 촬영 화면에서 찍어 결함에 붙인 사진을 지우면 결함에서도 뺀다(사진번호 칸도 그 사진이 채운 것이면 비운다).
+     번호는 되돌리지 않는다(스탬프 카메라와 같다 — 되돌리려면 「방금 것 취소」). */
+  const L = { urls: [], ids: [], selecting: false, sel: new Set(), viewer: null, vurl: null };
+  state.L = L;
+  const sessionOf = (id) => state.undo.find((u) => u.res.listId === id) || null;
+  async function refreshList() {
+    let items = [];
+    try { items = await listShots(); } catch (e) { console.error(e); }
+    L.urls.forEach((u) => URL.revokeObjectURL(u));
+    L.urls = [];
+    L.ids = items.map((i) => i.id);
+    for (const id of [...L.sel]) if (!L.ids.includes(id)) L.sel.delete(id);
+    if (!items.length) L.selecting = false;
+    const total = items.reduce((a, i) => a + (i.size || 0), 0);
+    $('lsum').textContent = items.length ? `${items.length}장 · ${(total / 1048576).toFixed(1)}MB` : '';
+    $('lempty').hidden = items.length > 0;
+    ['lzip', 'lcsv', 'lclear', 'lsel'].forEach((k) => ($(k).disabled = items.length === 0));
+    $('lmode').checked = loadSettings().saveMode === 'download';
+    const grid = $('lgrid');
+    grid.textContent = '';
+    for (const it of items) {
+      const b = el('button', 'sc-item');
+      b.type = 'button';
+      b.dataset.id = it.id;
+      const img = el('img');
+      if (it.thumb) { const u = URL.createObjectURL(it.thumb); L.urls.push(u); img.src = u; }
+      img.alt = it.name;
+      const cap = el('span');
+      cap.textContent = it.memo ? `${it.numberText} · ${it.memo}` : it.numberText;
+      b.append(img, cap);
+      if (sessionOf(it.id) && sessionOf(it.id).back) b.append(el('i', '', '결함'));
+      bindItem(b, it.id);
+      grid.append(b);
+    }
+    renderSel();
+    return items;
+  }
+  /* 누르면 보기(선택 모드에서는 고르기), 길게 누르면 선택 모드로 */
+  function bindItem(b, id) {
+    let timer = null, long = false, start = null;
+    const cancel = () => { clearTimeout(timer); timer = null; };
+    b.addEventListener('pointerdown', (e) => {
+      long = false; start = { x: e.clientX, y: e.clientY }; cancel();
+      timer = setTimeout(() => {
+        timer = null; long = true;
+        if (!L.selecting) L.selecting = true;
+        L.sel.add(id); renderSel();
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, 500);
+    });
+    b.addEventListener('pointermove', (e) => { if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) cancel(); });
+    b.addEventListener('pointerup', cancel);
+    b.addEventListener('pointercancel', cancel);
+    b.addEventListener('contextmenu', (e) => e.preventDefault());
+    b.addEventListener('click', () => {
+      if (long) { long = false; return; }
+      if (!L.selecting) return openViewer(id);
+      if (L.sel.has(id)) L.sel.delete(id); else L.sel.add(id);
+      renderSel();
+    });
+  }
+  function renderSel() {
+    const n = L.sel.size;
+    $('lgrid').classList.toggle('selecting', L.selecting);
+    $('lacts').hidden = L.selecting;
+    $('lselbar').hidden = !L.selecting;
+    $('ltip').hidden = L.selecting || L.ids.length === 0;
+    $('lselcount').textContent = `${n}장 선택`;
+    $('lselall').textContent = n && n === L.ids.length ? '선택 해제' : '전체 선택';
+    ['lseldl', 'lselzip', 'lselshare', 'lseldel'].forEach((k) => ($(k).disabled = n === 0));
+    ov.querySelectorAll('.sc-item').forEach((b) => b.classList.toggle('sel', L.sel.has(Number(b.dataset.id))));
+  }
+  async function selectedShots() {
+    const ids = L.ids.filter((id) => L.sel.has(id)).sort((a, b) => a - b);
+    return (await Promise.all(ids.map((id) => getShot(id)))).filter(Boolean);
+  }
+  const stampNow = () => buildFileName('{date}_{time}', '', new Date()).replace(/\.jpg$/, '');
+  async function exportZip(items, btn) {
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = 'ZIP 만드는 중…';
+    try {
+      const names = uniqueNames(items.map((i) => i.name));
+      const files = items.map((i, n) => ({ name: names[n], blob: i.blob, date: new Date(i.createdAt) }));
+      files.push({ name: '목록.csv', blob: shotsCsv(items, names), date: new Date() });
+      downloadBlob(await makeZip(files), `스탬프사진_${stampNow()}.zip`);
+      toast(`${items.length}장을 ZIP으로 내보냈습니다.`);
+    } catch (e) {
+      console.error(e); toast('ZIP을 만들지 못했습니다: ' + (e.message || e), 3000);
+    } finally { btn.textContent = label; btn.disabled = false; }
+  }
+  /* 지우기 : 목록에서 지우고, 이번에 찍어 결함에 붙인 사진이면 결함에서도 뺀다 */
+  async function deleteIds(ids) {
+    let fromDefect = 0, mine = 0;
+    for (const id of ids) {
+      await deleteShot(id);
+      const u = sessionOf(id);
+      if (u) {
+        mine++;
+        if (u.back) { try { u.back(); fromDefect++; } catch (e) { console.error(e); } }
+        state.undo.splice(state.undo.indexOf(u), 1);   // 지운 사진은 「방금 것 취소」 대상에서도 뺀다
+      }
+    }
+    state.shots = Math.max(0, state.shots - mine);   // 「찍은 장수」는 이번에 찍어 남아 있는 것
+    showLast();
+    await refreshList();
+    return fromDefect;
+  }
+  const delNote = (n, d) => `${n}장을 지웠습니다.` + (d ? ` (결함에서도 ${d}장 뺌)` : '') + (loadSettings().saveMode === 'download' ? ' 다운로드한 파일은 직접 지워 주세요.' : '');
+  async function openList() {
+    L.selecting = false; L.sel.clear();
+    $('list').hidden = false;
+    await refreshList();
+  }
+  state.openList = openList;
+  function closeList() { closeViewer(); $('list').hidden = true; L.urls.forEach((u) => URL.revokeObjectURL(u)); L.urls = []; }
+  async function openViewer(id) {
+    const it = await getShot(id);
+    if (!it) return refreshList();
+    L.viewer = it;
+    if (L.vurl) URL.revokeObjectURL(L.vurl);
+    L.vurl = URL.createObjectURL(it.blob);
+    $('vimg').src = L.vurl;
+    $('vname').textContent = `${it.name}${it.memo ? ` (${it.memo})` : ''} · ${it.width ? `${it.width}×${it.height} · ` : ''}${(it.blob.size / 1024).toFixed(0)}KB` +
+      (sessionOf(id) && sessionOf(id).back ? ' · 결함에 붙인 사진' : '');
+    $('viewer').hidden = false;
+  }
+  function closeViewer() {
+    $('viewer').hidden = true;
+    $('vimg').removeAttribute('src');
+    if (L.vurl) URL.revokeObjectURL(L.vurl);
+    L.vurl = null; L.viewer = null;
+  }
+  const LIST_ACTIONS = {
+    thumb: () => openList(),
+    lclose: () => closeList(),
+    lsel: () => { L.selecting = true; renderSel(); },
+    lselcancel: () => { L.selecting = false; L.sel.clear(); renderSel(); },
+    lselall: () => { if (L.sel.size === L.ids.length) L.sel.clear(); else L.ids.forEach((id) => L.sel.add(id)); renderSel(); },
+    lzip: async () => exportZip(await allShotsWithBlobs(), $('lzip')),
+    lcsv: async () => {
+      const items = await allShotsWithBlobs();
+      downloadBlob(shotsCsv(items, uniqueNames(items.map((i) => i.name))), `스탬프목록_${stampNow()}.csv`);
+      toast(`${items.length}장 목록을 CSV로 내보냈습니다 (엑셀에서 열기).`);
+    },
+    lclear: async () => {
+      if (!confirm('촬영 목록의 사진을 모두 지울까요? 되돌릴 수 없습니다.\n(이번에 찍어 결함에 붙인 사진은 결함에서도 빠집니다. 이미 다운로드한 파일은 지워지지 않습니다)')) return;
+      const d = await deleteIds([...L.ids]);
+      toast('촬영 목록을 비웠습니다.' + (d ? ` (결함에서도 ${d}장 뺌)` : ''));
+    },
+    lselzip: async () => exportZip(await selectedShots(), $('lselzip')),
+    lseldl: async () => {
+      const items = await selectedShots();
+      const names = uniqueNames(items.map((i) => i.name));
+      for (let n = 0; n < items.length; n++) {
+        downloadBlob(items[n].blob, names[n]);
+        if (n < items.length - 1) await new Promise((r) => setTimeout(r, 300));
+      }
+      toast(`${items.length}장을 다운로드했습니다.`);
+    },
+    lselshare: async () => {
+      try { const items = await selectedShots(); await shareFiles(items.map((i) => ({ blob: i.blob, name: i.name }))); }
+      catch (e) { toast(e.message || String(e), 3000); }
+    },
+    lseldel: async () => {
+      const ids = [...L.sel];
+      if (!ids.length || !confirm(`선택한 ${ids.length}장을 목록에서 지울까요? 되돌릴 수 없습니다.\n(이번에 찍어 결함에 붙인 사진은 결함에서도 빠집니다. 이미 다운로드한 파일은 지워지지 않습니다)`)) return;
+      L.selecting = false; L.sel.clear();
+      const d = await deleteIds(ids);
+      toast(delNote(ids.length, d));
+    },
+    vclose: () => closeViewer(),
+    vdl: () => L.viewer && downloadBlob(L.viewer.blob, L.viewer.name),
+    vshare: async () => { if (!L.viewer) return; try { await shareBlob(L.viewer.blob, L.viewer.name); } catch (e) { toast(e.message || String(e), 3000); } },
+    vdel: async () => {
+      if (!L.viewer || !confirm(`${L.viewer.name} 을(를) 목록에서 지울까요?` + (sessionOf(L.viewer.id) && sessionOf(L.viewer.id).back ? '\n(결함에 붙인 사진이라 결함에서도 빠집니다)' : ''))) return;
+      const id = L.viewer.id;
+      closeViewer();
+      const d = await deleteIds([id]);
+      toast(delNote(1, d));
+    },
+  };
+  $('lmode').addEventListener('change', () => {
+    const s = loadSettings();
+    s.saveMode = $('lmode').checked ? 'download' : 'list';
+    saveSettings(s);
+    toast($('lmode').checked ? '찍을 때 다운로드 폴더에도 저장한다.' : '이제 이 목록에만 저장한다 — 다 찍은 뒤 ZIP·다운로드로 꺼낸다.', 3000);
+  });
+
   ov.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-sc]');
     if (!b) return;
@@ -311,6 +565,7 @@ function open(opts) {
     if (k === 'close') close();
     else if (k === 'shutter') shoot();
     else if (k === 'undo') undoLast();
+    else if (LIST_ACTIONS[k]) LIST_ACTIONS[k]();
     else if (k === 'flash') {
       const s = loadSettings();
       s.flashMode = FLASH_NEXT[s.flashMode || 'off'] || 'off';
@@ -351,6 +606,10 @@ function open(opts) {
   state.onKey = (e) => {
     if (ui !== state) return;
     if (document.activeElement === $('memo')) { if (e.key === 'Enter') $('memo').blur(); return; }
+    if (!$('viewer').hidden || !$('list').hidden) {
+      if (e.key === 'Escape') { e.preventDefault(); if (!$('viewer').hidden) closeViewer(); else closeList(); }
+      return;
+    }
     if (e.key === 'Escape') { e.preventDefault(); close(); }
     else if (e.code === 'Space' || e.key === 'Enter' || e.code === 'AudioVolumeUp' || e.code === 'AudioVolumeDown') { e.preventDefault(); shoot(); }
   };
