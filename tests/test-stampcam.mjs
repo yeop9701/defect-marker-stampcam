@@ -287,13 +287,37 @@ ok(await waitFor(`${sc('list')}.hidden`) && await ev(`!!document.querySelector('
 await clickSc('close');
 await ev(`document.getElementById('btnPhotoModalClose').click(); true`);
 
+/* ── 3-5. 퀵입력 시트에서 바로 스탬프 촬영 ── */
+console.log('\n[3-5] 퀵입력 시트의 「스탬프 촬영」');
+await click(cdp, box.x + box.w * 0.7, box.y + box.h * 0.6); await sleep(300);
+const qn = await ev('__markerDbg.getActiveDrawing().markers.length') - 1;
+await ev(`__markerDbg.ink.openQuickInputSheetFor(__markerDbg.getActiveDrawing().markers[${qn}]); true`);
+await sleep(300);
+const qb = `document.getElementById('btnQuickInputStamp')`;
+ok(await ev(`${qb}.style.display!=='none' && ${qb}.offsetWidth>0`), '퀵입력 시트 위 줄에 「스탬프 촬영」 단추');
+ok((await ev(`${qb}.textContent`)).includes('0016'), '  → 다음 번호(0016)가 같이 보인다', await ev(`${qb}.textContent`));
+await ev(`${qb}.click(); true`);
+ok(await waitFor(`!!document.querySelector('.sc-ov')`), '누르면 사진 창을 거치지 않고 바로 촬영 화면');
+ok(await waitFor(`!document.querySelector('.sc-ov [data-sc="shutter"]').disabled`, 10000), '  → 셔터가 살아난다');
+await ev(`document.querySelector('.sc-ov [data-sc="shutter"]').click(); true`);
+ok(await waitFor(`(__markerDbg.getActiveDrawing().markers[${qn}].photos||[]).length===1`), '찍은 사진이 그 결함에 붙는다');
+await idle();
+await ev(`document.querySelector('.sc-ov [data-sc="close"]').click(); true`);
+ok(await waitFor(`!document.querySelector('.sc-ov')`), '촬영 화면을 닫는다');
+const qTag = await ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[${qn}]; return m.rptTag||m.eqTag||''})()`);
+eq(qTag, '16', '빈 사진번호 칸에 16');
+ok(await ev(`document.getElementById('quickInputSheet').style.display!=='none'`), '퀵입력 시트는 그대로 열려 있다');
+ok(await ev(`[...document.querySelectorAll('#quickInputFields input')].some(i=>i.value==='16')`), '  → 시트의 사진번호 칸에도 16 이 보인다');
+ok((await ev(`${qb}.textContent`)).includes('0017'), '  → 단추의 다음 번호는 0017');
+await ev(`__markerDbg.ink.hideQuickInputSheet(); true`);
+
 /* ── 4. 스탬프 카메라 앱을 열면 번호가 이어진다 ─────────────── */
 console.log('\n[4] 스탬프 카메라 앱과 번호 공유');
 await cdp.send('Page.navigate', { url: STAMP });
 await sleep(2500);
 const stampNext = await ev(`(document.getElementById('nextText')||{}).textContent||''`);
-ok(stampNext.includes('0016'), '스탬프 카메라 앱의 다음 번호 = 0016', stampNext);
-eq((await shotsInList()).length, 4, '스탬프 카메라 목록에 결함마킹에서 찍은 4장');
+ok(stampNext.includes('0017'), '스탬프 카메라 앱의 다음 번호 = 0017', stampNext);
+eq((await shotsInList()).length, 5, '스탬프 카메라 목록에 결함마킹에서 찍은 5장(퀵입력 시트에서 찍은 1장 포함)');
 
 /* ── 5. 스탬프 카메라 앱이 떠 있는 동안 다른 곳(결함마킹)에서 번호가 오르면 곧바로 따라간다 (v1.8.0) ── */
 console.log('\n[5] 떠 있는 스탬프 카메라가 바뀐 번호를 따라감');

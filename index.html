@@ -308,6 +308,9 @@
   .quick-input-sheet.pinned-top{bottom:auto;top:calc(14px + env(safe-area-inset-top));}
   .qis-row{display:flex;align-items:center;gap:8px;}
   .qis-title{flex:1;font-size:12.5px;font-weight:700;color:var(--text-primary);}
+  #btnQuickInputStamp.qis-stamp{align-items:center;gap:4px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:8px;}
+  #btnQuickInputStamp.qis-stamp:not([style*="none"]){display:inline-flex;}
+  .qis-stamp-next{font-weight:400;color:var(--text-secondary);}
   .qis-fields{display:flex;gap:8px;flex-wrap:wrap;}
   /* 마지막 줄에 칸이 한두 개만 남았을 때 그 칸들이 줄 전체로 늘어나 보기 흉해지지 않도록 상한을 둔다. */
   .qis-field{flex:1 1 150px;max-width:230px;display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--text-secondary);}
@@ -1747,6 +1750,8 @@
           <!-- 손글씨 모드에서만 보인다 : 찍어 둔 결함들을 차례로 넘기며 채울 때 -->
           <button type="button" id="btnQuickInputPrev" class="tool qis-ink-only" title="앞 결함">◀ 앞</button>
           <button type="button" id="btnQuickInputNext" class="tool qis-ink-only" title="다음 결함">다음 ▶</button>
+          <!-- 이 결함으로 바로 스탬프 촬영(사진 창을 거치지 않고). 사진번호 칸이 있는 결함에만 보인다 -->
+          <button type="button" id="btnQuickInputStamp" class="tool qis-stamp" style="display:none;" title="이 결함으로 스탬프 촬영 — 찍은 사진이 붙고 빈 사진번호 칸이 채워집니다"><svg class="icon"><use href="#i-camera"/></svg> 스탬프 촬영 <span class="qis-stamp-next"></span></button>
           <button type="button" id="btnQuickInputSame" class="tool" style="display:none;">직전 값 그대로</button>
           <button type="button" id="btnQuickInputClose" class="icon-btn" title="닫기"><svg class="icon"><use href="#i-close"/></svg></button>
         </div>
@@ -8159,7 +8164,16 @@
       wireQuickInputMore();
     }
     updateQuickInputSameButton();
+    updateQuickInputStampButton(m);
     el.style.display = 'flex';
+  }
+  function updateQuickInputStampButton(m){
+    const btn = document.getElementById('btnQuickInputStamp');
+    if(!btn) return;
+    const show = !!(m && photoTagKey(m));
+    btn.style.display = show ? '' : 'none';
+    const next = btn.querySelector('.qis-stamp-next');
+    if(next) next.textContent = (show && window.StampCam) ? '· ' + StampCam.peek().numberText : '';
   }
   function wireQuickInputMore(){
     const moreBtn = document.getElementById('btnQuickInputMore');
@@ -12826,8 +12840,9 @@
         (key ? (String(m[key]||'').trim() ? ' · 사진번호 칸에 이미 ' + m[key] + ' 이(가) 있어 그대로 둔다' : ' · 사진번호 칸이 비어 있어 첫 사진 번호가 들어간다') : '');
     }
   }
-  document.getElementById('btnStampCam').addEventListener('click', ()=>{
-    const m = currentPhotoMarker(); if(!m || !window.StampCam) return;
+  // 이 결함으로 스탬프 카메라를 연다 — 사진 창의 「스탬프 촬영」과 퀵입력 시트의 📷 단추가 같이 쓴다
+  function openStampCamFor(m, onClose){
+    if(!m || !window.StampCam) return;
     const markerId = m.id;
     const d = getActiveDrawing();
     const idx = d ? d.markers.indexOf(m) : 0;
@@ -12835,8 +12850,15 @@
       title: '스탬프 촬영 · ' + [formatMarkerLabel(m, idx, d), stampMemoSuggest(m)].filter(Boolean).join(' '),
       memoSuggest: stampMemoSuggest(m),
       onShot: (res)=> attachStampShot(markerId, res),
-      onClose: ()=>{ if(photoModalMarkerId===markerId){ renderPhotoModal(); } },
+      onClose: ()=>{ if(photoModalMarkerId===markerId){ renderPhotoModal(); } if(onClose) onClose(); },
     });
+  }
+  document.getElementById('btnStampCam').addEventListener('click', ()=> openStampCamFor(currentPhotoMarker()));
+  // 퀵입력 시트의 📷 : 시트를 닫지 않고 바로 찍는다. 닫으면 시트를 다시 그려 채워진 사진번호가 보이게 한다.
+  document.getElementById('btnQuickInputStamp').addEventListener('click', ()=>{
+    const m = quickInputMarker(); if(!m) return;
+    if(!window.StampCam){ showToast('스탬프 카메라 파일(stampcam/stampcam.js)을 불러오지 못했습니다.'); return; }
+    openStampCamFor(m, ()=>{ if(quickInputMarkerId === m.id){ rerenderQuickInputSheet(); } });
   });
   document.getElementById('btnStampNative').addEventListener('click', ()=> document.getElementById('stampNativeInput').click());
   document.getElementById('stampNativeInput').addEventListener('change', async e=>{
@@ -12851,7 +12873,11 @@
     }
     e.target.value = '';
   });
-  window.addEventListener('storage', e=>{ if(photoModalMarkerId && (!e.key || e.key==='stampcam.settings.v1')) refreshStampCamInfo(); });
+  window.addEventListener('storage', e=>{
+    if(e.key && e.key!=='stampcam.settings.v1') return;
+    if(photoModalMarkerId) refreshStampCamInfo();
+    if(quickInputMarkerId) updateQuickInputStampButton(quickInputMarker());
+  });
   document.getElementById('btnCameraCancel').addEventListener('click', closeCameraView);
   document.getElementById('btnCameraCapture').addEventListener('click', captureFromCamera);
   document.getElementById('photoFileInput').addEventListener('change', e=>{ addPhotoFiles(e.target.files); e.target.value=''; });
