@@ -94,7 +94,7 @@ console.log('\n[1] 스탬프 촬영');
 await ev(`document.querySelector('[data-role="photo"]').click(); true`);
 ok(await waitFor(`document.getElementById('photoBackdrop').style.display==='flex'`), '사진 창이 열린다');
 ok((await ev(`document.getElementById('stampCamNext').textContent`)).includes('0012'), '사진 창에 다음 번호 0012 가 보인다');
-ok((await ev(`document.getElementById('stampCamHint').textContent`)).includes('사진번호 칸이 비어'), '사진번호 칸이 비어 있다는 안내');
+ok((await ev(`document.getElementById('stampCamHint').textContent`)).includes('첫 사진 번호가 사진번호 칸에 들어간다'), '첫 사진 번호가 사진번호 칸에 들어간다는 안내');
 await shot('stampcam-1-modal.png');
 await ev(`document.getElementById('btnStampCam').click(); true`);
 ok(await waitFor(`!!document.querySelector('.sc-ov')`), '촬영 화면이 뜬다');
@@ -132,7 +132,7 @@ await ev(`document.querySelector('.sc-ov [data-sc="close"]').click(); true`);
 ok(!(await ev(`!!document.querySelector('.sc-ov')`)), '닫으면 촬영 화면이 사라진다');
 ok((await ev(`document.getElementById('stampCamNext').textContent`)).includes('0014'), '사진 창의 다음 번호 0014');
 eq(await ev(`document.querySelectorAll('#photoGrid .photo-thumb').length`), 2, '사진 창 목록에 2장');
-ok((await ev(`document.getElementById('stampCamHint').textContent`)).includes('이미 12'), '이제는 「사진번호 칸에 이미 12」 안내');
+ok((await ev(`document.getElementById('stampCamHint').textContent`)).includes('지금 12 → 바뀜'), '이제는 「지금 12 → 바뀜」 안내(다음 촬영의 첫 장이 번호를 바꾼다)');
 
 /* ── 2. 기본 카메라 + 번호 (파일 받아 스탬프) ───────────────── */
 console.log('\n[2] 기본 카메라 + 번호');
@@ -140,6 +140,7 @@ const r1 = await cdp.send('Runtime.evaluate', { expression: `document.querySelec
 await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r1.result.objectId });
 ok(await waitFor(`__markerDbg.getActiveDrawing().markers[0].photos.length===3`), '기본 카메라 사진에도 번호를 찍어 붙인다');
 eq((await settings()).current, 15, '번호 15');
+eq(await ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[0];return m.rptTag||m.eqTag})()`), '14', '새 촬영의 첫 장이므로 사진번호 12 → 14 로 바뀐다');
 ok((await dlFiles(3)).some((f) => /_0014_벽체 균열\.jpg$/.test(f)), '0014 파일이 다운로드 폴더에');
 
 /* ── 3. 실행취소 : 사진번호 칸만 되돌아가고 사진은 남는다 ── */
@@ -291,6 +292,8 @@ await ev(`document.getElementById('btnPhotoModalClose').click(); true`);
 console.log('\n[3-5] 퀵입력 시트의 「스탬프 촬영」');
 await click(cdp, box.x + box.w * 0.7, box.y + box.h * 0.6); await sleep(300);
 const qn = await ev('__markerDbg.getActiveDrawing().markers.length') - 1;
+/* 사진번호 칸에 이미 다른 값(손으로 쓴 5)이 있어도 찍은 번호로 바뀌어야 한다 */
+await ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[${qn}]; if('rptTag' in m || !('eqTag' in m)) m.rptTag='5'; else m.eqTag='5'; return true})()`);
 await ev(`__markerDbg.ink.openQuickInputSheetFor(__markerDbg.getActiveDrawing().markers[${qn}]); true`);
 await sleep(300);
 const qb = `document.getElementById('btnQuickInputStamp')`;
@@ -301,6 +304,21 @@ ok(await waitFor(`!!document.querySelector('.sc-ov')`), '누르면 사진 창을
 ok(await waitFor(`!document.querySelector('.sc-ov [data-sc="shutter"]').disabled`, 10000), '  → 셔터가 살아난다');
 await ev(`document.querySelector('.sc-ov [data-sc="shutter"]').click(); true`);
 ok(await waitFor(`(__markerDbg.getActiveDrawing().markers[${qn}].photos||[]).length===1`), '찍은 사진이 그 결함에 붙는다');
+ok(await waitFor(`(()=>{const m=__markerDbg.getActiveDrawing().markers[${qn}]; return (m.rptTag||m.eqTag)==='16'})()`), '찍자마자 사진번호 5 → 16 (칸에 값이 있어도 바꾼다)');
+ok(await ev(`!!document.querySelector('.sc-ov')`) && await ev(`[...document.querySelectorAll('#quickInputFields input')].some(i=>i.value==='16')`), '  → 촬영 화면이 떠 있는 동안 뒤의 퀵입력 시트 칸도 이미 16');
+ok((await ev(`(document.querySelector('.sc-ov .sc-toast')||{}).textContent||''`)).includes('5 → 16'), '  → 촬영 화면 알림에 「5 → 16」', await ev(`(document.querySelector('.sc-ov .sc-toast')||{}).textContent||''`));
+/* 같은 촬영 화면의 두 번째 장은 첫 장 번호 그대로 */
+await idle();
+await ev(`document.querySelector('.sc-ov [data-sc="shutter"]').click(); true`);
+ok(await waitFor(`(__markerDbg.getActiveDrawing().markers[${qn}].photos||[]).length===2`), '두 번째 장도 붙는다');
+eq(await ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[${qn}]; return m.rptTag||m.eqTag})()`), '16', '  → 사진번호는 첫 장 16 그대로');
+/* 두 번째 장을 취소하고, 첫 장도 취소하면 원래 값 5 로 */
+await idle(); await ev(`document.querySelector('.sc-ov [data-sc="undo"]') && document.querySelector('.sc-ov [data-sc="undo"]').click(); true`);
+await idle(); await ev(`document.querySelector('.sc-ov [data-sc="undo"]') && document.querySelector('.sc-ov [data-sc="undo"]').click(); true`);
+await idle();
+eq(await ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[${qn}]; return [(m.photos||[]).length, m.rptTag||m.eqTag]})()`), [0, '5'], '두 장 다 취소 → 사진 없음 · 사진번호 원래 값 5 로');
+await ev(`document.querySelector('.sc-ov [data-sc="shutter"]').click(); true`);
+ok(await waitFor(`(()=>{const m=__markerDbg.getActiveDrawing().markers[${qn}]; return (m.photos||[]).length===1 && (m.rptTag||m.eqTag)==='16'})()`), '취소 뒤 다시 찍으면 그 장이 첫 장 — 사진번호 16');
 await idle();
 await ev(`document.querySelector('.sc-ov [data-sc="close"]').click(); true`);
 ok(await waitFor(`!document.querySelector('.sc-ov')`), '촬영 화면을 닫는다');

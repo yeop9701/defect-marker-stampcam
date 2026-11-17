@@ -2198,7 +2198,7 @@
           <button type="button" id="btnOpenCamera" class="add-drawing-btn" style="flex:1;"><svg class="icon"><use href="#i-camera"/></svg> 사진 촬영</button>
         </div>
         <!-- 번호 스탬프 카메라 연결 : 찍으면 번호를 찍어 저장(스탬프 카메라 설정대로)하고, 이 결함에 붙이고,
-             사진번호 칸이 비어 있으면 그 번호를 넣는다. 번호는 스탬프 카메라 앱과 하나로 이어진다. -->
+             촬영 화면을 열고 처음 찍은 사진의 번호를 사진번호 칸에 넣는다(있던 값은 바꾼다). 번호는 스탬프 카메라 앱과 하나로 이어진다. -->
         <div class="stampcam-row">
           <button type="button" id="btnStampCam" class="add-drawing-btn stampcam-main"><svg class="icon"><use href="#i-camera"/></svg> 스탬프 촬영 <span class="stampcam-next" id="stampCamNext"></span></button>
           <label class="file-label stampcam-native" title="폰 기본 카메라로 찍고 번호를 찍어 붙인다(화질·초점이 더 나은 기기에서)">
@@ -12780,9 +12780,12 @@
     const parts = (m.eqFloor||m.eqLoc||m.eqMember) ? [m.eqFloor, m.eqLoc, m.eqMember] : [m.rptType, m.rptDefect];
     return parts.map(v=>String(v||'').trim()).filter(Boolean).join(' ');
   }
-  // 찍은 사진 한 장을 결함에 붙인다. 사진번호 칸이 비어 있으면 그 번호를 넣는다.
+  // 찍은 사진 한 장을 결함에 붙이고, 이번 촬영(session)의 첫 사진이면 그 번호를 사진번호 칸에 넣는다.
+  // 칸에 값이 있어도 바꾼다(사용자 요청 2026-11-17 : 그 번호로 찍으면 바로 사진번호가 들어가야 한다).
+  // 같은 촬영 화면에서 두 번째 장부터는 칸을 그대로 둔다 — 한 결함의 사진번호는 첫 장 번호.
   // 돌려주는 것 : { note : 촬영 화면 알림에 덧붙일 글, undo : 「방금 것 취소」 때 이 결함에서 되돌릴 일 }
-  function attachStampShot(markerId, res){
+  function attachStampShot(markerId, res, session){
+    session = session || {};
     const d = getActiveDrawing();
     const m = d && d.markers.find(x=>x.id===markerId);
     if(!m) return { note:'결함을 찾지 못했습니다' };
@@ -12792,17 +12795,27 @@
     let note = '결함에 붙임';
     const key = photoTagKey(m);
     let filled = null;                    // 이 사진 때문에 사진번호 칸에 넣은 값
+    let prev = '';                        // 그 전에 칸에 있던 값(취소하면 되돌린다)
     if(key){
       const cur = String(m[key]||'').trim();
-      if(cur === ''){
-        pushUndo();                       // 사진번호 칸을 바꾸는 것은 되돌릴 수 있게(사진은 원래대로 남는다)
-        m[key] = String(res.number);
-        filled = m[key];
-        note += ' · 사진번호 ' + res.number;
+      if(!session.filled){
+        prev = m[key] || '';
+        if(cur !== String(res.number)){
+          pushUndo();                     // 사진번호 칸을 바꾸는 것은 되돌릴 수 있게(사진은 원래대로 남는다)
+          m[key] = String(res.number);
+          // 손글씨 원본이 있던 칸이면 「직접 입력」 값으로 바뀐 것으로 적는다(글씨 원본은 남긴다)
+          if(m.ink && m.ink[key] && window.Ink && Ink.hasInk(m.ink[key]))
+            m.ink = Object.assign({}, m.ink, { [key]: Object.assign({}, m.ink[key], { st:'done', eng:'manual', text:m[key] }) });
+        }
+        filled = String(res.number);
+        session.filled = true;
+        note += ' · 사진번호 ' + res.number + (cur && cur !== String(res.number) ? ' (' + cur + ' → ' + res.number + ')' : '');
       } else if(cur !== String(res.number)){
-        note += ' · 사진번호 칸은 ' + cur + ' 그대로';
+        note += ' · 사진번호 칸은 첫 장 ' + cur + ' 그대로';
       }
     }
+    // 퀵입력 시트가 이 결함에 열려 있으면 사진번호 칸을 곧바로 고친다
+    if(filled !== null && quickInputMarkerId === markerId) rerenderQuickInputSheet();
     markImagesDirty();
     if(photoModalMarkerId===markerId) renderPhotoModal();
     renderTable();
@@ -12814,8 +12827,12 @@
       const i = (mm.photos||[]).lastIndexOf(photo);
       let t = '';
       if(i >= 0){ mm.photos.splice(i,1); t = '결함에서 뺌'; }
-      if(filled !== null && key && String(mm[key]||'') === filled){ mm[key] = ''; t += ' · 사진번호 비움'; }
+      if(filled !== null && key && String(mm[key]||'') === filled){
+        mm[key] = prev; t += prev ? ' · 사진번호 ' + prev + ' 로 되돌림' : ' · 사진번호 비움';
+        session.filled = false;           // 다음에 찍는 사진이 다시 번호를 넣는다
+      }
       markImagesDirty();
+      if(quickInputMarkerId === markerId) rerenderQuickInputSheet();
       if(photoModalMarkerId===markerId) renderPhotoModal();
       renderTable();
       return t;
@@ -12837,7 +12854,7 @@
     const key = m && photoTagKey(m);
     if(hint){
       hint.textContent = '번호는 스탬프 카메라 앱과 이어진다. 저장 : ' + (p.saveMode==='download' ? '다운로드 폴더' : '스탬프 카메라 앱 목록') +
-        (key ? (String(m[key]||'').trim() ? ' · 사진번호 칸에 이미 ' + m[key] + ' 이(가) 있어 그대로 둔다' : ' · 사진번호 칸이 비어 있어 첫 사진 번호가 들어간다') : '');
+        (key ? (String(m[key]||'').trim() ? ' · 첫 사진 번호가 사진번호 칸에 들어간다(지금 ' + m[key] + ' → 바뀜)' : ' · 첫 사진 번호가 사진번호 칸에 들어간다') : '');
     }
   }
   // 이 결함으로 스탬프 카메라를 연다 — 사진 창의 「스탬프 촬영」과 퀵입력 시트의 📷 단추가 같이 쓴다
@@ -12846,10 +12863,11 @@
     const markerId = m.id;
     const d = getActiveDrawing();
     const idx = d ? d.markers.indexOf(m) : 0;
+    const session = {};                   // 이번 촬영 화면 — 첫 사진이 사진번호를 넣는다
     StampCam.open({
       title: '스탬프 촬영 · ' + [formatMarkerLabel(m, idx, d), stampMemoSuggest(m)].filter(Boolean).join(' '),
       memoSuggest: stampMemoSuggest(m),
-      onShot: (res)=> attachStampShot(markerId, res),
+      onShot: (res)=> attachStampShot(markerId, res, session),
       onClose: ()=>{ if(photoModalMarkerId===markerId){ renderPhotoModal(); } if(onClose) onClose(); },
     });
   }
@@ -12866,7 +12884,8 @@
     if(!m || !window.StampCam || !files || !files.length){ e.target.value=''; return; }
     const markerId = m.id;
     try{
-      const res = await StampCam.stampFiles(files, r=> attachStampShot(markerId, r));
+      const session = {};
+      const res = await StampCam.stampFiles(files, r=> attachStampShot(markerId, r, session));
       if(res.length) showToast(res.map(r=>r.numberText).join(', ') + ' 번호를 찍어 붙였습니다' + (res[0].saved==='download' ? ' (다운로드 폴더에도 저장)' : ' (스탬프 카메라 목록에도 저장)'));
     }catch(err){
       showToast('번호를 찍지 못했습니다: ' + (err.message||err));
