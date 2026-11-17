@@ -38,6 +38,7 @@ const padRect = (k) => ev(`(()=>{const b=document.querySelector('#quickInputFiel
   if(!b) return null; const r=b.getBoundingClientRect(); return {x:r.left,y:r.top,w:r.width,h:r.height};})()`);
 /* 상자 안 비율 좌표(0~1)로 획 하나 */
 const stroke = async (r, pts) => drag(cdp, pts.map(([u, v]) => ({ x: r.x + u * r.w, y: r.y + v * r.h })), { steps: 6 });
+const writeBtn = (k) => ev(`document.querySelector('#quickInputFields [data-tax-write="${k}"]').click(); true`);
 /* 글자 비슷한 꼬부랑 (글자 칸) */
 const scribble = async (r) => {
   await stroke(r, [[0.1, 0.3], [0.2, 0.7], [0.3, 0.3], [0.4, 0.7]]);
@@ -78,9 +79,14 @@ eq(await ev('__markerDbg.getActiveDrawing().markers.length'), 1, '결함 하나�
 ok(await waitFor(`document.getElementById('quickInputSheet').style.display!=='none'`), '퀵입력 시트가 열린다');
 ok(await ev(`document.getElementById('quickInputSheet').classList.contains('ink-mode')`), '시트가 손글씨 모드');
 const keys = await ev(`[...document.querySelectorAll('#quickInputFields .ink-box')].map(b=>b.dataset.k)`);
-eq(keys, ['rptType', 'rptMember', 'rptDefect', 'rptWidth', 'rptLength', 'rptCount', 'rptTag'], '외관 결함 7칸 모두 필기 상자');
+eq(keys, ['rptWidth', 'rptLength', 'rptCount', 'rptTag'], '실측값 4칸은 필기 상자');
+eq(await ev(`document.querySelectorAll('#quickInputFields .qis-tax-row').length`), 3, '부재·자재·결함은 단추 줄(필기 상자 아님)');
 const kinds = await ev(`[...document.querySelectorAll('#quickInputFields .ink-box')].map(b=>b.className.replace('ink-box ',''))`);
-eq(kinds, ['ink-text', 'ink-text', 'ink-text', 'ink-num', 'ink-num', 'ink-int', 'ink-int'], '글자 칸 3 · 숫자 칸 4');
+eq(kinds, ['ink-num', 'ink-num', 'ink-int', 'ink-int'], '숫자 칸 4');
+/* 목록에 없는 말은 ✎ 로 필기 상자를 연다 */
+await writeBtn('rptType');
+await sleep(200);
+eq(await ev(`[...document.querySelectorAll('#quickInputFields .ink-box')].map(b=>b.dataset.k)[0]`), 'rptType', '부재 ✎ → 부재 필기 상자가 열린다');
 const rType = await padRect('rptType');
 ok(rType && rType.h >= 100 && rType.w >= 250, '글자 칸 필기 자리가 크다(높이 100px 이상)', rType);
 const rW = await padRect('rptWidth');
@@ -232,6 +238,7 @@ await ev(`__markerDbg.ink.closeInkConvert(); true`);
 console.log('\n[8] 변환 (Claude)');
 await ev(`__markerDbg.ink.openQuickInputSheetFor(${M(1)}); true`);
 await sleep(300);
+await writeBtn('rptMember'); await sleep(200);
 const rMem = await padRect('rptMember');
 await scribble(rMem);
 ok(await waitFor(`!!(${M(1)}.ink && ${M(1)}.ink.rptMember)`, 3000), '두 번째 결함 자재 칸에 손글씨');
@@ -272,6 +279,7 @@ await ev(`__markerDbg.ink.closeInkConvert(); Ink.saveSettings({engine:'google'})
 console.log('\n[9] 내보내기 · 끄기');
 await ev(`__markerDbg.ink.openQuickInputSheetFor(${M(1)}); true`);
 await sleep(300);
+await writeBtn('rptDefect'); await sleep(200);
 await scribble(await padRect('rptDefect'));
 ok(await waitFor(`!!(${M(1)}.ink && ${M(1)}.ink.rptDefect)`, 3000), '결함 칸에 손글씨(변환 안 함)');
 await ev(`__markerDbg.ink.hideQuickInputSheet(); window.__toasts=[]; const _st=document.querySelector('.app-toast-stack'); if(_st) _st.innerHTML=''; true`);
@@ -283,7 +291,7 @@ await ev(`document.getElementById('btnInkToggle').click(); true`);
 eq(await ev(`[__markerDbg.ink.isInkInputOn(), document.getElementById('inkStateLabel').textContent]`), [false, '끔'], '「손글씨 입력: 끔」');
 await ev(`__markerDbg.ink.openQuickInputSheetFor(${M(1)}); true`);
 await sleep(300);
-ok(await ev(`!document.getElementById('quickInputSheet').classList.contains('ink-mode') && !!document.querySelector('#quickInputFields select')`), '끄면 퀵입력이 예전 목록·자판 칸으로');
+ok(await ev(`!document.getElementById('quickInputSheet').classList.contains('ink-mode') && !!document.querySelector('#quickInputFields .qis-tax') && !document.querySelector('#quickInputFields .ink-box')`), '끄면 필기 상자 없이 단추·자판 칸으로');
 await ev(`__markerDbg.ink.hideQuickInputSheet(); document.getElementById('btnInkToggle').click(); true`);
 
 /* ── 10. 진짜 구글 (LIVE=1) ── */

@@ -317,6 +317,31 @@
   /* 도·분·초는 한 칸처럼 붙여 보여준다(결함 목록 카드와 같은 모양). */
   .qis-dms{display:flex;align-items:center;gap:2px;font-size:12px;color:var(--muted);}
   .qis-dms input{text-align:center;padding:9px 2px;}
+  /* ---------- 부재 → 자재 → 결함 단추 (퀵입력 시트) ----------
+     한 번에 한 줄만 펼친다 : 부재를 누르면 접히고 자재 줄이, 자재를 누르면 결함 줄이 펼쳐진다.
+     접힌 줄을 누르면 다시 펼쳐 바꿀 수 있다. 결함은 여러 개 — 누를 때마다 넣고 뺀다(/ 로 이음). */
+  .qis-tax{flex:1 1 100%;display:flex;flex-direction:column;gap:6px;}
+  .qis-tax-row{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--gridline);border-radius:10px;
+    background:var(--surface-2);padding:6px 8px;}
+  .qis-tax-row.closed{cursor:pointer;align-items:center;}
+  .qis-tax-label{flex:0 0 auto;min-width:34px;padding-top:7px;font-size:12.5px;font-weight:700;color:var(--text-primary);}
+  .qis-tax-row.closed .qis-tax-label{padding-top:0;}
+  .qis-tax-chips{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;}
+  .qis-tax-chips button{min-height:36px;padding:4px 12px;border-radius:18px;border:1px solid var(--gridline);
+    background:var(--surface-1);color:var(--text-primary);font-size:14px;font-family:inherit;line-height:1.2;}
+  .qis-tax-chips button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+  .qis-tax-chips button.extra{border-style:dashed;}
+  .qis-tax-chips button.clear{color:var(--muted);border-style:dashed;}
+  .qis-tax-value{flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .qis-tax-value.empty{font-weight:400;color:var(--muted);}
+  .qis-tax-row .qis-tax-side{flex:0 0 auto;display:flex;gap:4px;}
+  .qis-tax-side button{min-height:36px;min-width:40px;padding:2px 8px;border-radius:8px;border:1px solid var(--gridline);
+    background:var(--surface-1);color:var(--text-secondary);font-size:13px;font-family:inherit;}
+  .qis-tax-side button.on{border-color:var(--accent);color:var(--accent);font-weight:700;}
+  .qis-tax-write{flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid var(--gridline);background:var(--surface-1);
+    color:var(--text-primary);font-size:14px;font-family:inherit;}
+  .qis-tax-result{font-size:12.5px;color:var(--text-secondary);padding:0 4px;}
+  .qis-tax-result b{color:var(--text-primary);}
   /* 종속 마커(기울기 측정방향)처럼 채울 칸이 없는 경우의 안내문 */
   .qis-none{font-size:12.5px;color:var(--text-secondary);padding:4px 2px;}
 
@@ -1154,6 +1179,7 @@
   .cell-menu button:hover{background:var(--surface-hover);}
   .cell-menu button.on{background:var(--accent);color:#fff;}
   .cell-menu button.none{color:var(--muted);font-style:italic;}
+  .cell-menu-hint{padding:4px 10px 6px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--gridline);margin-bottom:2px;}
   @media print{ .cell-menu{display:none !important;} }
 
   table.input-table{border-collapse:collapse;font-size:12px;width:100%;}
@@ -2113,26 +2139,26 @@
   <div class="modal-panel" style="width:min(480px, 92vw);">
     <div class="modal-header">
       <div>
-        <div class="modal-title">결함 목록 선택지 수정</div>
-        <div class="modal-sub">우측 결함 목록 카드의 "유형"·"부재명"·"결함명" 드롭다운에 나타날 선택지를 줄마다 하나씩 입력하세요. 여기서 지운 항목도 이미 입력된 결함의 값은 그대로 남습니다.</div>
+        <div class="modal-title">결함 목록 선택지 — 더 붙일 말</div>
+        <div class="modal-sub">부재·자재·결함 목록은 엑셀(taxonomy/부재_자재_결함.xlsx)에서 와서, 부재를 고르면 그 부재의 자재만, 부재·자재를 고르면 그 조합의 결함만 나옵니다. 여기에는 <b>엑셀에 없는 말</b>을 줄마다 하나씩 적으면 목록 끝에 늘 붙습니다(엑셀에 있는 말은 적어도 따로 붙지 않습니다). 여기서 지워도 이미 입력된 결함의 값은 그대로 남습니다.</div>
       </div>
       <button type="button" id="btnFieldOptionsClose" class="icon-btn"><svg class="icon icon-lg"><use href="#i-close"/></svg></button>
     </div>
     <div class="modal-body">
       <div style="display:flex;flex-direction:column;gap:12px;">
-        <label class="side-field">유형 선택지 (예: 벽체, 천장, 바닥)
+        <label class="side-field">부재에 더 붙일 말 (예: 외벽, 승강기 홀)
           <textarea id="optFieldType" rows="4" style="font-size:12.5px;padding:8px;border:1px solid var(--gridline);border-radius:6px;font-family:inherit;resize:vertical;background:var(--surface-1);color:var(--text-primary);"></textarea>
         </label>
-        <label class="side-field">부재명 선택지 (예: 콘크리트, 조적, 마감재, 철근)
+        <label class="side-field">자재에 더 붙일 말 (예: 철근, 금속 패널)
           <textarea id="optFieldMember" rows="5" style="font-size:12.5px;padding:8px;border:1px solid var(--gridline);border-radius:6px;font-family:inherit;resize:vertical;background:var(--surface-1);color:var(--text-primary);"></textarea>
         </label>
-        <label class="side-field">결함명 선택지 (예: 수직균열, 박리, 누수흔적 …)
+        <label class="side-field">결함에 더 붙일 말 (예: 노출, 들뜸(타음))
           <textarea id="optFieldDefect" rows="10" style="font-size:12.5px;padding:8px;border:1px solid var(--gridline);border-radius:6px;font-family:inherit;resize:vertical;background:var(--surface-1);color:var(--text-primary);"></textarea>
         </label>
       </div>
     </div>
     <div class="modal-footer">
-      <div style="font-size:11px;color:var(--text-secondary);flex:1;">각 드롭다운 맨 아래에는 항상 "직접입력…"이 함께 나타나 목록에 없는 값도 입력할 수 있습니다.</div>
+      <div style="font-size:11px;color:var(--text-secondary);flex:1;">목록에 없는 말은 칸에 그냥 쳐 넣어도 됩니다 — 친 말은 곧바로 목록에 오릅니다. 결함 여러 개는 / 로 잇습니다.</div>
       <button type="button" class="tool" id="btnFieldOptionsReset">기본값으로</button>
       <button type="button" class="tool" id="btnFieldOptionsCancel">취소</button>
       <button type="button" class="primary" id="btnFieldOptionsApply">저장</button>
@@ -2299,6 +2325,8 @@
 
 <!-- 번호 스탬프 카메라 연결 (stampcam/build.mjs 로 만든 파일). 사진 창의 「스탬프 촬영」이 쓴다. -->
 <script src="stampcam/stampcam.js"></script>
+<!-- 부재 → 자재 → 결함 연결 목록 (taxonomy/부재_자재_결함.xlsx 에서 만든 것 — taxonomy/build_taxonomy.py) -->
+<script src="taxonomy/defect-taxonomy.js"></script>
 <!-- 손글씨 입력 (퀵입력 시트의 필기 상자 · 숫자 인식 모델 · 구글/Claude 변환). ink/ink.js 머리말 참고 -->
 <script src="ink/digits-model.js"></script>
 <script src="ink/ink.js"></script>
@@ -2707,10 +2735,12 @@
   // 마킹 자체의 색상/모양을 결정하는 DEFECT_TYPES(위)와는 별개로, 보고서에 들어갈 "유형(부위)·부재명·결함명"을
   // 드롭다운(+직접입력)으로, "폭·길이·개수·#"는 자유 입력으로 받는다. 드롭다운 선택지는 localStorage에 저장해
   // "목록수정" 버튼으로 사용자가 직접 고칠 수 있다.
+  // 기본 목록은 taxonomy/defect-taxonomy.js(부재 → 자재 → 결함 엑셀)가 맡는다. 여기 목록(「목록수정」)은
+  // 엑셀에 없는 말을 더 붙이는 자리라 기본은 비어 있다. 예전에 저장해 둔 목록도 엑셀에 없는 말만 목록 끝에 붙는다.
   const REPORT_FIELD_DEFAULTS = {
-    rptType:   ['벽체','천장','바닥'],
-    rptMember: ['콘크리트','조적','마감재','철근'],
-    rptDefect: ['수직균열','수평균열','경사균열','망상균열','박리','박락','노출','누수흔적','백태흔적'],
+    rptType:   [],
+    rptMember: [],
+    rptDefect: [],
   };
   const REPORT_FIELD_STORE_KEY = 'defectMarkerReportFieldOptions_v1';
   let reportFieldOptions = loadReportFieldOptions();
@@ -8088,10 +8118,28 @@
     if(titleEl) titleEl.textContent = inkMode
       ? `#${m.seq||''} ${getType(m.typeKey).label} — 손글씨로 칸에 바로 쓰세요`
       : '방금 추가한 결함 — 빠른 입력';
+    if(qisTaxFor !== m.id){ qisTaxFor = m.id; qisTaxOpen = null; qisTaxWrite = {}; }
+    const hasTax = spec.some(f=> f.kind==='select');
     if(spec.length === 0){
       box.innerHTML = '<div class="qis-none">이 마커는 측정위치에 따라 자동으로 그려져서 따로 채울 값이 없습니다.</div>';
     } else if(inkMode){
-      renderInkBoxes(m, spec, box);
+      // 부재·자재·결함은 단추로 고른다. 손글씨 상자는 ✎ 를 누른 칸과, 이어받은 손글씨가 아직 글자가 아닌 칸에만 연다.
+      renderInkBoxes(m, spec, box, hasTax ? (k=> TAX_FIELDS.indexOf(k) < 0 || quickTaxWantsInk(m, k)) : null);
+      if(hasTax) box.insertBefore(buildQuickTaxPanel(m, true), box.firstChild);
+    } else if(hasTax){
+      // 부재·자재·결함 단추 + 실측값(폭·길이·개수·사진#)은 「더 입력」 안에
+      const rest = spec.filter(f=> f.kind !== 'select');
+      box.innerHTML = '';
+      box.appendChild(buildQuickTaxPanel(m, false));
+      if(rest.length){
+        box.insertAdjacentHTML('beforeend',
+          `<button type="button" class="tool qis-more-toggle" id="btnQuickInputMore">`
+          + `${quickInputMoreOpen ? '▴ 접기' : '▾ 더 입력 ('+rest.length+'칸)'}</button>`
+          + `<div class="qis-more${quickInputMoreOpen ? ' open' : ''}" id="quickInputMore">`
+          + rest.map(fld=> quickInputFieldHTML(fld, m)).join('')
+          + `</div>`);
+        wireQuickInputMore();
+      }
     } else {
       // 시트는 도면 위에 뜨는 창이라, 칸이 많은 위치도 종류(외관조사 7칸·장비조사 4칸)에서는 시트가
       // 방금 찍은 마커 주변을 통째로 가렸다. 현장에서 바로 채우는 것은 앞의 몇 칸(분류)이고 폭·길이·
@@ -8108,18 +8156,117 @@
               + `</div>`;
       }
       box.innerHTML = html;
-      const moreBtn = document.getElementById('btnQuickInputMore');
-      if(moreBtn) moreBtn.addEventListener('click', ()=>{
-        quickInputMoreOpen = !quickInputMoreOpen;
-        try{ localStorage.setItem(QUICK_INPUT_MORE_KEY, quickInputMoreOpen ? 'on' : 'off'); } catch(err){ /* 저장 실패해도 이번 세션 동작에는 지장 없음 */ }
-        renderQuickInputSheet();
-        // 접거나 펴면 시트 높이가 달라진다 — 마커를 가리는지 다시 판정해 위/아래 위치를 고쳐 잡는다.
-        const sheet = document.getElementById('quickInputSheet');
-        if(sheet) sheet.classList.toggle('pinned-top', quickInputSheetShouldPinTop(quickInputMarker()));
-      });
+      wireQuickInputMore();
     }
     updateQuickInputSameButton();
     el.style.display = 'flex';
+  }
+  function wireQuickInputMore(){
+    const moreBtn = document.getElementById('btnQuickInputMore');
+    if(moreBtn) moreBtn.addEventListener('click', ()=>{
+      quickInputMoreOpen = !quickInputMoreOpen;
+      try{ localStorage.setItem(QUICK_INPUT_MORE_KEY, quickInputMoreOpen ? 'on' : 'off'); } catch(err){ /* 저장 실패해도 이번 세션 동작에는 지장 없음 */ }
+      rerenderQuickInputSheet();
+    });
+  }
+  // 시트를 다시 그리고, 높이가 달라졌으니 마커를 가리는지 다시 판정해 위/아래 위치를 고쳐 잡는다.
+  function rerenderQuickInputSheet(){
+    renderQuickInputSheet();
+    const sheet = document.getElementById('quickInputSheet');
+    const m = quickInputMarker();
+    if(sheet && m) sheet.classList.toggle('pinned-top', quickInputSheetShouldPinTop(m));
+  }
+
+  // ---------- 퀵입력 : 부재 → 자재 → 결함 단추 ----------
+  // 결함선택 예시(참고/결함선택_예시.html)처럼 앞 칸을 고르면 뒤 칸 단추가 그에 맞게 줄어든다.
+  // 한 번에 한 줄만 펼쳐 시트가 도면을 덜 가린다. 상태는 결함이 바뀌면 처음으로 돌아간다.
+  var qisTaxFor = null;      // 아래 상태가 어느 결함 것인지
+  var qisTaxOpen = null;     // 손으로 펼친 줄(없으면 첫 빈 칸)
+  var qisTaxWrite = {};      // ✎ 로 직접 쓰기를 연 칸
+  const QUICK_TAX_ROWS = [['rptType','부재'], ['rptMember','자재'], ['rptDefect','결함']];
+  function quickTaxDefaultOpen(m){
+    if(!String(m.rptType||'').trim()) return 'rptType';
+    if(!String(m.rptMember||'').trim()) return 'rptMember';
+    return 'rptDefect';
+  }
+  // 손글씨 모드에서 이 칸에 필기 상자를 열까 : ✎ 를 눌렀거나, 글자로 아직 안 바뀐 손글씨만 있을 때
+  function quickTaxWantsInk(m, k){
+    if(qisTaxWrite[k]) return true;
+    const e = m.ink && m.ink[k];
+    return !!(window.Ink && Ink.hasInk(e) && !String(m[k]||'').trim());
+  }
+  function buildQuickTaxPanel(m, inkMode){
+    const wrap = document.createElement('div');
+    wrap.className = 'qis-tax';
+    const open = qisTaxOpen || quickTaxDefaultOpen(m);
+    const ctx = { rptType: m.rptType, rptMember: m.rptMember };
+    let html = '';
+    QUICK_TAX_ROWS.forEach(([k, label])=>{
+      const val = String(m[k]||'').trim();
+      const writing = !!qisTaxWrite[k];
+      const inkHere = inkMode && quickTaxWantsInk(m, k);
+      const side = `<span class="qis-tax-side"><button type="button" data-tax-write="${k}"${writing ? ' class="on"' : ''}`
+        + ` title="목록에 없는 말 — ${inkMode ? '손글씨로 쓰기' : '직접 입력'}">✎</button></span>`;
+      if(writing && !inkMode){
+        html += `<div class="qis-tax-row"><span class="qis-tax-label">${label}</span>`
+          + `<input type="text" class="qis-tax-write" data-qis="${k}" value="${escapeAttr(val)}" placeholder="${label} 직접 입력${k==='rptDefect' ? ' (여러 개는 / 로)' : ''}" autocomplete="off"/>${side}</div>`;
+        return;
+      }
+      if(k !== open || (inkMode && writing)){
+        const shown = val || (inkHere ? '(손글씨 — 아래 상자)' : '선택 안 함');
+        html += `<div class="qis-tax-row closed" data-tax-open="${k}" title="눌러서 ${label} 바꾸기">`
+          + `<span class="qis-tax-label">${label}</span><span class="qis-tax-value${val ? '' : ' empty'}">${escapeHTML(shown)}</span>${side}</div>`;
+        return;
+      }
+      const picked = k === 'rptDefect' ? splitDefects(val) : (val ? [val] : []);
+      const opts = comboOptsFor(k, ctx);
+      // 지금 값이 목록에 없으면(다른 부재의 자재, 직접 친 말) 앞에 켜진 단추로 보여 준다
+      const all = picked.filter(v=> opts.indexOf(v) < 0).concat(opts);
+      const chips = all.map(v=> `<button type="button" data-tax-pick="${k}" data-v="${escapeAttr(v)}" class="${picked.indexOf(v) >= 0 ? 'on' : ''}${taxKnows(k, v) ? '' : ' extra'}">${escapeHTML(v)}</button>`).join('')
+        + (val ? `<button type="button" class="clear" data-tax-clear="${k}">지우기</button>` : '');
+      html += `<div class="qis-tax-row open"><span class="qis-tax-label">${label}</span><div class="qis-tax-chips">${chips}</div>${side}</div>`;
+    });
+    const sum = [m.rptType, m.rptMember, m.rptDefect].map(v=> String(v||'').trim()).filter(Boolean).join(' ');
+    if(sum) html += `<div class="qis-tax-result">→ <b>${escapeHTML(sum)}</b></div>`;
+    wrap.innerHTML = html;
+    return wrap;
+  }
+  // 단추로 고른 값 넣기. 손글씨 원본이 있으면 남기고 「목록에서 고름」으로 표시한다(필기 상자 ▼ 와 같다).
+  function setQuickTaxValue(m, k, v){
+    if(m.ink && m.ink[k] && window.Ink && Ink.hasInk(m.ink[k])){
+      m.ink = Object.assign({}, m.ink, { [k]: Object.assign({}, m.ink[k], { st:'done', eng:'pick', text:v }) });
+      lastQuickInputInk[k] = m.ink[k];
+    }
+    applyQuickInputField(k, v, false);
+  }
+  function pickQuickTax(k, v){
+    const m = quickInputMarker(); if(!m) return;
+    if(k === 'rptDefect'){
+      const list = splitDefects(m.rptDefect);
+      const i = list.indexOf(v);
+      if(i >= 0) list.splice(i, 1); else list.push(v);
+      setQuickTaxValue(m, k, joinDefects(list));
+      qisTaxOpen = 'rptDefect';
+    } else {
+      setQuickTaxValue(m, k, v);
+      // 앞 칸이 바뀌면, 뒤 칸에서 새 목록에 없는 엑셀 말은 뺀다(엑셀에 없는 직접 쓴 말은 둔다)
+      const ctx = { rptType: m.rptType, rptMember: m.rptMember };
+      if(k === 'rptType' && m.rptMember && taxKnows('rptMember', m.rptMember)
+         && taxOptions('rptMember', ctx).indexOf(m.rptMember) < 0){
+        setQuickTaxValue(m, 'rptMember', '');
+        ctx.rptMember = '';
+      }
+      const okDefects = taxOptions('rptDefect', ctx);
+      const kept = splitDefects(m.rptDefect).filter(d=> !taxKnows('rptDefect', d) || okDefects.indexOf(d) >= 0);
+      if(joinDefects(kept) !== String(m.rptDefect||'')) setQuickTaxValue(m, 'rptDefect', joinDefects(kept));
+      qisTaxOpen = null; // 다음 빈 칸을 펼친다
+    }
+    commitQuickTax();
+  }
+  function commitQuickTax(){
+    updateQuickInputSameButton();
+    renderTable();
+    rerenderQuickInputSheet();
   }
   // "직전 값 그대로"는 지금 마커와 같은 칸 구성으로 저장된 값이 있을 때만 의미가 있다.
   function updateQuickInputSameButton(){
@@ -8227,16 +8374,17 @@
     });
     return out;
   }
-  function renderInkBoxes(m, spec, box){
+  function renderInkBoxes(m, spec, box, keep){
     box.innerHTML = '';
     inkBoxes = {};
     const id = m.id;
     inkFieldsFor(m).forEach(f=>{
+      if(keep && !keep(f.k)) return;
       const b = Ink.createBox({
         k: f.k, label: f.label, kind: f.kind,
         ink: (m.ink && m.ink[f.k]) || null,
         value: m[f.k] || '',
-        options: f.kind==='text' ? ()=> comboOptsFor(f.k) : null,
+        options: f.kind==='text' ? ()=> { const cur = (findMarkerAnywhere(id) || {}).m || m; return comboOptsFor(f.k, { rptType: cur.rptType, rptMember: cur.rptMember }); } : null,
         onChange: r=> applyInkField(id, f.k, f.kind, r),
       });
       inkBoxes[f.k] = b;
@@ -8262,6 +8410,15 @@
     renderTable();
     renderLvSummary();
     if(kind==='text' && r.ink && r.ink.st !== 'done') scheduleInkAutoConvert();
+    if(TAX_FIELDS.indexOf(k) >= 0) refreshQuickTaxPanel();
+  }
+  // 필기 상자는 그대로 두고 부재·자재·결함 단추 묶음만 새로 그린다(쓰는 중인 획을 건드리지 않게)
+  function refreshQuickTaxPanel(){
+    const box = document.getElementById('quickInputFields');
+    const old = box && box.querySelector('.qis-tax');
+    const m = quickInputMarker();
+    if(!old || !m) return;
+    old.replaceWith(buildQuickTaxPanel(m, document.getElementById('quickInputSheet').classList.contains('ink-mode')));
   }
   // 결함 목록 카드 : 글자로 아직 안 바뀐 칸에는 쓴 글씨를 칸 배경으로 그려 둔다
   function decorateInkCells(card, m){
@@ -8308,6 +8465,8 @@
   }
   function inkVocab(){
     const set = new Set();
+    const X = taxIndex();
+    if(X) ['parts','materials','defects'].forEach(k=> X.T[k].forEach(x=> set.add(x.name)));
     Object.keys(reportFieldOptions || {}).forEach(k=>{
       const arr = reportFieldOptions[k];
       if(Array.isArray(arr)) arr.forEach(v=>{ if(v) set.add(String(v)); });
@@ -8701,14 +8860,73 @@
      칸 이동이 아니라 값 고르기가 되어 버리기 때문이다. 여기서는 칸 오른쪽 ▼ 를
      눌렀을 때에만 열고, 고르는 것도 마우스·손가락으로만 한다.
      다른 현장조사 앱(외관조사·연도변·압축강도·기울기)과 같은 방식이다. */
-  function comboOptsFor(field){
+  /* ═══ 부재 → 자재 → 결함 연결 목록 ═════════════════════════════
+     taxonomy/defect-taxonomy.js (taxonomy/부재_자재_결함.xlsx 에서 만든 것). 부재를 고르면 그 부재에 쓰이는
+     자재만, 부재·자재를 고르면 그 조합에 생기는 결함만 목록에 나온다. 앞 칸이 비었거나 엑셀에 없는 말이면
+     넓게(그 부재의 모든 자재 결함 / 그 자재가 쓰인 모든 부재의 결함 / 전체) 보여 준다.
+     결함은 여러 개를 「/」 로 이어 한 칸에 넣는다(예: 균열/백태). 목록 순서는 엑셀 그대로.
+     「목록수정」 창의 항목과 손으로 친 새 말은 엑셀에 없는 것만 목록 끝에 붙는다 — 엑셀에 있는 말을
+     거기서 다시 붙이면 걸러 낸 목록이 도로 넓어지기 때문이다. */
+  const TAX_FIELDS = ['rptType','rptMember','rptDefect'];
+  const DEFECT_SEP = '/';
+  function splitDefects(v){ return String(v||'').split(DEFECT_SEP).map(s=>s.trim()).filter(Boolean); }
+  function joinDefects(list){ return list.join(DEFECT_SEP); }
+  var taxIndexCache = null;
+  function taxIndex(){
+    const T = window.DefectTaxonomy;
+    if(!T) return null;
+    if(taxIndexCache && taxIndexCache.T === T) return taxIndexCache;
+    const names = k => T[k].map(x=>x.name);
+    taxIndexCache = {
+      T, tree: T.tree,
+      known: { rptType: new Set(names('parts')), rptMember: new Set(names('materials')), rptDefect: new Set(names('defects')) },
+      order: { rptMember: names('materials'), rptDefect: names('defects') },
+    };
+    return taxIndexCache;
+  }
+  function taxKnows(field, v){ const X = taxIndex(); return !!(X && X.known[field] && X.known[field].has(v)); }
+  // 엑셀 순서대로 정렬한 합집합
+  function taxUnion(X, field, lists){
+    const set = new Set(); lists.forEach(l=> l.forEach(v=> set.add(v)));
+    return X.order[field].filter(v=> set.has(v));
+  }
+  // ctx = { rptType, rptMember } (앞 칸 값)
+  function taxOptions(field, ctx){
+    const X = taxIndex(); if(!X) return [];
+    const tree = X.tree;
+    const part = String((ctx && ctx.rptType) || '').trim();
+    const mat = String((ctx && ctx.rptMember) || '').trim();
+    if(field === 'rptType') return X.T.parts.map(x=>x.name);
+    if(field === 'rptMember') return tree[part] ? Object.keys(tree[part]) : X.order.rptMember.slice();
+    if(field === 'rptDefect'){
+      if(tree[part] && tree[part][mat]) return tree[part][mat].slice();
+      if(tree[part]) return taxUnion(X, field, Object.values(tree[part]));
+      if(X.known.rptMember.has(mat)) return taxUnion(X, field, Object.values(tree).map(p=> p[mat] || []));
+      return X.order.rptDefect.slice();
+    }
+    return [];
+  }
+  // ▼ 목록이 붙은 칸의 「같은 줄」 앞 칸 값 — 결함 목록 카드(data-role)와 표 입력(data-col) 모두
+  function comboCtxFrom(el){
+    const row = el && el.closest && (el.closest('tr') || el.closest('.marker-card'));
+    if(!row) return {};
+    const val = k => { const i = row.querySelector(`[data-role="${k}"], [data-col="${k}"]`); return i ? i.value : ''; };
+    return { rptType: val('rptType'), rptMember: val('rptMember') };
+  }
+  function comboOptsFor(field, ctx){
     if(field === 'type') return DEFECT_TYPES.map(t => t.label);
-    const set = new Set(reportFieldOptions[field] || []);
+    const isTax = TAX_FIELDS.indexOf(field) >= 0 && !!taxIndex();
+    const set = new Set(isTax ? taxOptions(field, ctx || {}) : []);
+    const add = v => {
+      (field === 'rptDefect' ? splitDefects(v) : [String(v||'').trim()]).forEach(x=>{
+        if(x && !(isTax && taxKnows(field, x))) set.add(x);
+      });
+    };
+    (reportFieldOptions[field] || []).forEach(add);
     /* 새로 친 값도 곧바로 목록에 오른다 */
     const d = getActiveDrawing();
-    if(d) d.markers.forEach(m => { const v = String(m[field]||'').trim(); if(v) set.add(v); });
-    document.querySelectorAll('#inputTableBody [data-col="' + field + '"]')
-      .forEach(i => { const v = String(i.value||'').trim(); if(v) set.add(v); });
+    if(d) d.markers.forEach(m => add(m[field]));
+    document.querySelectorAll('#inputTableBody [data-col="' + field + '"]').forEach(i => add(i.value));
     return Array.from(set);
   }
   let cellMenu = null;
@@ -8722,16 +8940,30 @@
     const menu = document.createElement('div');
     menu.className = 'cell-menu';
     menu.__for = btn;
-    menu.innerHTML = '<button type="button" class="none" data-v="">(비움)</button>' +
-      comboOptsFor(btn.dataset.drop).map(v => '<button type="button" data-v="' + escapeAttr(v) + '"' +
-        (String(input.value) === String(v) ? ' class="on"' : '') + '>' + escapeHTML(v) + '</button>').join('');
+    /* 결함은 여러 개를 고른다 : 누를 때마다 넣고 빼며(「/」 로 이음) 목록은 열어 둔다 */
+    const multi = btn.dataset.drop === 'rptDefect';
+    const picked = () => multi ? splitDefects(input.value) : [String(input.value)];
+    menu.innerHTML = (multi ? '<div class="cell-menu-hint">여러 개 고를 수 있습니다 (/ 로 이어짐)</div>' : '') +
+      '<button type="button" class="none" data-v="">(비움)</button>' +
+      comboOptsFor(btn.dataset.drop, comboCtxFrom(btn)).map(v => '<button type="button" data-v="' + escapeAttr(v) + '"' +
+        (picked().indexOf(String(v)) >= 0 ? ' class="on"' : '') + '>' + escapeHTML(v) + '</button>').join('');
     menu.addEventListener('mousedown', e => e.preventDefault());   // 칸에서 초점이 달아나지 않게
     menu.addEventListener('click', e => {
       const b = e.target.closest('button[data-v]');
       if(!b) return;
-      input.value = b.dataset.v;
+      if(multi && b.dataset.v){
+        const list = splitDefects(input.value);
+        const i = list.indexOf(b.dataset.v);
+        if(i >= 0) list.splice(i, 1); else list.push(b.dataset.v);
+        input.value = joinDefects(list);
+      } else input.value = b.dataset.v;
       input.dispatchEvent(new Event('input', {bubbles:true}));
       input.dispatchEvent(new Event('change', {bubbles:true}));
+      if(multi && b.dataset.v){
+        const now = picked();
+        menu.querySelectorAll('button[data-v]').forEach(x => x.classList.toggle('on', !!x.dataset.v && now.indexOf(x.dataset.v) >= 0));
+        return;
+      }
       closeCellMenu();
       input.focus();
       try{ input.select(); }catch(err){}
@@ -12340,7 +12572,7 @@
   document.getElementById('btnFieldOptionsCancel').addEventListener('click', closeFieldOptionsModal);
   document.getElementById('btnFieldOptionsApply').addEventListener('click', applyFieldOptions);
   document.getElementById('btnFieldOptionsReset').addEventListener('click', ()=>{
-    if(!confirm('선택지 목록을 기본값으로 되돌릴까요? (이미 입력된 결함의 값은 유지됩니다)')) return;
+    if(!confirm('더 붙일 말을 모두 비울까요? 엑셀 목록만 남습니다. (이미 입력된 결함의 값은 유지됩니다)')) return;
     document.getElementById('optFieldType').value = REPORT_FIELD_DEFAULTS.rptType.join('\n');
     document.getElementById('optFieldMember').value = REPORT_FIELD_DEFAULTS.rptMember.join('\n');
     document.getElementById('optFieldDefect').value = REPORT_FIELD_DEFAULTS.rptDefect.join('\n');
@@ -12696,7 +12928,8 @@
     const byMarkType = tallyBy(allMarkers, m=>getType(m.typeKey).label, '(미지정)');
     const byRptType = tallyBy(allMarkers, m=>m.rptType, '(미입력)');
     const byMember = tallyBy(allMarkers, m=>m.rptMember, '(미입력)');
-    const byDefect = tallyBy(allMarkers, m=>m.rptDefect, '(미입력)');
+    // 결함은 여러 개를 / 로 이어 넣으므로 나눠 각각 센다(「균열/백태」 = 균열 1 + 백태 1)
+    const byDefect = tallyBy(allMarkers.flatMap(m=>{ const l = splitDefects(m.rptDefect); return l.length ? l.map(v=>({ rptDefect:v })) : [m]; }), m=>m.rptDefect, '(미입력)');
     const photoCount = allMarkers.reduce((s,m)=> s + ((m.photos&&m.photos.length)||0), 0);
     body.innerHTML = `
       <div class="stats-summary">
@@ -14569,6 +14802,46 @@
     qisBox.addEventListener('change', e=>{
       const el = e.target.closest('[data-qis]'); if(!el) return;
       applyQuickInputField(el.dataset.qis, el.value, true);
+      if(el.classList.contains('qis-tax-write')) refreshQuickTaxPanel();
+    });
+    // 부재·자재·결함 단추
+    qisBox.addEventListener('click', e=>{
+      const t = e.target.closest && e.target;
+      if(!t) return;
+      const w = t.closest('[data-tax-write]');
+      if(w){
+        const k = w.dataset.taxWrite;
+        qisTaxWrite[k] = !qisTaxWrite[k];
+        if(!qisTaxWrite[k] && qisTaxOpen === null) qisTaxOpen = k;
+        rerenderQuickInputSheet();
+        const inp = qisTaxWrite[k] && (qisBox.querySelector(`.qis-tax-write[data-qis="${k}"]`));
+        if(inp) inp.focus();
+        return;
+      }
+      const p = t.closest('[data-tax-pick]');
+      if(p){ pickQuickTax(p.dataset.taxPick, p.dataset.v); return; }
+      const c = t.closest('[data-tax-clear]');
+      if(c){
+        const m = quickInputMarker(); if(!m) return;
+        const k = c.dataset.taxClear;
+        // 지우기 = 그 칸을 비운다(필기 상자의 ✕ 와 같이 손글씨 원본도 함께)
+        if(m.ink && m.ink[k]){
+          const ink = Object.assign({}, m.ink); delete ink[k];
+          if(Object.keys(ink).length) m.ink = ink; else delete m.ink;
+          lastQuickInputInk[k] = null;
+        }
+        setQuickTaxValue(m, k, '');
+        qisTaxOpen = c.dataset.taxClear;
+        commitQuickTax();
+        return;
+      }
+      const o = t.closest('[data-tax-open]');
+      if(o){
+        const k = o.dataset.taxOpen;
+        if(qisTaxWrite[k]) return;
+        qisTaxOpen = k;
+        rerenderQuickInputSheet();
+      }
     });
   }
   document.getElementById('btnQuickInputSame').addEventListener('click', applyQuickInputSameAsLast);
