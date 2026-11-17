@@ -320,6 +320,64 @@
   /* 종속 마커(기울기 측정방향)처럼 채울 칸이 없는 경우의 안내문 */
   .qis-none{font-size:12.5px;color:var(--text-secondary);padding:4px 2px;}
 
+  /* ---------- 손글씨 입력 (ink/ink.js) ----------
+     퀵입력 시트가 「칸마다 큰 필기 상자」가 된다. 칸을 눌러 고를 필요 없이 다음 상자에 이어 쓰면 된다.
+     글자 칸은 한 줄에 3개, 숫자 칸은 4개씩 — 결함 7칸이면 두 줄. */
+  .qis-ink-only{display:none;}
+  .quick-input-sheet.ink-mode{width:min(1200px,98vw);padding:8px 10px;}
+  .quick-input-sheet.ink-mode .qis-ink-only{display:inline-flex;}
+  .qis-fields.ink-fields{gap:8px;}
+  .ink-box{--ink-color:var(--accent);display:flex;flex-direction:column;min-width:0;border:1px solid var(--gridline);
+    border-radius:10px;background:var(--surface-2);overflow:hidden;}
+  .ink-box.ink-text{flex:1 1 calc(33.33% - 8px);}
+  .ink-box.ink-num,.ink-box.ink-int{flex:1 1 calc(25% - 8px);}
+  .ink-head{display:flex;align-items:center;gap:4px;padding:2px 4px 0 10px;font-size:12px;color:var(--text-secondary);}
+  .ink-label{font-weight:700;color:var(--text-primary);white-space:nowrap;}
+  .ink-status{flex:1;min-width:0;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ink-status.wait{color:#b7791f;} .ink-status.warn{color:var(--danger);font-weight:700;}
+  .ink-head button{min-width:34px;min-height:30px;padding:2px 6px;border-radius:7px;border:1px solid var(--gridline);
+    background:var(--surface-1);color:var(--text-secondary);font-size:13px;line-height:1;}
+  body.layout-tablet .ink-head button{min-height:34px;min-width:40px;}
+  .ink-pad{position:relative;height:112px;touch-action:none;cursor:crosshair;
+    background:linear-gradient(to bottom, transparent calc(78% - 1px), var(--gridline) calc(78% - 1px), var(--gridline) 78%, transparent 78%);}
+  .ink-box.ink-num .ink-pad,.ink-box.ink-int .ink-pad{height:92px;}
+  .ink-pad canvas{position:absolute;left:0;top:0;touch-action:none;}
+  .ink-hint{position:absolute;left:10px;top:8px;font-size:12px;color:var(--muted);pointer-events:none;opacity:.8;}
+  .ink-box.has-ink .ink-hint{display:none;}
+  .ink-val{border:0;border-top:1px solid var(--gridline);padding:5px 10px;font-size:16px;font-weight:700;width:100%;
+    background:var(--surface-1);color:var(--text-primary);font-family:inherit;min-height:34px;}
+  .ink-val::placeholder{font-weight:400;font-size:12.5px;color:var(--muted);}
+  .ink-picker{position:fixed;z-index:1200;display:flex;flex-wrap:wrap;gap:6px;padding:10px;max-height:46vh;overflow:auto;
+    background:var(--surface-1);border:1px solid var(--gridline);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);}
+  .ink-picker button{min-height:42px;padding:6px 14px;font-size:15px;border-radius:9px;}
+  .ink-picker-empty{font-size:12.5px;color:var(--text-secondary);padding:4px;}
+  /* 결함 목록 카드 : 글자로 아직 안 바꾼 칸에는 쓴 글씨를 그대로 그려 둔다 */
+  #markerTable input.ink-only{background-repeat:no-repeat;background-position:4px center;background-size:contain;background-origin:content-box;}
+  .ink-float-btn{position:relative;font-size:20px;}
+  .ink-float-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;
+    background:#b7791f;color:#fff;font-size:11px;line-height:18px;font-weight:700;}
+  /* 손글씨 변환 창 */
+  .ink-cv-settings{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--gridline);border-radius:8px;margin-bottom:10px;font-size:13px;}
+  .ink-cv-note{font-size:11.5px;color:var(--text-secondary);margin-left:4px;}
+  .ink-cv-key{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:22px;}
+  .ink-cv-key input{flex:1 1 220px;max-width:360px;padding:6px 8px;border-radius:6px;border:1px solid var(--gridline);background:var(--surface-2);color:var(--text-primary);}
+  .ink-cv-bar{display:flex;align-items:center;gap:14px;font-size:13px;margin-bottom:8px;}
+  .ink-cv-count{color:var(--text-secondary);font-size:12px;}
+  .ink-cv-list{display:flex;flex-direction:column;gap:6px;}
+  .ink-cv-row{display:grid;grid-template-columns:150px minmax(120px,1fr) 200px;gap:10px;align-items:center;
+    padding:6px 8px;border:1px solid var(--gridline);border-radius:8px;background:var(--surface-2);}
+  .ink-cv-where{font-size:12px;color:var(--text-secondary);line-height:1.35;}
+  .ink-cv-where b{color:var(--text-primary);font-size:13px;}
+  .ink-cv-img{max-height:60px;max-width:100%;background:#fff;border-radius:4px;justify-self:start;}
+  .ink-cv-out{display:flex;flex-direction:column;gap:4px;}
+  .ink-cv-out input{padding:6px 8px;font-size:15px;font-weight:700;border-radius:6px;border:1px solid var(--gridline);background:var(--surface-1);color:var(--text-primary);width:100%;}
+  .ink-cv-alts{display:flex;flex-wrap:wrap;gap:4px;}
+  .ink-cv-alts button{font-size:12px;padding:2px 8px;min-height:26px;border-radius:6px;}
+  .ink-cv-st{font-size:11px;color:var(--muted);} .ink-cv-st.warn{color:var(--danger);} .ink-cv-st.wait{color:#b7791f;}
+  .ink-cv-empty{padding:18px;text-align:center;color:var(--text-secondary);font-size:13px;}
+  .ink-cv-progress{font-size:12.5px;color:var(--text-secondary);}
+  @media (max-width:700px){ .ink-cv-row{grid-template-columns:1fr;} }
+
   /* 터치 대상 확대 — 버튼/입력/선택칸을 손가락으로 누르기 편한 최소 44px로 키운다(마우스 조작은 무관). */
   body.layout-tablet button,
   body.layout-tablet select,
@@ -1217,6 +1275,8 @@
         <div class="settings-menu" id="settingsMenu" style="display:none;">
           <button type="button" id="btnStylusOnlyToggle" class="tool settings-menu-item" title="켜두면 펜(애플펜슬·S펜·서피스펜 등) 터치만 받고 손가락·손바닥 터치는 무시합니다. 태블릿에서 그림을 그리다 손바닥이 화면에 닿아 실수로 마커가 찍히는 것을 막을 때 사용하세요. 아이패드(사파리)뿐 아니라 갤럭시탭·서피스 등 크롬/엣지 계열에서도 동작합니다."><svg class="icon"><use href="#i-pencil"/></svg> 펜슬 전용</button>
           <button type="button" id="btnQuickInputToggle" class="tool settings-menu-item" title="태블릿 모드에서 마커를 찍으면 하단에 유형·부재명·결함명만 빠르게 입력할 수 있는 시트를 띄웁니다. 켬/끔은 다음 방문에도 유지됩니다."><svg class="icon"><use href="#i-edit"/></svg> 퀵입력: <span id="quickInputStateLabel">켬</span></button>
+          <button type="button" id="btnInkToggle" class="tool settings-menu-item" title="켜 두면 퀵입력 시트가 칸마다 큰 필기 상자로 바뀝니다. S펜(또는 손가락)으로 칸에 바로 쓰면 숫자 칸은 그 자리에서 숫자로 읽고, 글자 칸은 쓴 글씨 그대로 저장했다가 인터넷이 될 때 글자로 바꿉니다."><svg class="icon"><use href="#i-pencil"/></svg> 손글씨 입력: <span id="inkStateLabel">켬</span></button>
+          <button type="button" id="btnInkConvertOpen" class="tool settings-menu-item" title="손으로 쓴 칸을 글자로 바꾸고(구글 필기 인식 / Claude), 원본 글씨와 결과를 나란히 확인합니다."><svg class="icon"><use href="#i-edit"/></svg> 손글씨 변환…</button>
           <button type="button" id="btnWakeLockToggle" class="tool settings-menu-item" title="켜두면 이 탭을 보는 동안 화면이 자동으로 꺼지지 않습니다. 현장에서 도면에 표시하는 도중 화면이 꺼져 다시 켜야 하는 불편을 막아줍니다."><svg class="icon"><use href="#i-eye"/></svg> 화면유지: <span id="wakeLockStateLabel">끔</span></button>
         </div>
       </div>
@@ -1647,6 +1707,8 @@
              태블릿에서는 헤더가 다른 버튼들 사이에 묻혀 자동저장이 잘 되고 있는지 확인하기 어려웠다.
              updateAutosaveStatusLabel()이 두 표시를 함께 갱신한다. -->
         <span class="tablet-float-autosave" id="tabletFloatAutosaveLabel"></span>
+        <!-- 손글씨 : 고른 결함(없으면 마지막 결함)의 필기 상자를 연다 / 변환 대기 칸 수 -->
+        <button type="button" class="tablet-float-btn ink-float-btn" id="btnFloatInk" title="손글씨로 입력 — 고른 결함의 칸에 바로 씁니다">✎<span class="ink-float-badge" id="inkFloatBadge" style="display:none;"></span></button>
       </div>
       <!-- 마커를 찍은 직후 뜨는 퀵 입력 시트(태블릿 전용, 헤더의 "퀵입력" 토글로 켬/끔) — 서랍을 열어
            카드를 찾아가지 않아도 그 마커의 입력칸을 "전부" 그 자리에서 채울 수 있다.
@@ -1655,7 +1717,10 @@
            마커 생성 3경로(클릭/드래그/범위 3클릭) 직후 이 시트를 채워 보여준다. -->
       <div class="quick-input-sheet" id="quickInputSheet" style="display:none;">
         <div class="qis-row">
-          <span class="qis-title">방금 추가한 결함 — 빠른 입력</span>
+          <span class="qis-title" id="quickInputTitle">방금 추가한 결함 — 빠른 입력</span>
+          <!-- 손글씨 모드에서만 보인다 : 찍어 둔 결함들을 차례로 넘기며 채울 때 -->
+          <button type="button" id="btnQuickInputPrev" class="tool qis-ink-only" title="앞 결함">◀ 앞</button>
+          <button type="button" id="btnQuickInputNext" class="tool qis-ink-only" title="다음 결함">다음 ▶</button>
           <button type="button" id="btnQuickInputSame" class="tool" style="display:none;">직전 값 그대로</button>
           <button type="button" id="btnQuickInputClose" class="icon-btn" title="닫기"><svg class="icon"><use href="#i-close"/></svg></button>
         </div>
@@ -1874,6 +1939,39 @@
 <!-- 빈 도면(백지) 만들기: 규격을 고르면 그 크기의 흰색 이미지를 도면으로 추가한다.
      규격을 A4/A3 비율에 맞춰 두는 이유는 내보내기의 용지(PAPER_SIZES_PT)와 비율이 같아야
      저장했을 때 위아래로 빈 띠가 생기지 않기 때문이다. -->
+<!-- 손글씨 변환 : 손으로 쓴 칸을 글자로 바꾸고, 원본 글씨와 결과를 나란히 확인한다 -->
+<div class="modal-backdrop" id="inkConvertBackdrop" style="display:none;">
+  <div class="modal-panel" id="inkConvertPanel" style="width:min(980px, 96vw);">
+    <div class="modal-header" id="inkConvertDragHandle">
+      <div>
+        <div class="modal-title">손글씨 변환</div>
+        <div class="modal-sub">손으로 쓴 칸을 글자로 바꿉니다(인터넷 필요). 쓴 글씨는 원본 그대로 남고, 바뀐 글자가 틀리면 오른쪽 칸에서 고치면 됩니다. 숫자 칸은 쓸 때 이미 앱 안에서 읽었고, 확신이 낮은 것만 여기서 다시 읽습니다.</div>
+      </div>
+      <button type="button" id="btnInkConvertClose" class="icon-btn"><svg class="icon icon-lg"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="ink-cv-settings">
+        <label class="ink-cv-opt"><input type="radio" name="inkEngine" value="google"> 구글 필기 인식 <span class="ink-cv-note">무료 · 공식 공개 API 가 아니라 언젠가 막힐 수 있음 · 글씨가 구글로 전송됨</span></label>
+        <label class="ink-cv-opt"><input type="radio" name="inkEngine" value="claude"> Claude <span class="ink-cv-note">점검 용어를 알려 주어 더 정확 · API 키 필요 · 쓴 만큼 요금</span></label>
+        <div class="ink-cv-key" id="inkCvKeyRow"><span>Claude API 키</span><input type="password" id="inkCvApiKey" placeholder="sk-ant-…" autocomplete="off"><span class="ink-cv-note">이 기기(브라우저)에만 저장됩니다</span></div>
+        <label class="ink-cv-opt"><input type="checkbox" id="inkCvAuto"> 인터넷이 되면 자동으로 변환</label>
+      </div>
+      <div class="ink-cv-bar">
+        <label><input type="radio" name="inkCvFilter" value="todo" checked> 변환할 것</label>
+        <label><input type="radio" name="inkCvFilter" value="all"> 손글씨 전부</label>
+        <span class="ink-cv-count" id="inkCvCount"></span>
+      </div>
+      <div class="ink-cv-list" id="inkCvList"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="btnInkConvertRun" class="primary">변환하기</button>
+      <span class="ink-cv-progress" id="inkCvProgress"></span>
+      <span style="flex:1"></span>
+      <button type="button" id="btnInkConvertCloseFooter">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="blankDrawingBackdrop" style="display:none;">
   <div class="modal-panel" id="blankDrawingPanel" style="width:min(460px, 92vw);">
     <div class="modal-header">
@@ -2201,6 +2299,9 @@
 
 <!-- 번호 스탬프 카메라 연결 (stampcam/build.mjs 로 만든 파일). 사진 창의 「스탬프 촬영」이 쓴다. -->
 <script src="stampcam/stampcam.js"></script>
+<!-- 손글씨 입력 (퀵입력 시트의 필기 상자 · 숫자 인식 모델 · 구글/Claude 변환). ink/ink.js 머리말 참고 -->
+<script src="ink/digits-model.js"></script>
+<script src="ink/ink.js"></script>
 <script>
 (function(){
   "use strict";
@@ -7899,7 +8000,9 @@
   // 시트로 마지막에 채운 값 — "직전 값 그대로" 버튼이 재사용한다. 칸 구성이 프리셋마다 다르므로
   // 고정 3칸이 아니라 {필드키: 값} 형태로 통째로 들고 있는다.
   let lastQuickInputValues = {};
+  var lastQuickInputInk = {};  // 같은 용도로 손글씨({칸: 글씨|null}) — 손글씨 시트로 채운 칸만
   function hideQuickInputSheet(){
+    destroyInkBoxes(); // 아직 넘기지 않은 획이 있으면 마저 저장하고 정리한다
     const el = document.getElementById('quickInputSheet');
     if(el) el.style.display = 'none';
     quickInputMarkerId = null;
@@ -7977,8 +8080,18 @@
     const box = document.getElementById('quickInputFields');
     if(!el || !m || !box) return;
     const spec = quickInputSpecFor(m);
+    destroyInkBoxes();
+    const inkMode = isInkInputOn() && spec.length > 0;
+    el.classList.toggle('ink-mode', inkMode);
+    box.classList.toggle('ink-fields', inkMode);
+    const titleEl = document.getElementById('quickInputTitle');
+    if(titleEl) titleEl.textContent = inkMode
+      ? `#${m.seq||''} ${getType(m.typeKey).label} — 손글씨로 칸에 바로 쓰세요`
+      : '방금 추가한 결함 — 빠른 입력';
     if(spec.length === 0){
       box.innerHTML = '<div class="qis-none">이 마커는 측정위치에 따라 자동으로 그려져서 따로 채울 값이 없습니다.</div>';
+    } else if(inkMode){
+      renderInkBoxes(m, spec, box);
     } else {
       // 시트는 도면 위에 뜨는 창이라, 칸이 많은 위치도 종류(외관조사 7칸·장비조사 4칸)에서는 시트가
       // 방금 찍은 마커 주변을 통째로 가렸다. 현장에서 바로 채우는 것은 앞의 몇 칸(분류)이고 폭·길이·
@@ -8072,12 +8185,375 @@
     // 지금 마커가 쓰는 칸만 되쓴다 — 프리셋이 다른 마커의 값이 섞여 들어가지 않는다.
     quickInputKeys(m).forEach(k=>{
       if(lastQuickInputValues[k] !== undefined) m[k] = lastQuickInputValues[k];
+      if(lastQuickInputInk[k] !== undefined){
+        const ink = Object.assign({}, m.ink||{});
+        if(lastQuickInputInk[k]) ink[k] = lastQuickInputInk[k]; else delete ink[k];
+        m.ink = ink;
+      }
     });
     markDirty();
     hideQuickInputSheet();
     renderTable();
     renderLvSummary();
   }
+
+  // ---------- 손글씨 입력 (ink/ink.js) ----------
+  // 퀵입력 시트를 「칸마다 큰 필기 상자」로 바꾼다. 쓴 글씨는 m.ink[칸] 에 획 그대로 저장되고(원본 — 변환 뒤에도 남는다),
+  // 숫자 칸은 앱 안에서 바로 숫자로 읽고, 글자 칸은 인터넷이 될 때 구글 / Claude 로 글자로 바꾼다.
+  // 이 묶음의 상태 변수는 var 로 둔다 — renderTable 등이 초기화 도중에 먼저 불려도 TDZ 예외가 나지 않게.
+  var inkBoxes = null;           // 지금 시트에 떠 있는 필기 상자 {칸: box}
+  var inkAutoTimer = 0;
+  var inkConvertBusy = false;
+  function isInkInputOn(){ return !!(window.Ink && Ink.loadSettings().on); }
+  function destroyInkBoxes(){
+    if(!inkBoxes) return;
+    const boxes = inkBoxes; inkBoxes = null;
+    Object.keys(boxes).forEach(k=> boxes[k].destroy()); // 아직 넘기지 않은 획은 여기서 저장된다
+  }
+  function findMarkerAnywhere(id){
+    for(const d of drawings){ const m = d.markers.find(x=>x.id===id); if(m) return { d, m }; }
+    return null;
+  }
+  // 필기 상자로 보여 줄 칸들. 드롭다운·자유 입력 = 글자 칸, 실측값 = 숫자 칸, 도·분·초는 세 칸으로 편다.
+  function inkFieldsFor(m){
+    const out = [];
+    quickInputSpecFor(m).forEach(fld=>{
+      if(fld.kind==='dms'){
+        const names = ['도','분','초'];
+        fld.keys.forEach((k,i)=> out.push({ k, label: fld.label.replace(/\(.*\)/,'') + ' ' + names[i], kind:'int' }));
+      } else {
+        out.push({ k: fld.k, label: fld.label, kind: (fld.kind==='num' || fld.kind==='int') ? fld.kind : 'text' });
+      }
+    });
+    return out;
+  }
+  function renderInkBoxes(m, spec, box){
+    box.innerHTML = '';
+    inkBoxes = {};
+    const id = m.id;
+    inkFieldsFor(m).forEach(f=>{
+      const b = Ink.createBox({
+        k: f.k, label: f.label, kind: f.kind,
+        ink: (m.ink && m.ink[f.k]) || null,
+        value: m[f.k] || '',
+        options: f.kind==='text' ? ()=> comboOptsFor(f.k) : null,
+        onChange: r=> applyInkField(id, f.k, f.kind, r),
+      });
+      inkBoxes[f.k] = b;
+      box.appendChild(b.el);
+    });
+  }
+  // 상자 하나에서 글씨·값이 바뀌었을 때 (펜을 떼고 잠깐 뒤 / ✕ / ▼ 고르기 / 칸에 직접 친 값)
+  function applyInkField(id, k, kind, r){
+    const hit = findMarkerAnywhere(id); if(!hit) return;
+    const m = hit.m;
+    const ink = Object.assign({}, m.ink || {});
+    if(r.ink) ink[k] = r.ink; else delete ink[k];
+    if(Object.keys(ink).length) m.ink = ink; else delete m.ink;
+    m[k] = r.value;
+    markDirty();
+    if(ALL_CARRY_KEYS.indexOf(k) >= 0){
+      recordCarryValue(k, r.value);
+      if(!r.value && r.ink) lastCarryInk[k] = r.ink;
+    }
+    lastQuickInputValues[k] = r.value;
+    lastQuickInputInk[k] = r.ink || null;
+    updateQuickInputSameButton();
+    renderTable();
+    renderLvSummary();
+    if(kind==='text' && r.ink && r.ink.st !== 'done') scheduleInkAutoConvert();
+  }
+  // 결함 목록 카드 : 글자로 아직 안 바뀐 칸에는 쓴 글씨를 칸 배경으로 그려 둔다
+  function decorateInkCells(card, m){
+    if(!m.ink || !window.Ink) return;
+    let color = null;
+    for(const k in m.ink){
+      const e = m.ink[k]; if(!Ink.hasInk(e)) continue;
+      const el = card.querySelector(`[data-role="${k}"]`); if(!el) continue;
+      if(String(m[k]||'').trim()){ el.title = (el.title ? el.title + ' · ' : '') + '손글씨 원본 있음'; continue; }
+      if(!color) color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1a4f8a';
+      el.classList.add('ink-only');
+      el.style.backgroundImage = `url("${Ink.thumbURL(e, color)}")`;
+      el.placeholder = '';
+      el.title = Ink.isPending(e) ? '손글씨 — 아직 글자로 안 바꿈 (설정 › 손글씨 변환)' : '손글씨';
+      el.addEventListener('input', ()=>{ el.classList.remove('ink-only'); el.style.backgroundImage = ''; }, { once:true });
+    }
+  }
+  // 손글씨가 있는 칸 전부 (모든 도면)
+  function inkItemsAll(){
+    const out = [];
+    if(!window.Ink) return out;
+    drawings.forEach(d=> d.markers.forEach(m=>{
+      if(!m.ink) return;
+      const fields = inkFieldsFor(m);
+      for(const k in m.ink){
+        const e = m.ink[k]; if(!Ink.hasInk(e)) continue;
+        const f = fields.find(x=>x.k===k) || { k, label:k, kind:'text' };
+        out.push({ d, m, k, label: f.label, kind: f.kind, ink: e });
+      }
+    }));
+    return out;
+  }
+  // 변환할 것 = 글자 칸 중 아직 안 바뀐 것 + 숫자 칸 중 앱이 자신 없게 읽은 것(손대지 않은 경우만)
+  function inkNeedsConvert(it){
+    const e = it.ink;
+    if(it.kind==='text') return e.st !== 'done';
+    return e.st==='done' && e.eng==='digits' && e.conf != null && e.conf < 0.6 && String(it.m[it.k]||'') === String(e.text||'');
+  }
+  function updateInkBadge(){
+    const b = document.getElementById('inkFloatBadge'); if(!b) return;
+    const n = inkItemsAll().filter(inkNeedsConvert).length;
+    b.style.display = n ? '' : 'none';
+    b.textContent = String(n);
+  }
+  function inkVocab(){
+    const set = new Set();
+    Object.keys(reportFieldOptions || {}).forEach(k=>{
+      const arr = reportFieldOptions[k];
+      if(Array.isArray(arr)) arr.forEach(v=>{ if(v) set.add(String(v)); });
+    });
+    drawings.forEach(d=> d.markers.forEach(m=> ALL_CARRY_KEYS.forEach(k=>{ const v = String(m[k]||'').trim(); if(v) set.add(v); })));
+    return Array.from(set);
+  }
+  function inkCleanNumber(t, kind){
+    let s = String(t||'').replace(/[oO]/g,'0').replace(/[lI|]/g,'1').replace(/,/g,'.').replace(/[^0-9.]/g,'');
+    if(kind==='int') s = s.replace(/\./g,'');
+    return s;
+  }
+  function isInkNetworkError(err){
+    if(!err) return false;
+    if(err.name==='AbortError' || err instanceof TypeError) return true;
+    const SDK = window.AnthropicSDK;
+    return !!(SDK && (err instanceof SDK.APIConnectionError || err instanceof SDK.RateLimitError || err instanceof SDK.InternalServerError));
+  }
+  // 변환 결과 하나를 결함에 반영한다. 돌려주는 것 : 'done' | 'error' | null(반영 안 함 — 그 사이 다시 썼거나 인터넷 문제)
+  function applyInkConversion(it, r, err, engine){
+    const hit = findMarkerAnywhere(it.m.id); if(!hit) return null;
+    const m = hit.m;
+    const cur = m.ink && m.ink[it.k];
+    if(!cur || Ink.inkHash(cur) !== Ink.inkHash(it.ink)) return null;
+    let next;
+    if(!r){
+      if(isInkNetworkError(err)) return null;                      // 대기로 두고 다음에 다시
+      next = Object.assign({}, cur, { st:'error', err: String((err && err.message) || err || '') });
+    } else {
+      const text = it.kind==='text' ? String(r.text||'').trim() : inkCleanNumber(r.text, it.kind);
+      if(!text){
+        next = Object.assign({}, cur, { st:'error', err:'읽지 못함', alts: r.alts || [] });
+      } else {
+        const old = String(m[it.k]||'');
+        // 칸이 비어 있거나, 앱이 읽어 넣은 숫자 그대로일 때만 바꾼다 — 사람이 친 값은 건드리지 않는다
+        const replace = !old || (cur.eng==='digits' && old===String(cur.text||''));
+        next = Object.assign({}, cur, { st:'done', eng: engine, text, alts: r.alts || [] });
+        delete next.err; delete next.conf;
+        if(replace) m[it.k] = text;
+        if(lastCarryInk[it.k] && Ink.inkHash(lastCarryInk[it.k]) === Ink.inkHash(cur)){
+          delete lastCarryInk[it.k]; lastCarryValues[it.k] = text;
+        }
+      }
+    }
+    m.ink = Object.assign({}, m.ink, { [it.k]: next });
+    markDirty();
+    if(inkBoxes && quickInputMarkerId===m.id && inkBoxes[it.k]) inkBoxes[it.k].update(next, m[it.k]);
+    return next.st;
+  }
+  function scheduleInkAutoConvert(delay){
+    if(!window.Ink) return;
+    const s = Ink.loadSettings();
+    if(!s.on || !s.auto || (s.engine==='claude' && !s.apiKey)) return;
+    if(navigator.onLine === false) return;
+    clearTimeout(inkAutoTimer);
+    inkAutoTimer = setTimeout(()=> runInkConvert({ auto:true }), delay==null ? 1500 : delay);
+  }
+  async function runInkConvert(opts){
+    opts = opts || {};
+    if(inkConvertBusy || !window.Ink) return;
+    const items = inkItemsAll().filter(it=> inkNeedsConvert(it) && !(opts.auto && it.ink.st==='error'));
+    if(!items.length){ if(!opts.auto) showToast('바꿀 손글씨가 없습니다.'); return; }
+    inkConvertBusy = true;
+    let ok = 0, fail = 0, done = 0;
+    const prog = opts.onProgress || (()=>{});
+    prog(0, items.length);
+    try{
+      await Ink.convert(items, { vocab: inkVocab(), onResult: (it, r, err, engine)=>{
+        done++;
+        const st = applyInkConversion(it, r, err, engine);
+        if(st==='done') ok++; else fail++;
+        prog(done, items.length);
+      }});
+    } catch(err){
+      if(!opts.auto) showToast('변환하지 못했습니다 — ' + ((err && err.message) || err));
+    } finally {
+      inkConvertBusy = false;
+      renderTable();
+      if(isInkConvertOpen()) renderInkConvertList();
+      if(opts.auto){ if(ok) showToast(`손글씨 ${ok}칸을 글자로 바꿨습니다 — 설정 › 손글씨 변환에서 원본과 비교할 수 있습니다.`); }
+      else showToast(`손글씨 ${ok}칸을 바꿨습니다` + (fail ? ` · ${fail}칸은 바꾸지 못했습니다(인터넷·글씨 확인)` : '') + '.');
+    }
+  }
+  window.addEventListener('online', ()=> scheduleInkAutoConvert(800));
+  setTimeout(()=> scheduleInkAutoConvert(0), 5000);   // 앱을 열 때 남아 있던 것(자동저장 복원 뒤)
+
+  // 내보내기 전에 : 아직 글자가 아닌 손글씨 칸은 빈칸으로 나간다
+  function warnPendingInkBeforeExport(){
+    const n = inkItemsAll().filter(it=> it.kind==='text' && it.ink.st!=='done' && !String(it.m[it.k]||'').trim()).length;
+    if(n) showToast(`손글씨 ${n}칸이 아직 글자로 바뀌지 않아 빈칸으로 나갑니다 — 설정 › 손글씨 변환에서 바꿀 수 있습니다.`);
+  }
+
+  // ----- 손글씨 시트 열기 · 결함 넘기기 -----
+  function openQuickInputSheetFor(m){
+    if(!m) return;
+    quickInputMarkerId = m.id;
+    const el = document.getElementById('quickInputSheet');
+    if(el) el.classList.remove('pinned-top');
+    renderQuickInputSheet();
+    if(el) el.classList.toggle('pinned-top', quickInputSheetShouldPinTop(m));
+  }
+  function stepQuickInputMarker(dir){
+    const d = getActiveDrawing(); if(!d) return;
+    const list = d.markers.filter(x=> quickInputSpecFor(x).length > 0);
+    const i = list.findIndex(x=> x.id===quickInputMarkerId);
+    const n = list[i + dir];
+    if(!n){ showToast(dir > 0 ? '마지막 결함입니다.' : '첫 결함입니다.'); return; }
+    destroyInkBoxes();
+    selectOnly(n.id);
+    scrollCanvasToMarker(n);
+    openQuickInputSheetFor(n);
+  }
+  document.getElementById('btnQuickInputPrev').addEventListener('click', ()=> stepQuickInputMarker(-1));
+  document.getElementById('btnQuickInputNext').addEventListener('click', ()=> stepQuickInputMarker(1));
+  document.getElementById('btnFloatInk').addEventListener('click', ()=>{
+    const d = getActiveDrawing();
+    if(!d || !d.markers.length){ showToast('먼저 도면에 결함을 찍어 주세요.'); return; }
+    const list = d.markers.filter(x=> quickInputSpecFor(x).length > 0);
+    const m = list.find(x=> selectedIds.has(x.id)) || list[list.length-1];
+    if(!m){ showToast('손글씨로 채울 칸이 있는 결함이 없습니다.'); return; }
+    if(!isInkInputOn()){ Ink.saveSettings({ on:true }); applyInkToggleUI(); }
+    openQuickInputSheetFor(m);
+  });
+  function applyInkToggleUI(){
+    const on = isInkInputOn();
+    const btn = document.getElementById('btnInkToggle');
+    if(btn) btn.classList.toggle('active', on);
+    const label = document.getElementById('inkStateLabel');
+    if(label) label.textContent = on ? '켬' : '끔';
+    if(quickInputMarkerId) renderQuickInputSheet();
+  }
+  document.getElementById('btnInkToggle').addEventListener('click', ()=>{
+    if(!window.Ink){ showToast('손글씨 기능 파일(ink/ink.js)을 읽지 못했습니다.'); return; }
+    const on = !isInkInputOn();
+    Ink.saveSettings({ on });
+    // 손글씨는 퀵입력 시트 안에서 쓰므로, 켜면 퀵입력도 켠다
+    if(on && !quickInputSheetEnabled){ quickInputSheetEnabled = true; saveQuickInputSheetSetting(true); applyQuickInputToggleUI(); }
+    applyInkToggleUI();
+    showToast(on ? '손글씨 입력을 켰습니다 — 결함을 찍으면 칸마다 큰 필기 상자가 열립니다.' : '손글씨 입력을 껐습니다 — 퀵입력이 예전처럼 목록·자판 칸으로 열립니다.');
+  });
+
+  // ----- 「손글씨 변환」 창 -----
+  function isInkConvertOpen(){
+    const b = document.getElementById('inkConvertBackdrop');
+    return !!b && b.style.display !== 'none';
+  }
+  function syncInkCvKeyRow(){
+    const s = Ink.loadSettings();
+    document.getElementById('inkCvKeyRow').style.display = s.engine==='claude' ? '' : 'none';
+  }
+  function openInkConvert(){
+    if(!window.Ink){ showToast('손글씨 기능 파일(ink/ink.js)을 읽지 못했습니다.'); return; }
+    const s = Ink.loadSettings();
+    document.querySelectorAll('input[name="inkEngine"]').forEach(r=>{ r.checked = r.value===s.engine; });
+    document.getElementById('inkCvApiKey').value = s.apiKey || '';
+    document.getElementById('inkCvAuto').checked = !!s.auto;
+    syncInkCvKeyRow();
+    renderInkConvertList();
+    document.getElementById('inkConvertBackdrop').style.display = 'flex';
+  }
+  function closeInkConvert(){ document.getElementById('inkConvertBackdrop').style.display = 'none'; }
+  const INK_ENGINE_LABEL = { digits:'숫자 인식(앱)', google:'구글', claude:'Claude', pick:'목록에서 고름', manual:'직접 입력' };
+  function renderInkConvertList(){
+    const list = document.getElementById('inkCvList');
+    const filter = (document.querySelector('input[name="inkCvFilter"]:checked') || {}).value || 'todo';
+    const all = inkItemsAll();
+    const todo = all.filter(inkNeedsConvert);
+    const rows = filter==='all' ? all : todo;
+    document.getElementById('inkCvCount').textContent = `변환할 것 ${todo.length}칸 · 손글씨 전부 ${all.length}칸`;
+    const run = document.getElementById('btnInkConvertRun');
+    run.textContent = todo.length ? `변환하기 (${todo.length}칸)` : '변환하기';
+    run.disabled = !todo.length || inkConvertBusy;
+    list.innerHTML = '';
+    if(!rows.length){
+      list.innerHTML = `<div class="ink-cv-empty">${all.length ? '바꿀 손글씨가 없습니다 — 모두 글자로 바뀌었습니다. 「손글씨 전부」에서 원본과 비교할 수 있습니다.' : '손으로 쓴 칸이 아직 없습니다.'}</div>`;
+      return;
+    }
+    const multi = drawings.length > 1;
+    rows.forEach(it=>{
+      const e = it.ink;
+      const need = inkNeedsConvert(it);
+      let st, cls = '';
+      if(e.st==='done'){ st = INK_ENGINE_LABEL[e.eng] || '변환됨'; if(need){ st += ' · 확인 필요'; cls = 'warn'; } }
+      else if(e.st==='error'){ st = '못 바꿈' + (e.err ? ' — ' + e.err : ''); cls = 'warn'; }
+      else { st = '변환 대기'; cls = 'wait'; }
+      const row = document.createElement('div');
+      row.className = 'ink-cv-row';
+      row.innerHTML =
+        `<div class="ink-cv-where">${multi ? escapeHTML(it.d.name) + '<br>' : ''}<b>#${it.m.seq||''} ${escapeHTML(it.label)}</b><br>`
+        + `<span class="ink-cv-st ${cls}">${escapeHTML(st)}</span></div>`
+        + `<img class="ink-cv-img" alt="손글씨 원본">`
+        + `<div class="ink-cv-out"><input type="text" value="${escapeAttr(it.m[it.k]||'')}" placeholder="(비어 있음)"`
+        + `${it.kind==='num' ? ' inputmode="decimal"' : it.kind==='int' ? ' inputmode="numeric"' : ''}><div class="ink-cv-alts"></div></div>`;
+      row.querySelector('img').src = Ink.renderCanvas(e, { height:60 }).toDataURL('image/png');
+      const inp = row.querySelector('input');
+      inp.addEventListener('change', ()=> commitInkConvertRow(it, inp.value.trim()));
+      inp.addEventListener('keydown', ev=>{ if(ev.key==='Enter') inp.blur(); });
+      const altsEl = row.querySelector('.ink-cv-alts');
+      [e.text].concat(e.alts || []).filter((v,i,a)=> v && a.indexOf(v)===i && v!==inp.value).slice(0,5).forEach(v=>{
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = v; b.title = '이 글자로';
+        b.addEventListener('click', ()=>{ inp.value = v; commitInkConvertRow(it, v); });
+        altsEl.appendChild(b);
+      });
+      list.appendChild(row);
+    });
+  }
+  function commitInkConvertRow(it, v){
+    const hit = findMarkerAnywhere(it.m.id); if(!hit) return;
+    const m = hit.m;
+    const cur = m.ink && m.ink[it.k];
+    m[it.k] = v;
+    if(cur){
+      const eng = (cur.st==='done' && cur.text===v) ? cur.eng : 'manual';
+      m.ink = Object.assign({}, m.ink, { [it.k]: Object.assign({}, cur, { st:'done', eng, text:v }) });
+    }
+    markDirty();
+    renderTable();
+    if(inkBoxes && quickInputMarkerId===m.id && inkBoxes[it.k]) inkBoxes[it.k].update(m.ink && m.ink[it.k], v);
+  }
+  document.querySelectorAll('input[name="inkEngine"]').forEach(r=> r.addEventListener('change', ()=>{
+    if(r.checked){ Ink.saveSettings({ engine: r.value }); syncInkCvKeyRow(); }
+  }));
+  document.getElementById('inkCvApiKey').addEventListener('change', e=> Ink.saveSettings({ apiKey: e.target.value.trim() }));
+  document.getElementById('inkCvAuto').addEventListener('change', e=> Ink.saveSettings({ auto: e.target.checked }));
+  document.querySelectorAll('input[name="inkCvFilter"]').forEach(r=> r.addEventListener('change', renderInkConvertList));
+  document.getElementById('btnInkConvertRun').addEventListener('click', async ()=>{
+    const s = Ink.loadSettings();
+    if(s.engine==='claude' && !s.apiKey){
+      showToast('Claude API 키를 먼저 넣어 주세요.');
+      document.getElementById('inkCvApiKey').focus();
+      return;
+    }
+    const btn = document.getElementById('btnInkConvertRun');
+    const prog = document.getElementById('inkCvProgress');
+    btn.disabled = true;
+    await runInkConvert({ onProgress: (d,n)=>{ prog.textContent = `${d} / ${n}`; } });
+    prog.textContent = '';
+    renderInkConvertList();
+  });
+  document.getElementById('btnInkConvertOpen').addEventListener('click', openInkConvert);
+  document.getElementById('btnInkConvertClose').addEventListener('click', closeInkConvert);
+  document.getElementById('btnInkConvertCloseFooter').addEventListener('click', closeInkConvert);
+  document.getElementById('inkConvertBackdrop').addEventListener('click', e=>{
+    if(e.target.id === 'inkConvertBackdrop') closeInkConvert();
+  });
 
   // ---------- 값 이어받기 · 여러 건 일괄 채우기 · 표 안에서 키보드 이동 ----------
   // 현장에서 나오는 결함은 같은 것이 연달아 나온다 — 벽체·콘크리트·균열이 스무 건씩 이어지는 식이다.
@@ -8103,6 +8579,7 @@
   // 이 세션에서 마지막으로 채운 분류 값. 앱을 열자마자는 비어 있으므로, 값을 한 번 채우기 전까지는
   // 이어받기가 켜져 있어도 아무 일도 일어나지 않는다 — 처음 쓰는 사람이 놀랄 일이 없다.
   let lastCarryValues = {};
+  var lastCarryInk = {};   // 손글씨로만 채운(아직 글자가 아닌) 분류 칸 — var 인 것은 초기화 순서(TDZ) 걱정을 덜려고
   // 이어받을 칸 = 그 마커의 입력칸 중 "분류"에 해당하는 것(드롭다운·자유 입력)만.
   // 폭·길이·개수·사진번호·측정값·경간·도분초 같은 실측값은 결함마다 다르므로 절대 물려주지 않는다 —
   // 그대로 넘기면 틀린 수치가 조용히 채워져 성과품에 그대로 실린다.
@@ -8120,11 +8597,14 @@
     if(!key) return;
     if(ALL_CARRY_KEYS.indexOf(key) < 0) return;
     lastCarryValues[key] = value;
+    delete lastCarryInk[key];
   }
   function applyCarryToNewMarker(m){
     if(!isCarryOn() || !m) return;
     carryKeysFor(m).forEach(k=>{
       if(lastCarryValues[k]) m[k] = lastCarryValues[k];
+      // 글자로 아직 안 바뀐 손글씨는 글씨째 물려준다(변환은 같은 글씨끼리 한 번에 된다)
+      else if(lastCarryInk[k]) m.ink = Object.assign({}, m.ink||{}, { [k]: lastCarryInk[k] });
     });
   }
   document.getElementById('btnCarryToggle').addEventListener('click', ()=>{
@@ -8599,12 +9079,14 @@
           });
         });
       }
+      decorateInkCells(card, m);
       table.appendChild(card);
     });
     applyMarkerSearchFilter();
     renderBulkFillBar(); // 고른 건수가 바뀌면 "선택한 N건에 채우기" 줄도 함께 따라간다
     } finally {
       renderTableInProgress = false;
+      updateInkBadge();
     }
   }
   // 목록에서 결함을 고르면 도면에서도 그 마커가 보이게 화면을 옮긴다. 예전에는 선택 표시만 바뀌어서,
@@ -10663,6 +11145,7 @@
     return drawings.length>0 && drawings.some(d=>d.markers.length>0);
   }
   function exportCSV(){
+    warnPendingInkBeforeExport();
     if(!hasAnyMarkers()){ showToast('내보낼 결함 데이터가 없습니다.'); return; }
     const { header, rows } = buildDefectExportData();
     // 프리셋 전용 열(기울기_·그룹명·LV·장비_)은 값이 하나도 없으면 빼고 내보낸다. 외관조사만 하는
@@ -10961,6 +11444,7 @@
     return buildZipBlob(files);
   }
   function exportXLSX(){
+    warnPendingInkBeforeExport();
     if(!hasAnyMarkers()){ showToast('내보낼 결함 데이터가 없습니다.'); return; }
     const sheets = buildPresetSheets();
     const blob = buildXLSXBlob(sheets);
@@ -14069,6 +14553,7 @@
     if(!quickInputSheetEnabled) hideQuickInputSheet(); // 끄는 순간 열려 있던 시트도 함께 닫는다
   }
   applyQuickInputToggleUI();
+  applyInkToggleUI();
   document.getElementById('btnQuickInputToggle').addEventListener('click', ()=>{
     quickInputSheetEnabled = !quickInputSheetEnabled;
     saveQuickInputSheetSetting(quickInputSheetEnabled);
@@ -14766,6 +15251,14 @@
   // 검사(tests/*.mjs)가 도곽 치수와 저장 결과를 직접 확인할 수 있도록 필요한 것만 내어 둔다.
   // 다른 현장조사 앱의 __exDbg·__tiltDbg 와 같은 구실을 한다.
   window.__markerDbg = {
+    // 손글씨 (tests/test-ink.mjs)
+    ink: {
+      inkItemsAll, inkNeedsConvert, runInkConvert, openQuickInputSheetFor, hideQuickInputSheet,
+      openInkConvert, closeInkConvert, isInkInputOn,
+      get boxes(){ return inkBoxes; },
+      get quickInputMarkerId(){ return quickInputMarkerId; },
+      get lastCarryInk(){ return lastCarryInk; },
+    },
     get frameLayout(){ return frameLayout; },
     set frameLayout(v){ frameLayout = sanitizeFrameLayout(v); },
     get docTitlePct(){ return docTitlePct; },

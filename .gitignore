@@ -2,3 +2,4 @@
 Thumbs.db
 tests/out/
 PDF/
+__pycache__/

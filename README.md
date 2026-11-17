@@ -33,6 +33,42 @@
 - 사진번호 칸에 이미 값이 있으면 그대로 둔다(두 번째 장부터도 그대로). 사진번호를 넣은 것은 실행취소(Ctrl+Z)로 되돌릴 수 있다.
 - 기존의 「앨범에서 선택」「촬영」「사진 촬영」은 그대로 있다(번호를 찍지 않는 예전 방식).
 
+## 손글씨 입력 (2026-11-17)
+
+S펜으로 칸에 바로 쓰는 기능. 삼성 키보드 필기 인식이 잘 안 맞고, 칸이 작고, 칸마다 눌러야 하는 불편 때문에 만들었다.
+
+- **켜고 끄기** : 설정(⚙) › 「손글씨 입력: 켬/끔」 (기본 켬). 켜면 태블릿 모드의 퀵입력 시트가 **칸마다 큰 필기 상자**가 된다.
+  외관 결함은 7칸(부재·자재·결함 / 폭·길이·개수·사진#)이 한 화면에 다 보여서 칸을 누를 필요 없이 이어 쓰면 된다.
+- **숫자 칸**(폭·길이·개수·사진#·측정값·경간·도분초…) : 앱 안의 작은 숫자 인식기로 **인터넷 없이** 그 자리에서 숫자로 읽는다.
+  아래쪽 작은 점은 소수점. 틀리면 상자 아래 칸에 직접 고치거나 ✕ 로 지우고 다시 쓴다. 자신 없게 읽은 것은 「확인 필요」.
+- **글자 칸**(부재·자재·결함·층수·위치…) : 현장에서는 **쓴 글씨를 그대로 저장**한다(「변환 대기」). 결함 목록 카드에도 글씨 그림이 보인다.
+  ▼ 로 목록에서 고를 수도 있다.
+- **글자로 바꾸기** : 인터넷이 되면 자동으로, 또는 설정 › 「손글씨 변환…」 창에서 한꺼번에. 원본 글씨와 바뀐 글자를 나란히 보여 주고,
+  틀린 것은 그 자리에서 고치거나 후보 단추를 누른다.
+  - 엔진 둘 중 고름 : **구글 필기 인식**(무료 · 공식 공개 API 가 아니라 언젠가 막힐 수 있음 · 글씨가 구글로 감) /
+    **Claude**(`claude-opus-5-5`, 점검 용어와 이 현장에서 쓴 말을 같이 알려 줌 · API 키 필요 · 키는 그 브라우저에만 저장)
+  - 인터넷 오류면 「변환 대기」 그대로 두었다가 다음에 다시 한다.
+- **원본 글씨는 지우지 않는다** — 변환한 뒤에도, 직접 고친 뒤에도 남는다(프로젝트 파일·자동저장에 같이 실림, 마커의 `ink`).
+- 시트의 ◀ 앞 / 다음 ▶ 로 찍어 둔 결함을 차례로 넘기며 채운다. 떠 있는 줄의 ✎ 는 고른(없으면 마지막) 결함의 필기 상자를 열고,
+  변환 대기 칸 수를 보여 준다.
+- 값 이어받기 : 분류 칸이 아직 글씨면 글씨째 다음 결함으로 물려준다(같은 글씨는 변환할 때 한 번만 보낸다). 실측값은 물려주지 않는다.
+- CSV·엑셀로 내보낼 때 아직 글자가 아닌 칸이 있으면 알려 준다(그 칸은 빈칸으로 나간다).
+- S펜을 한 번 쓰면 그 뒤 손가락·손바닥 터치는 필기 상자에서 무시한다.
+
+파일 :
+
+```
+ink/ink.js                   필기 상자 · 숫자 인식 · 구글/Claude 변환 (window.Ink, 머리말에 저장 모양)
+ink/digits-model.js          숫자 인식 모델 (작은 CNN, int8, 약 60KB). 직접 고치지 않는다
+ink/train/train_digits.py    모델 학습 (numpy 만 씀, MNIST + 변형). 한 바퀴 약 12분
+                               python ink/train/train_digits.py <MNIST .gz 4개 폴더> ink/digits-model.js
+vendor/anthropic-sdk.js      공식 @anthropic-ai/sdk 1.9.0 을 esbuild 로 묶은 것. Claude 를 고를 때만 읽는다(오프라인 캐시 안 함)
+                               entry.js : import Anthropic from "@anthropic-ai/sdk"; window.AnthropicSDK = Anthropic;
+                               npx esbuild entry.js --bundle --minify --format=iife --outfile=anthropic-sdk.js
+index.html                   「손글씨 입력」 묶음 (renderInkBoxes · applyInkField · runInkConvert · 「손글씨 변환」 창)
+tests/test-ink.mjs           손글씨 검사 (구글·Claude 는 가짜 응답, LIVE=1 이면 구글에 실제로 한 번)
+```
+
 ## 번호가 이어지는 원리
 
 두 앱이 같은 주소(`yeop9701.github.io`) 아래에 있으면 브라우저가 저장 공간을 같이 쓴다.
@@ -55,6 +91,7 @@ stampcam/build.mjs    위 둘을 한 파일로 묶는다  →  node stampcam/bui
 stampcam/stampcam.js  묶인 결과 (index.html 이 <script src> 로 읽는다. 직접 고치지 않는다)
 index.html            사진 창에 단추 두 개 + 「번호 스탬프 카메라 연결」 절 (photoTagKey · attachStampShot)
 tests/test-stampcam.mjs  연동 검사 90항목
+tests/test-ink.mjs       손글씨 검사 75항목
 ```
 
 결함마킹 앱은 모듈이 아닌 일반 스크립트로 돌고 파일로도 열리므로 ES 모듈 import 를 쓰지 않고 한 파일로 묶었다.
@@ -74,6 +111,7 @@ node ../stamp-camera/tests/serve.mjs 8125 C:/Users/user/Desktop/CL          # �
 chrome --headless=new --remote-debugging-port=9223 --user-data-dir=<빈 폴더> ^
        --use-fake-device-for-media-stream --use-fake-ui-for-media-stream about:blank
 node tests/test-stampcam.mjs
+node tests/test-ink.mjs                                                      # 손글씨
 ```
 
 가짜 카메라로 실제 촬영 경로(카메라 켜기 → 찍기 → 스탬프 → 다운로드·목록 저장 → 번호 올리기 → 결함에 붙이기 → 사진번호 칸)를
