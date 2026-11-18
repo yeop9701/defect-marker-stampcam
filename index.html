@@ -288,11 +288,38 @@
   /* 하단 플로팅 바의 그리기 도구 묶음 — 그리기 모드일 때만 나타나고, 그 대신 그 순간 쓸 수 없는
      선택/이동/지우개 버튼이 사라져 바가 가로로 넘치지 않는다(넘치면 스크롤이라 펜으로 쓰기 나쁘다). */
   .tablet-float-sketch{display:none;align-items:center;gap:6px;flex:0 0 auto;}
-  /* 2026-11-18 : 그리기 중 태블릿 하단 바 = 색 · 선 굵기 · 모눈 · 모두 지움(여러 도구가 같이 쓰는 것).
-     도면 아래 그리기 바 = 도형·글자·선 지우개와 그 도구만의 설정. 같은 것이 두 바에 겹쳐 나오지 않는다.
-     「선택」으로 그린 선을 골랐을 때도 색·굵기를 바꿀 수 있게 같은 묶음을 띄운다. */
+  /* 2026-11-18 : 태블릿에서 그리는 동안 작업바는 하단 바 하나다 — 도구 7개 · 색 · 선 굵기 · ⚙ · 모눈 · 모두 지움.
+     도구마다 다른 설정(선 지우개 굵기·글상자·모눈 칸)은 ⚙ 를 눌렀을 때만 그 위에 뜬다.
+     「선택」으로 그린 선을 골랐을 때는 색·굵기만 쓰므로 도구·⚙ 는 나오지 않는다. */
   body.layout-tablet.mode-sketch .tablet-float-sketch,
   body.layout-tablet.mode-pick.pick-has-strokes .tablet-float-sketch{display:flex;}
+  .tablet-float-btn.float-sketch-only,.tablet-float-sep.float-sketch-only{display:none;}
+  body.layout-tablet.mode-sketch .tablet-float-btn.float-sketch-only{display:flex;}
+  body.layout-tablet.mode-sketch .tablet-float-sep.float-sketch-only{display:block;}
+  .tablet-float-btn:disabled{opacity:.32;}
+  body.layout-tablet.mode-sketch #sketchToolGroup{display:none !important;}
+  body.layout-tablet.mode-sketch:not(.sketch-settings-open) #canvasFloatBar{display:none !important;}
+  body.layout-tablet.mode-sketch.sketch-settings-open .cfb-body{display:flex;}
+  body.layout-tablet.mode-sketch.sketch-settings-open.float-bar-collapsed .canvas-float-bar{opacity:1;}
+  body.layout-tablet.mode-sketch #btnFloatBarToggle{display:none;}
+  body.layout-tablet.mode-sketch #tabletFloatAutosaveLabel{display:none;}   /* 도구가 들어갈 폭을 비운다 */
+  /* 좁은 화면에서 색·굵기를 대신하는 단추와, 눌렀을 때 뜨는 고르기 창 */
+  .float-sketch-pick{display:none;}
+  .tablet-float-btn.float-sketch-pick{padding:0;}
+  .float-pick-swatch{display:block;flex:0 0 20px;width:20px;height:20px;border-radius:50%;background:var(--sk-color,#000);box-shadow:0 0 0 1px rgba(127,127,127,.55);}
+  .float-pick-width{display:block;flex:0 0 22px;width:22px;background:currentColor;border-radius:2px;}
+  .tablet-sketch-pop{position:fixed;z-index:60;display:flex;align-items:center;gap:6px;padding:7px 9px;border-radius:12px;
+    max-width:94vw;background:var(--surface-1);border:1px solid var(--gridline);box-shadow:0 8px 24px rgba(0,0,0,.28);}
+  .tablet-sketch-pop[hidden]{display:none;}
+  .tablet-sketch-pop > div{display:none;align-items:center;gap:6px;}
+  .tablet-sketch-pop[data-pop="color"] > .sketch-colors,
+  .tablet-sketch-pop[data-pop="width"] > .tsp-widths{display:flex;}
+  @media (max-width: 1239px){
+    body.layout-tablet #tabletFloatColorRow,
+    body.layout-tablet #tabletFloatSketchGroup > .float-sketch-width,
+    body.layout-tablet #tabletFloatSketchGroup > .float-sketch-wide{display:none;}
+    body.layout-tablet .tablet-float-btn.float-sketch-pick{display:flex;}
+  }
   body.layout-tablet #sketchColorRow,
   body.layout-tablet #sketchWidthGroup,
   body.layout-tablet #btnSketchGrid,
@@ -302,8 +329,7 @@
   body.layout-tablet.mode-sketch #tabletFloatTypeGrid + .tablet-float-sep{display:none;}
   /* 세로로 든 태블릿(폭 900px 이하)에서는 하단 바가 넘쳐 옆으로 밀리지 않게 그리기 묶음을 조금 촘촘하게 */
   @media (max-width: 900px){
-    body.layout-tablet .tablet-float-sketch .sketch-colors{gap:4px;padding:2px 4px;}
-    body.layout-tablet .tablet-float-sketch .sketch-color-btn{width:24px;height:24px;min-width:24px;min-height:24px;}
+    body.layout-tablet .tablet-float-sketch{gap:3px;}
     body.layout-tablet .tablet-float-sketch .tablet-float-btn{width:32px;}
     body.layout-tablet.mode-sketch .tablet-float-bar{gap:3px;}
   }
@@ -1851,20 +1877,30 @@
              도구줄에만 있어서, 선 하나 바꿀 때마다 손을 위로 올려야 했다. 자주 쓰는 5개와 색만 여기 둔다
              (원·화살표는 상단 도구줄에 그대로 있다). 폭을 확보하기 위해 그리기 중에는 선택/이동/지우개
              버튼을 감춘다 — 그 셋은 누르는 순간 그리기가 꺼지는, 지금은 쓸 수 없는 버튼들이다. -->
-        <!-- 그리기 중 하단 바에는 여러 도구가 같이 쓰는 것만 둔다 — 색 · 선 굵기 · 모눈 · 모두 지움
-             (2026-11-18 사용자 요청). 도형·글자·선 지우개 같은 도구 자체와 도구마다 다른 설정(선 지우개
-             굵기·글상자 테두리·모눈 칸 수·순서)은 도면 아래 떠 있는 그리기 바에 있다. -->
+        <!-- 그리는 동안 작업바는 이것 하나다(2026-11-18 사용자 요청) : 도구 7개 · 색 · 선 굵기 · ⚙ · 모눈 · 모두 지움.
+             도구마다 다른 설정은 ⚙ 를 누르면 위에 뜬다. 폭이 모자란 화면에서는 색·굵기를 단추 하나씩으로 접는다. -->
         <div class="tablet-float-sketch" id="tabletFloatSketchGroup">
           <div class="tablet-float-sep"></div>
+          <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="line" title="직선"><svg class="icon"><use href="#i-sk-line"/></svg></button>
+          <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="rect" title="사각형"><svg class="icon"><use href="#i-sk-rect"/></svg></button>
+          <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="pen" title="자유선"><svg class="icon"><use href="#i-sk-scribble"/></svg></button>
+          <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="ellipse" title="원/타원"><svg class="icon"><use href="#i-sk-ellipse"/></svg></button>
+          <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="arrow" title="화살표"><svg class="icon"><use href="#i-sk-arrow"/></svg></button>
+          <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="text" title="글자"><svg class="icon"><use href="#i-sk-text"/></svg></button>
+          <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="sketchErase" title="선 지우개 — 지나간 그린 선을 지웁니다"><svg class="icon"><use href="#i-eraser-strong"/></svg></button>
+          <div class="tablet-float-sep float-sketch-only"></div>
           <div class="sketch-colors float-sketch-paint" id="tabletFloatColorRow"></div>
-          <div class="tablet-float-sep float-sketch-paint"></div>
+          <button type="button" class="tablet-float-btn float-sketch-pick float-sketch-paint" id="btnFloatColorPick" title="선 색 고르기"><i class="float-pick-swatch"></i></button>
+          <button type="button" class="tablet-float-btn float-sketch-pick float-sketch-paint" id="btnFloatWidthPick" title="선 굵기 고르기"><i class="float-pick-width"></i></button>
+          <div class="tablet-float-sep float-sketch-paint float-sketch-wide"></div>
           <button type="button" class="tablet-float-btn float-sketch-width" data-sketch-width="0.35" title="아주 가는 선 — 치수선·보조선"><i style="height:1px;opacity:0.55;"></i></button>
           <button type="button" class="tablet-float-btn float-sketch-width" data-sketch-width="0.6" title="가는 선"><i style="height:1px;"></i></button>
           <button type="button" class="tablet-float-btn float-sketch-width" data-sketch-width="1" title="보통 굵기"><i style="height:2.5px;"></i></button>
           <button type="button" class="tablet-float-btn float-sketch-width" data-sketch-width="1.8" title="굵은 선"><i style="height:4.5px;"></i></button>
           <div class="tablet-float-sep float-sketch-paint"></div>
+          <button type="button" class="tablet-float-btn float-sketch-only" id="btnFloatSketchSettings" title="지금 도구의 설정 — 선 지우개 굵기 · 글상자 · 모눈 칸" disabled><svg class="icon"><use href="#i-settings"/></svg></button>
           <!-- 태블릿에는 Shift+G를 누를 자판이 없으므로 모눈 토글은 여기 버튼으로 켠다. -->
-          <button type="button" class="tablet-float-btn" id="btnFloatSketchGrid" title="모눈 보기 · 격자 스냅 (칸 수는 그리기 바의 「모눈 칸」에서 조절)"><svg class="icon"><use href="#i-sk-grid"/></svg></button>
+          <button type="button" class="tablet-float-btn" id="btnFloatSketchGrid" title="모눈 보기 · 격자 스냅 (칸 수는 ⚙ 에서 조절)"><svg class="icon"><use href="#i-sk-grid"/></svg></button>
           <button type="button" class="tablet-float-btn" id="btnFloatSketchClear" title="이 도면에 그린 선을 모두 지웁니다(실행취소로 되돌릴 수 있습니다)"><svg class="icon"><use href="#i-trash"/></svg></button>
         </div>
         <div class="tablet-float-sep"></div>
@@ -1874,6 +1910,16 @@
         <span class="tablet-float-autosave" id="tabletFloatAutosaveLabel"></span>
         <!-- 손글씨 : 고른 결함(없으면 마지막 결함)의 필기 상자를 연다 / 변환 대기 칸 수 -->
         <button type="button" class="tablet-float-btn ink-float-btn" id="btnFloatInk" title="손글씨로 입력 — 고른 결함의 칸에 바로 씁니다">✎<span class="ink-float-badge" id="inkFloatBadge" style="display:none;"></span></button>
+      </div>
+      <!-- 좁은 화면에서 색·굵기 단추를 누르면 뜨는 고르기 창 (하단 바는 가로로 밀리는 상자라 그 안에 두면 잘린다) -->
+      <div class="tablet-sketch-pop" id="tabletSketchPop" hidden>
+        <div class="sketch-colors" id="tabletPopColorRow"></div>
+        <div class="tsp-widths">
+          <button type="button" class="tablet-float-btn float-sketch-width" data-sketch-width="0.35" title="아주 가는 선"><i style="height:1px;opacity:0.55;"></i></button>
+          <button type="button" class="tablet-float-btn float-sketch-width" data-sketch-width="0.6" title="가는 선"><i style="height:1px;"></i></button>
+          <button type="button" class="tablet-float-btn float-sketch-width" data-sketch-width="1" title="보통 굵기"><i style="height:2.5px;"></i></button>
+          <button type="button" class="tablet-float-btn float-sketch-width" data-sketch-width="1.8" title="굵은 선"><i style="height:4.5px;"></i></button>
+        </div>
       </div>
       <!-- 마커를 찍은 직후 뜨는 퀵 입력 시트(태블릿 전용, 헤더의 "퀵입력" 토글로 켬/끔) — 서랍을 열어
            카드를 찾아가지 않아도 그 마커의 입력칸을 "전부" 그 자리에서 채울 수 있다.
@@ -9872,6 +9918,8 @@
     // 밀린 양을 뺀 "제자리"에서 재야 가둘 범위를 바르게 잡는다.
     layer.style.transform = 'none';
     const sb = stage.getBoundingClientRect(), bb = bar.getBoundingClientRect();
+    // 바가 숨어 있으면 잴 수 없다 — 옮겨 둔 자리를 건드리지 않는다
+    if(!bb.width){ layer.style.transform = 'translate(' + Math.round(floatBarOffset.x) + 'px, ' + Math.round(floatBarOffset.y) + 'px)'; return; }
     const m = 8; // 도면 칸 가장자리에서 최소한 이만큼은 안쪽에 둔다
     const minX = sb.left + m - bb.left, maxX = sb.right - m - bb.right;
     const minY = sb.top + m - bb.top,   maxY = sb.bottom - m - bb.bottom;
@@ -10176,7 +10224,7 @@
   function renderSketchToolbar(){
     // 색 스와치는 상단 도구줄과 태블릿 하단 플로팅 바 두 곳에 같은 목록으로 만든다 — 두 곳 모두
     // 같은 sketchColor를 읽고 쓰므로, 어느 쪽에서 골라도 반대쪽 표시가 함께 맞춰진다.
-    ['sketchColorRow', 'tabletFloatColorRow'].forEach(id=>{
+    ['sketchColorRow', 'tabletFloatColorRow', 'tabletPopColorRow'].forEach(id=>{
       const row = document.getElementById(id);
       if(!row) return;
       if(!row.childElementCount){
@@ -10223,6 +10271,50 @@
     if(bdBtn) bdBtn.classList.toggle('active', sketchTextBorder);
     const bdCol = document.getElementById('sketchTextBorderColor');
     if(bdCol && bdCol.value.toLowerCase() !== sketchTextBorderColor) bdCol.value = sketchTextBorderColor;
+    // 좁은 화면의 색·굵기 단추는 지금 값을 보여 준다
+    const pickColor = document.querySelector('#btnFloatColorPick .float-pick-swatch');
+    if(pickColor) pickColor.style.setProperty('--sk-color', sketchColor);
+    const pickWidth = document.querySelector('#btnFloatWidthPick .float-pick-width');
+    const widthOn = document.querySelector('#tabletSketchPop .float-sketch-width.active i');
+    if(pickWidth && widthOn){ pickWidth.style.height = widthOn.style.height; pickWidth.style.opacity = widthOn.style.opacity; }
+    syncFloatSketchSettings();
+  }
+  // ── 태블릿 하단 바의 ⚙ 와 색·굵기 고르기 창 ──
+  // ⚙ 는 도면 아래 떠 있던 그리기 바를 「도구별 설정」만 담아 잠깐 보여 준다. 설정 칸들의 표시 조건은
+  // 컴퓨터 화면과 같은 코드가 정하므로 여기서는 보일 것이 있는지만 본다.
+  var sketchSettingsOpen = false;
+  function floatSketchHasSettings(){
+    if(!sketchTool || sketchTool === 'pick') return false;
+    return ['sketchEraseSizeGroup', 'sketchTextGroup', 'sketchGridDivGroup'].some(id=>{
+      const el = document.getElementById(id);
+      return !!el && el.style.display !== 'none';
+    });
+  }
+  function syncFloatSketchSettings(){
+    const has = floatSketchHasSettings();
+    if(!has) sketchSettingsOpen = false;
+    document.body.classList.toggle('sketch-settings-open', sketchSettingsOpen);
+    const btn = document.getElementById('btnFloatSketchSettings');
+    if(btn){ btn.disabled = !has; btn.classList.toggle('active', sketchSettingsOpen); }
+  }
+  function setFloatSketchSettings(on){
+    sketchSettingsOpen = !!on;
+    syncFloatSketchSettings();
+    applyFloatBarOffset(false);
+  }
+  function closeTabletSketchPop(){
+    const pop = document.getElementById('tabletSketchPop');
+    if(pop) pop.hidden = true;
+  }
+  function openTabletSketchPop(kind, btn){
+    const pop = document.getElementById('tabletSketchPop');
+    if(!pop.hidden && pop.dataset.pop === kind){ closeTabletSketchPop(); return; }
+    pop.dataset.pop = kind;
+    pop.hidden = false;
+    const b = btn.getBoundingClientRect(), bar = document.getElementById('tabletFloatBar').getBoundingClientRect();
+    const w = pop.offsetWidth;
+    pop.style.left = clamp(b.left + b.width/2 - w/2, 8, Math.max(8, window.innerWidth - w - 8)) + 'px';
+    pop.style.bottom = Math.round(window.innerHeight - bar.top + 6) + 'px';
   }
 
   function isSketchGridStored(){
@@ -10256,6 +10348,7 @@
     if(slider && parseInt(slider.value, 10) !== sketchGridDiv) slider.value = String(sketchGridDiv);
     const val = document.getElementById('sketchGridDivVal');
     if(val) val.textContent = sketchGridDiv + '칸';
+    syncFloatSketchSettings();
   }
   // [ / ] 로 한 단계씩. 모눈이 꺼져 있으면 켜기부터 한다 — 안 그러면 키를 눌러도 아무 일도
   // 일어나지 않아 "고장 났나" 싶어진다.
@@ -13976,6 +14069,19 @@
       setSketchWidthMult(parseFloat(btn.getAttribute('data-sketch-width')));
     });
   });
+  document.getElementById('btnFloatSketchSettings').addEventListener('click', ()=> setFloatSketchSettings(!sketchSettingsOpen));
+  document.getElementById('btnFloatColorPick').addEventListener('click', e=> openTabletSketchPop('color', e.currentTarget));
+  document.getElementById('btnFloatWidthPick').addEventListener('click', e=> openTabletSketchPop('width', e.currentTarget));
+  document.getElementById('tabletSketchPop').addEventListener('click', e=>{
+    if(e.target.closest('[data-sketch-color],[data-sketch-width]')) closeTabletSketchPop();
+  });
+  // 바깥(도면 포함)을 누르면 뜬 창을 닫는다
+  document.addEventListener('pointerdown', e=>{
+    const t = e.target;
+    if(!t || !t.closest) return;
+    if(sketchSettingsOpen && !t.closest('#canvasFloatBar, #btnFloatSketchSettings')) setFloatSketchSettings(false);
+    if(!t.closest('#tabletSketchPop, #btnFloatColorPick, #btnFloatWidthPick')) closeTabletSketchPop();
+  }, true);
   document.getElementById('btnSketchTextBorder').addEventListener('click', ()=> setSketchTextBorder(!sketchTextBorder));
   // 색 고르개는 끄는 동안 input이 계속 흘러나온다 — 그때마다 다시 그려도 부담이 크지 않고,
   // 고르는 중에 결과가 바로 보이는 편이 색을 맞추기 쉽다.

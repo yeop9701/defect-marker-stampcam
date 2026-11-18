@@ -109,6 +109,7 @@ python taxonomy/build_taxonomy.py taxonomy/부재_자재_결함.xlsx taxonomy/de
 
 - **ⓘ** : 결함 카드의 카메라와 ✕ 사이. 그 결함에 손으로 쓴 글씨(칸 이름·원본 그림·바뀐 글자)와 카메라 메모(사진·번호·메모·시각)를 한 창에서 본다.
   메모는 찍을 때 `m.photoMeta` 에 사진 내용 열쇠로 적는다. 이 기능 전에 찍은 사진은 「메모 기록 없음」.
+- **태블릿 그리기 작업바** : 하단 바 하나에 도구 7개·색·굵기·⚙·모눈·모두 지움. 도구별 설정(선 지우개 굵기·글상자·모눈 칸)은 ⚙, 폭 1240px 미만은 색·굵기를 단추 하나씩으로 접는다.
 - **CSV** : 결함 한 건이 한 줄, 글자 값만(손글씨 그림은 못 넣는다). 아직 글자로 안 바뀐 칸은 빈칸.
 - **엑셀** : 조사 종류별 시트 + 손글씨가 있으면 **「손글씨」 시트**(결함 한 줄, 제목별 칸에 글씨 그림과 바뀐 글자).
 - **사진 ZIP** : `번호_고유번호_층수_위치_부재_자재_결함`.
@@ -174,6 +175,7 @@ chrome --headless=new --remote-debugging-port=9223 --user-data-dir=<빈 폴더> 
        --use-fake-device-for-media-stream --use-fake-ui-for-media-stream about:blank
 node tests/test-stampcam.mjs
 node tests/test-ink.mjs                                                      # 손글씨
+node tests/test-1118e.mjs                                                    # 태블릿 그리기 작업바(화면 크기 4가지)
 node tests/test-1118d.mjs                                                    # 위치 입력·ⓘ·손글씨 시트·ZIP 이름·표로 입력
 node tests/test-taxonomy.mjs                                                 # 부재 → 자재 → 결함
 ```

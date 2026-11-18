@@ -1,5 +1,5 @@
 /* 2026-11-18 세 번째 요청 검사 — 실제 브라우저(태블릿 모드).
-   ① 그리기 : 하단 바 = 색·선 굵기·모눈·모두 지움, 그리기 바 = 도형·글자·선 지우개(색·굵기·모눈·지움 없음)
+   ① 그리기 : 하단 바 하나에 도구·색·선 굵기·모눈·모두 지움, 도구별 설정은 ⚙ (자세한 것은 test-1118e)
    ② +/− 를 꾹 누르면 값이 계속 바뀐다 (떼는 순간 한 칸 더 가지 않는다)
    ③ 결함 목록 칸 폭 : 번호·개수·사진번호는 좁게, 폭·길이는 조금 좁게, 위치·부재·자재·결함은 넓게
    ④ 부재·자재·결함 ▼ 상자가 칸과 한 몸 (왼쪽 모서리 곧게, 같은 테두리·높이)
@@ -50,10 +50,8 @@ await ev(`__markerDbg.setSketchTool('line'); true`); await sleep(400);
 eq(await vis('#tabletFloatSketchGroup .sketch-color-btn'), 6, '하단 바에 색 6개');
 eq(await vis('#tabletFloatSketchGroup .float-sketch-width'), 4, '하단 바에 선 굵기 4개');
 eq([await vis('#btnFloatSketchGrid'), await vis('#btnFloatSketchClear')], [1, 1], '하단 바에 모눈 · 모두 지움');
-eq(await vis('#tabletFloatSketchGroup [data-sketch-tool]'), 0, '하단 바에는 도형·글자·지우개 단추가 없다');
-eq(await vis('#sketchToolGroup [data-sketch-tool]'), 7, '그리기 바에 도형·글자·선 지우개 7개');
-eq([await vis('#sketchColorRow .sketch-color-btn'), await vis('#sketchWidthGroup'), await vis('#btnSketchGrid'), await vis('#btnSketchClear')], [0, 0, 0, 0],
-  '그리기 바에는 색·굵기·모눈·모두 지움이 없다');
+eq(await vis('#tabletFloatSketchGroup [data-sketch-tool]'), 7, '하단 바에 도형·글자·선 지우개 7개');
+eq(await vis('#canvasFloatBar'), 0, '그 위의 세부 작업바는 나오지 않는다');
 await shot('1118c-sketch.png');
 // 하단 바 단추가 실제로 듣는지
 await ev(`document.querySelectorAll('#tabletFloatSketchGroup .sketch-color-btn')[1].click(); true`); await sleep(100);
@@ -72,12 +70,13 @@ eq(await ev(`(${D}.sketch||[]).length`), 0, '하단 바 「모두 지움」이 �
 await ev(`__markerDbg.setSketchTool('sketchErase'); true`); await sleep(200);
 eq(await vis('#tabletFloatSketchGroup .float-sketch-width'), 0, '선 지우개를 들면 하단 바의 선 굵기는 숨는다');
 eq(await vis('#tabletFloatSketchGroup .sketch-color-btn'), 0, '선 지우개를 들면 하단 바의 색도 숨는다');
-eq(await vis('#tabletFloatSketchGroup .tablet-float-sep'), 1, '  → 빈 구분선이 겹쳐 남지 않는다');
+eq(await vis('#tabletFloatSketchGroup .tablet-float-sep'), 2, '  → 빈 구분선이 겹쳐 남지 않는다');
 eq([await vis('#btnFloatSketchGrid'), await vis('#btnFloatSketchClear')], [1, 1], '  → 모눈 · 모두 지움은 그대로');
 await ev(`__markerDbg.setSketchTool('line'); true`); await sleep(150);
 eq(await vis('#tabletFloatSketchGroup .sketch-color-btn'), 6, '선 도구로 돌아오면 색이 다시 보인다');
 await ev(`__markerDbg.setSketchTool('sketchErase'); true`); await sleep(150);
-ok(await vis('#sketchEraseSizeGroup') === 1, '  → 지우개 굵기는 그리기 바에');
+await ev(`document.getElementById('btnFloatSketchSettings').click(); true`); await sleep(150);
+ok(await vis('#sketchEraseSizeGroup') === 1, '  → 지우개 굵기는 ⚙ 안에');
 
 /* ══ ② 꾹 누르기 ══ */
 console.log('\n[2] +/− 꾹 누르기');
@@ -113,6 +112,7 @@ ok(after - during >= -0.1001 && after <= during, '떼는 순간 한 칸 더 가�
 await ev(`__markerDbg.setSketchTool('line'); true`); await sleep(200);
 const gOn = await ev(`document.getElementById('btnFloatSketchGrid').classList.contains('active')`);
 if (!gOn) { await ev(`document.getElementById('btnFloatSketchGrid').click(); true`); await sleep(200); }
+if (!(await vis('#btnGridDivPlus'))) { await ev(`document.getElementById('btnFloatSketchSettings').click(); true`); await sleep(150); }
 if (await vis('#btnGridDivPlus')) {
   const g0 = await val('sketchGridDivSlider');
   await holdOn('btnGridDivMinus', 1300);

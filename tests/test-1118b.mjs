@@ -73,9 +73,9 @@ ok(await ev(`/선 지우개/.test(document.querySelector('#sketchToolGroup [data
 console.log('\n[2] 그리기 도구 겹침');
 await open(true);
 await ev(`__markerDbg.setSketchTool('line'); true`); await sleep(400);
-ok(await visible('#sketchToolGroup'), '그리기 바(도면 아래)에 그리기 도구가 있다');
-// 11-18 3차 : 하단 바 = 색·굵기·모눈·모두 지움, 그리기 바 = 도구 — 같은 단추가 두 바에 겹치지 않는다
-ok(await ev(`[...document.querySelectorAll('#tabletFloatSketchGroup [data-sketch-tool]')].filter(e=>e.getClientRects().length>0).length===0`), '하단 바에는 그리기 도구(도형·글자·지우개)가 겹쳐 나오지 않는다');
+ok(!(await visible('#sketchToolGroup')), '도면 아래 그리기 바의 도구는 나오지 않는다');
+// 11-18 : 태블릿은 하단 바 하나에 도구를 모았다 — 같은 단추가 두 곳에 겹치지 않는다
+ok(await ev(`[...document.querySelectorAll('#tabletFloatSketchGroup [data-sketch-tool]')].filter(e=>e.getClientRects().length>0).length===7`), '그리기 도구(도형·글자·지우개)는 하단 바에 한 벌만 있다');
 const dupColors = await ev(`[...document.querySelectorAll('.sketch-color-btn')].filter(b=>b.getClientRects().length>0).length`);
 eq(dupColors, 6, '  → 색 단추도 한 벌(6개)만 보인다');
 await shot('1118b-sketch-tablet.png');
