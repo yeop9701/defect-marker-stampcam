@@ -719,6 +719,10 @@
      들어가도록 촘촘하게 짰다 — 스와치는 색 그 자체가 라벨이고, 굵기는 선 굵기 그림이 라벨이다. */
   .toolbar-row-sketch{display:none;gap:5px;align-items:center;flex-wrap:wrap;}
   body.mode-sketch .toolbar-row-sketch{display:flex;}
+  /* 「선택」 중에는 그리기 도구 단추를 숨기고, 고른 선을 고치는 색·굵기·순서만 남긴다 —
+     그리기 도구가 함께 보이면 그리기가 같이 켜진 것처럼 보인다. */
+  body.mode-pick .toolbar-row-sketch{display:flex;}
+  body.mode-pick #sketchToolGroup{display:none;}
 
   /* ── 캔버스 위에 떠 있는 조작 묶음 ─────────────────────────────────────────────────
      모드마다 달라지는 조작(그리기 도구·자르기 조작·브러시 굵기·인출선·순서·모눈 칸)은 전부
@@ -5854,6 +5858,51 @@
     return snapToGridPct(d, pct);
   }
 
+  // ── 골라 둔 것 전부를 한 덩어리로 옮기기 ──
+  // 마커(selectedIds)와 그린 선(selectedSketchIds)은 따로 고르지만, 옮길 때는 하나로 움직여야 한다.
+  // 예전에는 마커를 잡으면 선 선택을, 선을 잡으면 마커 선택을 놓아 버려 "여럿 골라 이동"이 한
+  // 종류씩만 움직였다. 어느 쪽을 잡든 아래 두 시작값을 함께 챙기고 같은 양만큼 옮긴다.
+  function markerGroupStart(d){
+    const g = {};
+    selectedIds.forEach(id=>{
+      const mm = (d.markers||[]).find(x=>x.id===id);
+      if(mm) g[id] = { xPct: mm.xPct, yPct: mm.yPct, rectXPct: mm.rectXPct, rectYPct: mm.rectYPct };
+    });
+    return g;
+  }
+  function sketchGroupOrig(d){
+    const o = {};
+    selectedSketchStrokes(d).forEach(s=> o[s.id] = (s.pts||[]).map(q=>({x:q.x, y:q.y})));
+    return o;
+  }
+  // dxPct·dyPct = 도면 폭·높이 대비 % (마커 xPct와 그린 선 pts가 같은 단위다)
+  function shiftMarkerGroup(d, g, dxPct, dyPct){
+    if(!g) return 0;
+    let n = 0;
+    Object.keys(g).forEach(id=>{
+      const mm = (d.markers||[]).find(x=>x.id===id);
+      const st = g[id];
+      if(!mm) return;
+      n++;
+      mm.xPct = clamp(st.xPct+dxPct,0,100); mm.yPct = clamp(st.yPct+dyPct,0,100);
+      if(st.rectXPct!==undefined && st.rectXPct!==null){
+        mm.rectXPct = st.rectXPct+dxPct; mm.rectYPct = st.rectYPct+dyPct;
+      }
+      // 측정위치를 옮기는 동안 측정방향 화살표(인출선 중앙·직각)가 실시간으로 따라오도록 함께 갱신
+      if(mm.typeKey==='tilt_pos') updateTiltMarker(mm);
+    });
+    return n;
+  }
+  function shiftSketchGroup(d, o, dxPct, dyPct){
+    if(!o) return 0;
+    let n = 0;
+    (d.sketch||[]).forEach(s=>{
+      const q0 = o[s.id];
+      if(q0){ s.pts = q0.map(q=>({ x:q.x+dxPct, y:q.y+dyPct })); n++; }
+    });
+    return n;
+  }
+
   // 「선택」 도구의 누름 처리. 잡히는 순서가 곧 사용자가 기대하는 순서다:
   //   ① 조절점(이미 고른 획의 모양을 고치려는 것) → ② 이미 고른 획(여러 개면 함께 옮긴다)
   //   → ③ 다른 획(그것을 새로 고른다) → ④ 빈 곳(끌면 범위 선택, 그냥 누르면 선택 해제)
@@ -5896,21 +5945,21 @@
       // 마우스에서는 일부러 켜지 않는다 — 데스크톱에는 두 번 클릭이라는 관례가 이미 있고, 고른
       // 글자를 한 번 더 클릭했다고 갑자기 입력칸이 열리면 옮기려던 손이 놀란다.
       const textRetap = touch && hit.tool === 'text' && selectedSketchIds.size === 1 && selectedSketchIds.has(hit.id);
-      if(!selectedSketchIds.has(hit.id)){
+      const wasPicked = selectedSketchIds.has(hit.id);
+      if(!wasPicked){
         selectedSketchIds = new Set([hit.id]);
         syncSketchToolbarToStroke(hit);
+        // 고르지 않았던 선을 새로 잡으면 그 선 하나만 고른 것이다 — 골라 두었던 마커는 놓는다.
+        if(selectMode && selectedIds.size) clearSelection();
       }
-      // 통합 선택에서 그린 선을 잡으면 마커 선택은 놓는다 — 끌리는 것은 선이므로, 골라져 있던
-      // 마커가 화면에 계속 표시되면 그것도 함께 움직이는 줄 알게 된다.
-      if(selectMode && selectedIds.size) clearSelection();
+      // 이미 골라 둔 선을 잡았으면 함께 골라 둔 마커도 같이 옮긴다(여럿 골라서 한꺼번에 옮기기).
       pushUndo();
       // Ctrl(또는 Alt)을 누른 채 끌면 복제본이 따라 나온다. 원래는 Alt만이었는데, 다른 그림 도구
       // 대부분이 Ctrl+드래그를 복사로 쓰고 있어 두 키를 모두 받는다(Alt는 그리는 도중 "이번 획만
       // 눈금 무시"로도 쓰이므로, 복사로는 Ctrl이 손에 더 익다).
       const duplicated = (e && (e.altKey || e.ctrlKey || e.metaKey)) ? duplicateSelectedSketch() : false;
-      const orig = {};
-      selectedSketchStrokes(d).forEach(s=> orig[s.id] = (s.pts||[]).map(q=>({x:q.x, y:q.y})));
-      pendingAction = { mode:'sketchMove', startPct: pct, orig, moved:false, duplicated, shiftUnselectId,
+      pendingAction = { mode:'sketchMove', startPct: pct, orig: sketchGroupOrig(d), moved:false, duplicated, shiftUnselectId,
+        markerStart: duplicated ? {} : markerGroupStart(d),
         textRetap: (textRetap && !duplicated) ? hit : null };
       renderCanvas(); updateModeHint();
       return;
@@ -6157,10 +6206,8 @@
       if(e && e.shiftKey){
         if(Math.abs(dx/100*d.naturalW) >= Math.abs(dy/100*d.naturalH)) dy = 0; else dx = 0;
       }
-      (d.sketch||[]).forEach(s=>{
-        const o = pendingAction.orig[s.id];
-        if(o) s.pts = o.map(q=>({ x:q.x+dx, y:q.y+dy }));
-      });
+      shiftSketchGroup(d, pendingAction.orig, dx, dy);
+      shiftMarkerGroup(d, pendingAction.markerStart, dx, dy);
       markDirty();
       scheduleCanvasRender();
       return;
@@ -6219,6 +6266,8 @@
         openSketchTextEditor(d, { x: pa.textRetap.pts[0].x, y: pa.textRetap.pts[0].y }, pa.textRetap);
         return; // openSketchTextEditor가 화면을 다시 그린다
       }
+      // 함께 옮긴 마커가 있으면 결함 목록의 위치 표시도 맞춘다.
+      if(pa.moved && pa.markerStart && Object.keys(pa.markerStart).length) renderTable();
       renderCanvas(); updateModeHint();
       return;
     }
@@ -9495,7 +9544,10 @@
     const mv = document.getElementById('btnMoveMode'); if(mv) mv.classList.toggle('active', moveMode);
     const sel = document.getElementById('btnSelectMode'); if(sel) sel.classList.toggle('active', selectMode);
     const er = document.getElementById('btnEraseMode'); if(er) er.classList.toggle('active', eraseMode);
-    const sk = document.getElementById('btnSketchMode'); if(sk) sk.classList.toggle('active', !!sketchTool);
+    // 「선택」은 속으로는 그리기의 pick 도구지만 사용자에게는 그리기가 아니다 — 그리기 단추까지
+    // 함께 켜져 보이면 "선택을 눌렀는데 그리기가 같이 눌렸다"가 된다. 그리는 도구일 때만 켠다.
+    const drawingTool = !!sketchTool && sketchTool !== 'pick';
+    const sk = document.getElementById('btnSketchMode'); if(sk) sk.classList.toggle('active', drawingTool);
     const brushGroup = document.getElementById('eraseBrushGroup');
     if(brushGroup) brushGroup.style.display = eraseMode ? '' : 'none';
     renderGridDivUI(); // 모눈 칸 수 조절은 그리기 모드 + 모눈 켜짐일 때만 보인다
@@ -9503,16 +9555,17 @@
     const fmv = document.getElementById('btnFloatMoveMode'); if(fmv) fmv.classList.toggle('active', moveMode);
     const fsel = document.getElementById('btnFloatSelectMode'); if(fsel) fsel.classList.toggle('active', selectMode);
     const fer = document.getElementById('btnFloatEraseMode'); if(fer) fer.classList.toggle('active', eraseMode);
-    const fsk = document.getElementById('btnFloatSketchMode'); if(fsk) fsk.classList.toggle('active', !!sketchTool);
+    const fsk = document.getElementById('btnFloatSketchMode'); if(fsk) fsk.classList.toggle('active', drawingTool);
     renderSketchToolbar();
     // 배타 모드는 도면 자체가 말해준다 — 테두리 색(CSS)과 좌상단 이름표. 시선이 도면에 가 있을 때
     // 툴바 버튼 하나의 배경색만으로는 "지금 지우개"라는 걸 알아채지 못해 실수로 마커를 지우게 된다.
     document.body.classList.toggle('mode-move', moveMode);
-    // 통합 선택은 그리기의 pick 도구로 구현되어 있어 두 상태가 동시에 참이다 — 도면 테두리 색이
-    // 두 번 칠해지지 않도록, 그럴 때는 그리기 쪽 표시 하나만 남긴다(이름표가 「선택」이라 말해준다).
-    document.body.classList.toggle('mode-select', selectMode && sketchTool !== 'pick');
+    // 통합 선택(pick)은 「선택」 색(보라) 테두리·이름표로만 보인다. 그리기 표시(청록 테두리·그리기
+    // 도구 단추)는 그리는 도구일 때만 — 선택 중에는 고른 선의 색·굵기·순서 단추만 남긴다(mode-pick).
+    document.body.classList.toggle('mode-select', selectMode);
     document.body.classList.toggle('mode-erase', eraseMode);
-    document.body.classList.toggle('mode-sketch', !!sketchTool);
+    document.body.classList.toggle('mode-sketch', drawingTool);
+    document.body.classList.toggle('mode-pick', sketchTool === 'pick');
     updateCanvasFloatBar();
     const badge = document.getElementById('modeBadge');
     if(badge){
@@ -9645,7 +9698,9 @@
   function setMoveMode(v){
     if(v && gridViewMode) setGridView(false);
     moveMode = !!v;
-    if(moveMode){ selectMode = false; eraseMode = false; pendingRectCreate = null; exitSketchMode(); }
+    // 「선택」에서 여럿 고른 뒤 「이동」을 누르면 고른 것(마커·그린 선)을 그대로 들고 온다 —
+    // 그래야 이동 모드에서 하나를 끌면 고른 것 전부가 함께 움직인다.
+    if(moveMode){ selectMode = false; eraseMode = false; pendingRectCreate = null; exitSketchMode({ keepSelection:true }); }
     updateModeButtonsUI();
     updateModeHint();
     renderCanvas();
@@ -9672,13 +9727,13 @@
   function sketchToolLabel(t){ return SKETCH_TOOL_LABELS[t] || '그리기'; }
   // 그리기를 끄는 유일한 통로. 글자 입력칸이 떠 있는 채로 모드가 바뀌면 입력칸만 화면에 남아
   // "지워지지 않는 상자"가 되므로, 여기서 반드시 함께 정리한다.
-  function exitSketchMode(){
+  function exitSketchMode(opts){
     if(sketchTextEditor) closeSketchTextEditor(false);
     sketchTool = null;
     selectMode = false;   // 「선택」은 이제 그리기의 pick 도구와 같은 것이다(아래 setSketchTool 참고)
     eraseCursorPt = null;
     if(pendingAction && isSketchAction(pendingAction.mode)) pendingAction = null;
-    clearSketchSelection();
+    if(!(opts && opts.keepSelection)) clearSketchSelection();
   }
   // 「선택」은 하나다 — 예전에는 마커를 고르는 「선택 모드」(s)와 그린 선을 고르는 「선택」 도구(v)가
   // 따로 있어서, 화면에 보이는 것 중 무엇을 고르느냐에 따라 다른 키를 눌러야 했다(그리고 그리기
@@ -9712,7 +9767,9 @@
   // (현장 스케치의 대부분이 벽선이라 직선이 기본값으로 가장 손이 덜 간다).
   let lastSketchTool = 'line';
   function toggleSketchMode(){
-    if(sketchTool){ exitSketchMode(); updateModeButtonsUI(); updateModeHint(); renderCanvas(); return; }
+    // 「선택」(pick) 중에 그리기를 누르면 끄는 것이 아니라 그리기로 넘어간다 — 그리기 단추는
+    // 선택 중에 꺼져 보이므로, 눌렀는데 아무 일도 없으면(끄기만 하면) 고장으로 보인다.
+    if(sketchTool && sketchTool !== 'pick'){ exitSketchMode(); updateModeButtonsUI(); updateModeHint(); renderCanvas(); return; }
     const d = getActiveDrawing();
     if(!d){ showToast('먼저 도면을 추가해주세요. 도면 이미지가 없으면 좌측의 「빈 도면(백지) 추가」로 시작할 수 있습니다.'); return; }
     setSketchTool(lastSketchTool);
@@ -14185,15 +14242,17 @@
       //   ③ 그린 선 · ④ 빈 곳(범위로 여럿 고르기)  ← 스케치 쪽 처리에 맡긴다
       const touch = isTouchEvent(e);
       if(sketchHandleHitTest(d, p.x, p.y, touch)){ handleSketchPickPointerDown(d, p, e); return; }
-      const onMarker = !!(hitTestLegendBox(d, p.x, p.y, touch)
+      const onMarkerHandle = !!(hitTestLegendBox(d, p.x, p.y, touch)
         || hitTestRectRotateHandle(d, p.x, p.y, touch)
         || hitTestRectResizeHandle(d, p.x, p.y, touch)
         || hitTestLeaderBendHandle(d, p.x, p.y, touch)
-        || hitTestHandle(d, p.x, p.y, touch)
-        || hitTestMarker(d, p.x, p.y));
-      if(!onMarker){ handleSketchPickPointerDown(d, p, e); return; }
-      // 마커를 잡았다 — 그린 것 쪽 선택은 놓아준다(둘을 동시에 끌면 무엇이 움직이는지 알 수 없다).
-      if(!e.shiftKey && selectedSketchIds.size){ clearSketchSelection(); }
+        || hitTestHandle(d, p.x, p.y, touch));
+      const bodyHit = onMarkerHandle ? null : hitTestMarker(d, p.x, p.y);
+      if(!onMarkerHandle && !bodyHit){ handleSketchPickPointerDown(d, p, e); return; }
+      // 마커를 잡았다. 이미 골라 둔 마커의 몸통을 잡았으면 골라 둔 그린 선도 함께 옮기므로 그대로
+      // 둔다. 손잡이(회전·크기)나 새 마커를 잡았을 때만 선 선택을 놓는다.
+      const keepStrokes = e.shiftKey || (bodyHit && selectedIds.has(bodyHit.id));
+      if(!keepStrokes && selectedSketchIds.size){ clearSketchSelection(); }
       // 아래 마커 처리로 그대로 내려간다.
     }
 
@@ -14265,15 +14324,30 @@
       // 곧게 옮기려는 손동작일 수 있으므로 여기서 빼지 않고, 손을 뗄 때(움직이지 않았을 때만) 뺀다.
       if(e.shiftKey && !selectedIds.has(hit.id)){ toggleSelect(hit.id); pendingAction = null; return; }
       const shiftUnselectId = e.shiftKey ? hit.id : null;
-      if(!selectedIds.has(hit.id)) selectOnly(hit.id);
+      if(!selectedIds.has(hit.id)){
+        selectOnly(hit.id);
+        // 고르지 않았던 마커를 새로 잡았다 = 그 마커 하나만 옮긴다. 골라 둔 선은 놓는다.
+        if(!e.shiftKey) clearSketchSelection();
+      }
       pushUndo();
-      const groupStart = {};
-      selectedIds.forEach(id=>{
-        const mm = d.markers.find(x=>x.id===id);
-        if(mm) groupStart[id] = { xPct: mm.xPct, yPct: mm.yPct, rectXPct: mm.rectXPct, rectYPct: mm.rectYPct };
-      });
-      pendingAction = { mode:'move', hitId: hit.id, startX:p.x, startY:p.y, moved:false, groupStart, shiftUnselectId };
+      // 골라 둔 마커 전부 + 골라 둔 그린 선 전부를 함께 옮긴다.
+      pendingAction = { mode:'move', hitId: hit.id, startX:p.x, startY:p.y, moved:false,
+        groupStart: markerGroupStart(d), sketchOrig: sketchGroupOrig(d), shiftUnselectId };
       return;
+    }
+
+    // 이동 모드에서 골라 둔 그린 선을 잡으면, 골라 둔 마커와 함께 옮긴다(「선택」으로 여럿 고른 뒤
+    // 「이동」을 눌러도 고른 것이 그대로 남아 있다 — setMoveMode 참고). 고르지 않은 선은 건드리지
+    // 않는다 — 이동 모드는 마커를 옮기는 모드라 도면 위 벽선이 실수로 끌려가면 안 된다.
+    if(moveMode && selectedSketchIds.size){
+      const pct = canvasPtToPct(p);
+      const sh = sketchHitTest(d, pct.x, pct.y, sketchPickTolNatural(d));
+      if(sh && selectedSketchIds.has(sh.id)){
+        pushUndo();
+        pendingAction = { mode:'sketchMove', startPct: pct, orig: sketchGroupOrig(d), moved:false,
+          duplicated:false, shiftUnselectId:null, markerStart: markerGroupStart(d), textRetap:null };
+        return;
+      }
     }
 
     if(selectMode){
@@ -14422,19 +14496,10 @@
       if(e.shiftKey){ if(Math.abs(dx) >= Math.abs(dy)) dy = 0; else dx = 0; }
       const dxPct = dx/w*100;
       const dyPct = dy/h*100;
-      Object.keys(pendingAction.groupStart).forEach(id=>{
-        const mm = d.markers.find(x=>x.id===id);
-        const st = pendingAction.groupStart[id];
-        if(mm){
-          mm.xPct = clamp(st.xPct+dxPct,0,100); mm.yPct = clamp(st.yPct+dyPct,0,100);
-          if(st.rectXPct!==undefined && st.rectXPct!==null){
-            mm.rectXPct = st.rectXPct+dxPct; mm.rectYPct = st.rectYPct+dyPct;
-          }
-          // 측정위치를 옮기는 동안 측정방향 화살표(인출선 중앙·직각)가 실시간으로 따라오도록 함께 갱신
-          if(mm.typeKey==='tilt_pos') updateTiltMarker(mm);
-        }
-      });
-      scheduleMarkerRender();
+      shiftMarkerGroup(d, pendingAction.groupStart, dxPct, dyPct);
+      // 함께 골라 둔 그린 선도 같은 양만큼 — 선은 바탕 층에 그려지므로 그때는 바탕까지 다시 그린다.
+      if(shiftSketchGroup(d, pendingAction.sketchOrig, dxPct, dyPct)){ markDirty(); scheduleCanvasRender(); }
+      else scheduleMarkerRender();
     } else if(pendingAction.mode==='rotate'){
       const m = d.markers.find(mm=>mm.id===pendingAction.hitId);
       if(m){
@@ -14564,7 +14629,10 @@
       } else if(action.mode==='rotate'){
         renderTable();
       } else if(action.mode==='move'){
-        if(action.moved) renderTable();
+        if(action.moved){
+          renderTable();
+          if(action.sketchOrig && Object.keys(action.sketchOrig).length) renderCanvas();
+        }
         else if(action.shiftUnselectId){
           // 끌지 않고 그대로 뗀 Shift+누르기 = 고르기에서 빼기(누를 때 미뤄 둔 판정을 여기서 한다).
           if(undoStack.length) undoStack.pop();   // 옮기지 않았으니 빈 기록이다
