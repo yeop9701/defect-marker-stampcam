@@ -71,6 +71,12 @@ eq(await ev(`(${D}.sketch||[]).length`), 0, '하단 바 「모두 지움」이 �
 // 선 지우개를 들면 선 굵기 대신 지우개 굵기(그리기 바)
 await ev(`__markerDbg.setSketchTool('sketchErase'); true`); await sleep(200);
 eq(await vis('#tabletFloatSketchGroup .float-sketch-width'), 0, '선 지우개를 들면 하단 바의 선 굵기는 숨는다');
+eq(await vis('#tabletFloatSketchGroup .sketch-color-btn'), 0, '선 지우개를 들면 하단 바의 색도 숨는다');
+eq(await vis('#tabletFloatSketchGroup .tablet-float-sep'), 1, '  → 빈 구분선이 겹쳐 남지 않는다');
+eq([await vis('#btnFloatSketchGrid'), await vis('#btnFloatSketchClear')], [1, 1], '  → 모눈 · 모두 지움은 그대로');
+await ev(`__markerDbg.setSketchTool('line'); true`); await sleep(150);
+eq(await vis('#tabletFloatSketchGroup .sketch-color-btn'), 6, '선 도구로 돌아오면 색이 다시 보인다');
+await ev(`__markerDbg.setSketchTool('sketchErase'); true`); await sleep(150);
 ok(await vis('#sketchEraseSizeGroup') === 1, '  → 지우개 굵기는 그리기 바에');
 
 /* ══ ② 꾹 누르기 ══ */
