@@ -343,6 +343,13 @@
   .qis-tax-side button.on{border-color:var(--accent);color:var(--accent);font-weight:700;}
   .qis-tax-write{flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid var(--gridline);background:var(--surface-1);
     color:var(--text-primary);font-size:14px;font-family:inherit;}
+  /* 손글씨로 쓰는 줄 : 줄이 아래로 넓어지고 그 안에 필기 상자가 들어간다. 이름은 줄 머리에 이미
+     있으므로 상자 머리의 이름은 숨긴다. */
+  .qis-tax-row.has-ink-slot{flex-wrap:wrap;row-gap:6px;}
+  .qis-tax-row.has-ink-slot.closed{cursor:default;}
+  .qis-tax-inkslot{flex:1 1 100%;min-width:0;display:flex;}
+  .qis-tax-inkslot .ink-box{flex:1 1 100%;}
+  .qis-tax-inkslot .ink-label{display:none;}
   .qis-tax-result{font-size:12.5px;color:var(--text-secondary);padding:0 4px;}
   .qis-tax-result b{color:var(--text-primary);}
   /* 종속 마커(기울기 측정방향)처럼 채울 칸이 없는 경우의 안내문 */
@@ -368,7 +375,7 @@
   body.layout-tablet .ink-head button{min-height:34px;min-width:40px;}
   .ink-pad{position:relative;height:112px;touch-action:none;cursor:crosshair;
     background:linear-gradient(to bottom, transparent calc(78% - 1px), var(--gridline) calc(78% - 1px), var(--gridline) 78%, transparent 78%);}
-  .ink-box.ink-num .ink-pad,.ink-box.ink-int .ink-pad{height:92px;}
+  .ink-box.ink-num .ink-pad,.ink-box.ink-int .ink-pad{height:118px;}  /* 2026-11-18 : 92px 이 좁다는 요청으로 늘림 */
   .ink-pad canvas{position:absolute;left:0;top:0;touch-action:none;}
   .ink-hint{position:absolute;left:10px;top:8px;font-size:12px;color:var(--muted);pointer-events:none;opacity:.8;}
   .ink-box.has-ink .ink-hint{display:none;}
@@ -720,8 +727,10 @@
   .toolbar-row-sketch{display:none;gap:5px;align-items:center;flex-wrap:wrap;}
   body.mode-sketch .toolbar-row-sketch{display:flex;}
   /* 「선택」 중에는 그리기 도구 단추를 숨기고, 고른 선을 고치는 색·굵기·순서만 남긴다 —
-     그리기 도구가 함께 보이면 그리기가 같이 켜진 것처럼 보인다. */
-  body.mode-pick .toolbar-row-sketch{display:flex;}
+     그리기 도구가 함께 보이면 그리기가 같이 켜진 것처럼 보인다. 그린 선을 하나도 안 골랐으면
+     (마커만 골랐거나 아무것도 안 골랐으면) 그 줄도, 아래 떠 있는 바도 통째로 숨긴다
+     — 사용자 지적 2026-11-18 「선택을 누르면 하단에 그리기 작업바가 나온다」. */
+  body.mode-pick.pick-has-strokes .toolbar-row-sketch{display:flex;}
   body.mode-pick #sketchToolGroup{display:none;}
 
   /* ── 캔버스 위에 떠 있는 조작 묶음 ─────────────────────────────────────────────────
@@ -900,10 +909,11 @@
     /* 숫자 칸(폭·길이·개수·사진번호·번호)은 두세 글자면 충분한데 예전에는 글자 칸과 비슷한 폭을
        가져가고 있었다. 그 칸들만 조금씩 줄여 표 최소폭을 620→580px로 낮췄고, 그만큼 우측 패널을
        좁혀 도면을 넓게 쓴다. 부재·자재·결함은 값이 길어 읽혀야 하므로 최소폭을 건드리지 않았다. */
-    --cols: 30px 62px minmax(64px,1.1fr) minmax(64px,1.1fr) minmax(64px,1.1fr)
+    /* 층수·위치(2026-11-18 추가)는 부재 앞 두 칸 — 값이 짧아(「3F」·「거실」) 좁게 둔다. */
+    --cols: 30px 62px 44px minmax(52px,0.8fr) minmax(64px,1.1fr) minmax(64px,1.1fr) minmax(64px,1.1fr)
             48px 48px 38px 46px 28px 28px;
     display:grid;grid-template-columns:var(--cols);
-    column-gap:6px;row-gap:6px;padding:0 8px 8px;min-width:580px;
+    column-gap:6px;row-gap:6px;padding:0 8px 8px;min-width:680px;
   }
   .marker-table[data-preset="기울기"]{
     --cols: 34px minmax(64px,1fr) 118px 118px 88px 128px 30px 30px;
@@ -1008,6 +1018,49 @@
   body.layout-tablet .marker-card select.mc-marktype,
   .marker-list-wrap.narrow .marker-card .mc-seq,
   .marker-list-wrap.narrow .marker-card select.mc-marktype{grid-column:span 1;}
+  /* 외관조사 카드는 두 줄로 (2026-11-18 요청 : 세 줄 → 두 줄, 부재 앞에 층수·위치)
+       1줄 : 번호 · 유형 · 층수 · 위치 · 부재 · 자재 · 결함
+       2줄 : 폭 · 길이 · 개수 · 사진# · 사진첨부 · 삭제
+     24칸 격자에 칸마다 넓이를 따로 준다 — 부재·자재·결함은 ▼ 단추가 붙어 넓게, 번호·층수는 좁게. */
+  body.layout-tablet .marker-card.mc-rpt,
+  .marker-list-wrap.narrow .marker-card.mc-rpt{grid-template-columns:repeat(24,minmax(0,1fr));gap:8px 4px;}
+  body.layout-tablet .marker-card.mc-rpt > .mc-seq,
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-seq{grid-column:span 2;}
+  body.layout-tablet .marker-card.mc-rpt > select.mc-marktype,
+  .marker-list-wrap.narrow .marker-card.mc-rpt > select.mc-marktype{grid-column:span 4;}
+  body.layout-tablet .marker-card.mc-rpt > .mc-cell,
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell{grid-column:span 3;}
+  body.layout-tablet .marker-card.mc-rpt > .mc-cell.combo,
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell.combo{grid-column:span 4;}
+  /* 2줄 : 폭·길이·개수·사진# 각 5칸 + 사진첨부·삭제 각 2칸 = 24 */
+  body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptWidth"]),
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptWidth"]),
+  body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptLength"]),
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptLength"]),
+  body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptCount"]),
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptCount"]),
+  body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptTag"]),
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptTag"]){grid-column:span 5;}
+  body.layout-tablet .marker-card.mc-rpt > .mc-photo,
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-photo,
+  body.layout-tablet .marker-card.mc-rpt > .row-del,
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .row-del{grid-column:span 2;min-width:0;}
+  /* 한 줄에 일곱 칸이 들어가므로 글자·여백을 조금 줄인다 */
+  body.layout-tablet .marker-card.mc-rpt input,
+  .marker-list-wrap.narrow .marker-card.mc-rpt input,
+  body.layout-tablet .marker-card.mc-rpt select,
+  .marker-list-wrap.narrow .marker-card.mc-rpt select{padding:0 3px;font-size:12.5px;}
+  body.layout-tablet .marker-card.mc-rpt .mc-cell::before,
+  .marker-list-wrap.narrow .marker-card.mc-rpt .mc-cell::before{white-space:nowrap;}
+  /* 목록 ▼ 단추는 좁게 — 값(콘크리트·수직부재)이 잘리지 않게 글자 칸에 자리를 더 준다 */
+  body.layout-tablet .marker-card.mc-rpt .cwrap > .cbtn,
+  .marker-list-wrap.narrow .marker-card.mc-rpt .cwrap > .cbtn{flex:0 0 18px;width:18px;padding:0;font-size:9px;}
+  body.layout-tablet .marker-card.mc-rpt > select.mc-marktype,
+  .marker-list-wrap.narrow .marker-card.mc-rpt > select.mc-marktype{padding:0 0 0 3px;font-size:12px;}
+  body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptFloor"]),
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptFloor"]){grid-column:span 2;}
+  body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptMember"]),
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptMember"]){grid-column:span 5;}
   body.layout-tablet .mc-cell,
   .marker-list-wrap.narrow .mc-cell{position:relative;padding-top:14px;}
   body.layout-tablet .mc-cell::before,
@@ -1535,7 +1588,7 @@
                「자세히」 단추는 글 길이와 무관하게 오른쪽 끝 같은 자리에 붙박여 있다 — 예전에는
                글 안에 섞여 있어 문장이 길어지면 단추까지 다음 줄로 넘어가며 도구줄이 커졌다. -->
           <div class="mode-hint" id="modeHint">
-            <span class="mode-hint-text" id="modeHintText">현재 선택된 유형: <b id="activeTypeLabel">벽체</b> (단축키 1/2) — 클릭해 추가, 드래그로 방향 지정 (Shift: 수직/수평 고정)</span>
+            <span class="mode-hint-text" id="modeHintText">현재 선택된 유형: <b id="activeTypeLabel">수직부재</b> (단축키 1/2) — 클릭해 추가, 드래그로 방향 지정 (Shift: 수직/수평 고정)</span>
             <button type="button" class="hint-more" id="btnHintMore" style="display:none;" title="이 모드에서 쓸 수 있는 것을 모두 보여줍니다">자세히 ▾</button>
           </div>
         </div>
@@ -2566,9 +2619,14 @@
     // labelSep, numbering, legendShow, noBadge)를 담는다. 여기 없는 필드가 makeSeries()에 늘어나면
     // 프로젝트를 열었을 때 그 설정이 에러 없이 조용히 기본값으로 초기화되므로, 필드를 추가할 때는
     // makeSeries()와 이 화이트리스트를 함께 고쳐야 한다.
+    // 외관조사 기본 이름이 바뀌었다(벽체→수직부재, 바닥/천장→수평부재). 예전 기본 이름 그대로인
+    // 것만 바꾼다 — 사용자가 계열 편집으로 직접 지은 이름은 건드리지 않는다.
+    const RENAMED = { wall:['벽체','수직부재'], flat:['바닥/천장','수평부재'],
+      wall_area:['벽체(범위)','수직부재(범위)'], flat_area:['바닥/천장(범위)','수평부재(범위)'] };
+    const relabel = (key, label)=> (RENAMED[key] && RENAMED[key][0] === label) ? RENAMED[key][1] : label;
     return list.slice(0, 40).map(t=>({
       key:        str(t && t.key, 'unknown'),
-      label:      str(t && t.label, '(이름 없음)'),
+      label:      relabel(t && t.key, str(t && t.label, '(이름 없음)')),
       color:      hex(t && t.color) ? t.color : '#e23c3c',
       text:       hex(t && t.text) ? t.text : '#ffffff',
       endStyle:   pick(t && t.endStyle, ENDSTYLE, 'arrow'),
@@ -2591,10 +2649,12 @@
   // 수 있게 만들었다 — 코드를 다시 고치지 않아도 된다.
   const BUILTIN_PRESETS = [
     { name:'외관조사', series:[
-      makeSeries({key:'wall', label:'벽체', color:'#FF0000', endStyle:'arrow'}), // 엑셀 표준색상 "빨강"
-      makeSeries({key:'flat', label:'바닥/천장', color:'#0047AB', endStyle:'dot'}), // 기존보다 진한 파랑
-      makeSeries({key:'wall_area', label:'벽체(범위)', color:'#FF0000', endStyle:'rect'}),
-      makeSeries({key:'flat_area', label:'바닥/천장(범위)', color:'#0047AB', endStyle:'rect'}),
+      // 이름은 2026-11-18 사용자 요청으로 벽체→수직부재, 바닥/천장→수평부재 (key 는 그대로 —
+      // 예전 이름이 저장된 프로젝트·자동저장·사용자 프리셋은 sanitizeSeriesSnapshot 이 새 이름으로 바꾼다)
+      makeSeries({key:'wall', label:'수직부재', color:'#FF0000', endStyle:'arrow'}), // 엑셀 표준색상 "빨강"
+      makeSeries({key:'flat', label:'수평부재', color:'#0047AB', endStyle:'dot'}), // 기존보다 진한 파랑
+      makeSeries({key:'wall_area', label:'수직부재(범위)', color:'#FF0000', endStyle:'rect'}),
+      makeSeries({key:'flat_area', label:'수평부재(범위)', color:'#0047AB', endStyle:'rect'}),
     ]},
     { name:'장비조사', series:[
       // 빨강/파랑은 외관조사(wall/flat)와 완전히 같은 색상코드로 통일했다(#FF0000/#0047AB) — 예전엔
@@ -3335,15 +3395,19 @@
   function drawMarker(ctx, type, cx, cy, r, numberLabel, selected, numRot){
     ctx.save();
     if(selected){
+      // 이동 모드에서는 고른 표시를 이동 색(초록)으로 — 그린 선의 점선과 같은 색이라 함께 움직일 것이 한눈에 보인다.
+      const mv = (typeof moveMode !== 'undefined') && moveMode;
       ctx.beginPath();
       ctx.arc(cx,cy,r*1.6,0,Math.PI*2);
-      ctx.fillStyle = 'rgba(42,120,214,0.16)';
+      ctx.fillStyle = mv ? moveSelColor(0.18) : 'rgba(42,120,214,0.16)';
       ctx.fill();
       ctx.beginPath();
       ctx.arc(cx,cy,r*1.6,0,Math.PI*2);
-      ctx.strokeStyle = 'rgba(42,120,214,0.55)';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = mv ? moveSelColor(0.9) : 'rgba(42,120,214,0.55)';
+      ctx.lineWidth = mv ? 2 : 1.5;
+      if(mv) ctx.setLineDash([4,3]);
       ctx.stroke();
+      ctx.setLineDash([]);
     }
     const hasLabel = numberLabel !== undefined && numberLabel !== null && numberLabel !== '';
     const badgeShape = (type && type.badgeShape) || 'circle';
@@ -5497,12 +5561,24 @@
     return null;
   }
 
+  // 이동 모드의 선택 표시 색 — 도면 테두리·「이동」 단추와 같은 초록(--mode-move)
+  function moveSelColor(alpha){
+    const v = (getComputedStyle(document.documentElement).getPropertyValue('--mode-move') || '#0d7a4f').trim();
+    const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(v);
+    return m ? `rgba(${parseInt(m[1],16)},${parseInt(m[2],16)},${parseInt(m[3],16)},${alpha})` : v;
+  }
   // 고른 표시(점선 사각형 + 틀 + 조절점)와 범위 선택 밴드. 마커 레이어(도면 위에 겹친 캔버스)에
   // 그린다 — 그린 선 자체는 #mainCanvas에 그려지지만, 이 표시는 저장물에 나가면 안 되는 조작용이다.
   function drawSketchSelectionOverlay(ctx, d, w, h){
-    if(!sketchTool) return;
+    // 이동 모드에서도 골라 둔 선의 점선은 남긴다(「선택」에서 여럿 고른 뒤 「이동」을 눌러도 무엇이
+    // 함께 움직이는지 보여야 한다). 그때는 이동 모드 색(초록)으로 그리고, 이동 모드에서는 잡을 수
+    // 없는 크기·회전 손잡이는 그리지 않는다.
+    const moving = !sketchTool && moveMode;
+    if(!sketchTool && !moving) return;
     const sx = w/d.naturalW, sy = h/d.naturalH;
     const list = selectedSketchStrokes(d);
+    const dashCol = moving ? moveSelColor(0.95) : 'rgba(42,120,214,0.75)';
+    const frameCol = moving ? moveSelColor(0.95) : 'rgba(42,120,214,0.95)';
     ctx.save();
     // ① 획마다 딱 맞는 점선 사각형 — 눕어 있으면 함께 눕는다(무엇을 골랐는지가 정확히 보인다).
     list.forEach(s=>{
@@ -5516,17 +5592,26 @@
         ctx.rotate((s.angle||0)*Math.PI/180);
         ctx.translate(-piv.x*sx, -piv.y*sy);
       }
-      ctx.strokeStyle = 'rgba(42,120,214,0.75)';
-      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = dashCol;
+      ctx.lineWidth = moving ? 1.8 : 1.2;
       ctx.setLineDash([4,3]);
       ctx.strokeRect(bn.x0*sx - pad, bn.y0*sy - pad, (bn.x1-bn.x0)*sx + pad*2, (bn.y1-bn.y0)*sy + pad*2);
       ctx.setLineDash([]);
       ctx.restore();
     });
     // ② 크기·회전을 다루는 바깥 틀 + 조절점
-    const frame = selectionFrameCanvas(d, list, w, h);
+    const frame = moving ? null : selectionFrameCanvas(d, list, w, h);
+    if(moving && list.length > 1){
+      // 여럿 골랐으면 전체를 감싸는 점선 하나 — 손잡이 없이 테두리만
+      const f = selectionFrameCanvas(d, list, w, h);
+      if(f){
+        ctx.strokeStyle = frameCol; ctx.lineWidth = 1.4; ctx.setLineDash([6,4]);
+        ctx.strokeRect(f.x0, f.y0, f.x1-f.x0, f.y1-f.y0);
+        ctx.setLineDash([]);
+      }
+    }
     if(frame){
-      ctx.strokeStyle = 'rgba(42,120,214,0.95)';
+      ctx.strokeStyle = frameCol;
       ctx.lineWidth = 1.4;
       ctx.setLineDash([6,4]);
       ctx.strokeRect(frame.x0, frame.y0, frame.x1-frame.x0, frame.y1-frame.y0);
@@ -5537,7 +5622,7 @@
       ctx.lineTo((frame.x0+frame.x1)/2, frame.y0 - SKETCH_ROTATE_ARM);
       ctx.stroke();
     }
-    sketchAllHandles(d, list, w, h).forEach(hd=>{
+    (moving ? [] : sketchAllHandles(d, list, w, h)).forEach(hd=>{
       ctx.beginPath();
       if(hd.kind === 'grotate') ctx.arc(hd.x, hd.y, 6.5, 0, Math.PI*2);
       else if(hd.kind === 'gcorner') ctx.rect(hd.x-5, hd.y-5, 10, 10);
@@ -6536,7 +6621,11 @@
   //                   다시 그리지 않으므로 마커가 아무리 많아도 가볍다.
   // renderCanvas()는 두 레이어를 한 번에 갱신하는 편의 함수이고, 드래그처럼 잦은 갱신이 필요한
   // 곳에서는 이미지가 바뀌지 않으므로 renderMarkerLayer()만 호출한다.
+  let lastPickBarState = null;
   function renderCanvas(){
+    // 「선택」에서 그린 선을 골랐다/놓았다에 따라 떠 있는 바를 띄우거나 숨긴다(바뀔 때만 다시 잰다).
+    { const st = sketchTool === 'pick' && selectedSketchIds.size > 0;
+      if(st !== lastPickBarState){ lastPickBarState = st; updateCanvasFloatBar(); } }
     if(!renderBaseLayer()) return;
     renderMarkerLayer();
   }
@@ -7797,7 +7886,7 @@
   // 카드의 유형/부재명/결함명/사진번호 값이 바뀔 때마다 검색 색인(card.dataset.search)도 함께
   // 갱신한다 — renderTable()이 다시 호출되지 않는 필드 편집에서도 검색이 최신 값을 바로 반영하도록.
   function computeCardSearchIndex(m){
-    return [getType(m.typeKey).label, m.rptType, m.rptMember, m.rptDefect, m.rptTag,
+    return [getType(m.typeKey).label, m.rptFloor, m.rptLoc, m.rptType, m.rptMember, m.rptDefect, m.rptTag,
         m.tiltBldg, m.lvGroup, m.eqFloor, m.eqLoc, m.eqMember, m.eqTag]
       .filter(Boolean).join(' ').toLowerCase();
   }
@@ -8179,7 +8268,11 @@
     } else if(inkMode){
       // 부재·자재·결함은 단추로 고른다. 손글씨 상자는 ✎ 를 누른 칸과, 이어받은 손글씨가 아직 글자가 아닌 칸에만 연다.
       renderInkBoxes(m, spec, box, hasTax ? (k=> TAX_FIELDS.indexOf(k) < 0 || quickTaxWantsInk(m, k)) : null);
-      if(hasTax) box.insertBefore(buildQuickTaxPanel(m, true), box.firstChild);
+      if(hasTax){
+        const panel = buildQuickTaxPanel(m, true);
+        box.insertBefore(panel, box.firstChild);
+        placeTaxInkBoxes(panel);
+      }
     } else if(hasTax){
       // 부재·자재·결함 단추 + 실측값(폭·길이·개수·사진#)은 「더 입력」 안에
       const rest = spec.filter(f=> f.kind !== 'select');
@@ -8275,10 +8368,15 @@
           + `<input type="text" class="qis-tax-write" data-qis="${k}" value="${escapeAttr(val)}" placeholder="${label} 직접 입력${k==='rptDefect' ? ' (여러 개는 / 로)' : ''}" autocomplete="off"/>${side}</div>`;
         return;
       }
+      // 손글씨 칸은 시트 아래에 따로 생기지 않고, 그 줄이 아래로 넓어지며 줄 안에 필기 상자가 들어간다
+      // (사용자 요청 2026-11-18). 상자는 renderInkBoxes 가 만든 것을 placeTaxInkBoxes 가 이 자리로 옮긴다.
+      const slot = inkHere ? `<div class="qis-tax-inkslot" data-ink-slot="${k}"></div>` : '';
       if(k !== open || (inkMode && writing)){
-        const shown = val || (inkHere ? '(손글씨 — 아래 상자)' : '선택 안 함');
-        html += `<div class="qis-tax-row closed" data-tax-open="${k}" title="눌러서 ${label} 바꾸기">`
-          + `<span class="qis-tax-label">${label}</span><span class="qis-tax-value${val ? '' : ' empty'}">${escapeHTML(shown)}</span>${side}</div>`;
+        const shown = val || (inkHere ? '아래 칸에 손글씨로 쓰세요' : '선택 안 함');
+        // 쓰는 중인 줄은 눌러도 펼쳐지지 않는다(필기 상자를 누를 때마다 줄이 바뀌면 안 된다)
+        const openAttr = writing ? '' : ` data-tax-open="${k}" title="눌러서 ${label} 바꾸기"`;
+        html += `<div class="qis-tax-row closed${inkHere ? ' has-ink-slot' : ''}"${openAttr}>`
+          + `<span class="qis-tax-label">${label}</span><span class="qis-tax-value${val ? '' : ' empty'}">${escapeHTML(shown)}</span>${side}${slot}</div>`;
         return;
       }
       const picked = k === 'rptDefect' ? splitDefects(val) : (val ? [val] : []);
@@ -8287,7 +8385,7 @@
       const all = picked.filter(v=> opts.indexOf(v) < 0).concat(opts);
       const chips = all.map(v=> `<button type="button" data-tax-pick="${k}" data-v="${escapeAttr(v)}" class="${picked.indexOf(v) >= 0 ? 'on' : ''}${taxKnows(k, v) ? '' : ' extra'}">${escapeHTML(v)}</button>`).join('')
         + (val ? `<button type="button" class="clear" data-tax-clear="${k}">지우기</button>` : '');
-      html += `<div class="qis-tax-row open"><span class="qis-tax-label">${label}</span><div class="qis-tax-chips">${chips}</div>${side}</div>`;
+      html += `<div class="qis-tax-row open${inkHere ? ' has-ink-slot' : ''}"><span class="qis-tax-label">${label}</span><div class="qis-tax-chips">${chips}</div>${side}${slot}</div>`;
     });
     const sum = [m.rptType, m.rptMember, m.rptDefect].map(v=> String(v||'').trim()).filter(Boolean).join(' ');
     if(sum) html += `<div class="qis-tax-result">→ <b>${escapeHTML(sum)}</b></div>`;
@@ -8481,7 +8579,21 @@
     const old = box && box.querySelector('.qis-tax');
     const m = quickInputMarker();
     if(!old || !m) return;
-    old.replaceWith(buildQuickTaxPanel(m, document.getElementById('quickInputSheet').classList.contains('ink-mode')));
+    const panel = buildQuickTaxPanel(m, document.getElementById('quickInputSheet').classList.contains('ink-mode'));
+    old.replaceWith(panel);
+    placeTaxInkBoxes(panel);
+  }
+  // 부재·자재·결함의 필기 상자를 그 줄 안(.qis-tax-inkslot)으로 옮긴다. 줄을 새로 그려도 같은 상자를
+  // 다시 넣으므로 쓰던 글씨가 그대로 남는다. 들어갈 줄이 없어진 상자(단추로 값을 골라 손글씨가 필요
+  // 없어진 칸)는 화면에서 뺀다.
+  function placeTaxInkBoxes(panel){
+    if(!inkBoxes || !panel) return;
+    TAX_FIELDS.forEach(k=>{
+      const b = inkBoxes[k]; if(!b) return;
+      const slot = panel.querySelector(`[data-ink-slot="${k}"]`);
+      if(slot) slot.appendChild(b.el);
+      else if(b.el.parentNode && !b.el.closest('.qis-tax')) b.el.remove();
+    });
   }
   // 결함 목록 카드 : 글자로 아직 안 바뀐 칸에는 쓴 글씨를 칸 배경으로 그려 둔다
   function decorateInkCells(card, m){
@@ -8807,14 +8919,18 @@
   // 그대로 넘기면 틀린 수치가 조용히 채워져 성과품에 그대로 실린다.
   function carryKeysFor(m){
     const out = [];
-    quickInputSpecFor(m).forEach(fld=>{
+    const spec = quickInputSpecFor(m);
+    // 외관조사의 층수·위치는 결함 목록에만 있는 칸이라(퀵입력 시트에는 없다) 여기서 따로 더한다 —
+    // 같은 층·같은 위치의 결함이 연달아 나오므로 이어받기·여러 건 채우기에 들어가야 한다.
+    if(spec.some(f=> f.k==='rptType')) out.push('rptFloor', 'rptLoc');
+    spec.forEach(fld=>{
       if(fld.kind==='select' || fld.kind==='text') out.push(fld.k);
     });
     return out;
   }
   // 위 carryKeysFor가 프리셋별로 돌려주는 키 전부의 합집합 — 표에서 값이 바뀌었을 때 "이건 분류
   // 칸인가"를 한 번에 판정하기 위한 목록이다. 프리셋에 분류 칸을 새로 추가하면 여기에도 넣어야 한다.
-  const ALL_CARRY_KEYS = ['rptType','rptMember','rptDefect','eqFloor','eqLoc','eqMember','lvGroup','tiltBldg'];
+  const ALL_CARRY_KEYS = ['rptFloor','rptLoc','rptType','rptMember','rptDefect','eqFloor','eqLoc','eqMember','lvGroup','tiltBldg'];
   function recordCarryValue(key, value){
     if(!key) return;
     if(ALL_CARRY_KEYS.indexOf(key) < 0) return;
@@ -8875,6 +8991,8 @@
     // 라벨은 그 프리셋의 카드/시트와 같은 이름을 쓴다 — 같은 칸을 두 이름으로 부르지 않기 위함.
     const specByKey = {};
     quickInputSpecFor(targets[0]).forEach(fld=>{ if(fld.k) specByKey[fld.k] = fld; });
+    specByKey.rptFloor = { label:'층수', kind:'text' };
+    specByKey.rptLoc = { label:'위치', kind:'text' };
     box.innerHTML = keys.map(k=>{
       const fld = specByKey[k] || { label:k, kind:'text' };
       if(fld.kind==='select'){
@@ -9199,6 +9317,8 @@
   const DEFAULT_MARKER_LIST_HEAD_HTML = `
     <span class="mc-seq">번호</span>
     <span>유형</span>
+    <span>층수</span>
+    <span>위치</span>
     <span>부재</span>
     <span>자재</span>
     <span>결함</span>
@@ -9247,6 +9367,7 @@
     // 헤더뿐 아니라 표 자체에도 지금 프리셋이 무엇인지 알려줘야 한다(CSS의 [data-preset=...] 선택자).
     const table = document.getElementById('markerTable');
     if(table) table.dataset.preset = activePresetName;
+    try{ updateMarkerListNarrowMode(); }catch(err){ /* 시작 직후 아직 준비 전이면 아래 감시자가 곧 맞춘다 */ }
   }
 
   let renderTableInProgress = false;
@@ -9301,6 +9422,7 @@
       else if(isLv) card.innerHTML = buildLvCardHTML(m, idx);
       else if(isEq) card.innerHTML = buildEqCardHTML(m, idx);
       else {
+        card.classList.add('mc-rpt');   // 외관조사 카드 — 줄바꿈 배치에서 두 줄로 담는다(CSS)
         const typeOptions = typeOptionsHTML(m.typeKey);
         // 필드명(rptType/rptMember)과 화면 라벨(부재/자재)이 짝이 안 맞아 보일 수 있는데 의도된 것이다 —
         // rptType엔 "벽체/천장/바닥" 같은 부재 값이, rptMember엔 "콘크리트/조적" 같은 자재 값이 들어간다
@@ -9308,6 +9430,8 @@
         card.innerHTML = `
             <input type="text" class="mc-seq" inputmode="numeric" data-role="pos" tabindex="-1" value="${m.seq||idx+1}" title="번호 — 값을 바꾸면 도면·목록의 순서(번호)가 그 위치로 바뀝니다"/>
             <select data-role="type" class="mc-marktype" tabindex="-1" title="마킹 색상·모양(도면에 표시되는 유형)">${typeOptions}</select>
+            <span class="mc-cell" data-label="층수"><input type="text" data-role="rptFloor" placeholder="층수" title="층수" value="${escapeAttr(m.rptFloor||'')}"/></span>
+            <span class="mc-cell" data-label="위치"><input type="text" data-role="rptLoc" placeholder="위치" title="위치" value="${escapeAttr(m.rptLoc||'')}"/></span>
             ${buildReportFieldHTML('rptType', m.rptType, '부재')}
             ${buildReportFieldHTML('rptMember', m.rptMember, '자재')}
             ${buildReportFieldHTML('rptDefect', m.rptDefect, '결함')}
@@ -9367,10 +9491,11 @@
         wireReportField(card, 'rptType', m);
         wireReportField(card, 'rptMember', m);
         wireReportField(card, 'rptDefect', m);
-        ['rptWidth','rptLength','rptCount','rptTag'].forEach(key=>{
+        ['rptFloor','rptLoc','rptWidth','rptLength','rptCount','rptTag'].forEach(key=>{
           card.querySelector(`[data-role="${key}"]`).addEventListener('input', (e)=>{
             markDirty(); m[key] = e.target.value;
-            if(key==='rptTag') updateCardSearchIndex(card, m); // 사진번호(#)만 검색 대상이라 이때만 갱신
+            // 층수·위치·사진번호(#)는 검색 대상이라 이때 갱신
+            if(key==='rptTag' || key==='rptFloor' || key==='rptLoc') updateCardSearchIndex(card, m);
           });
         });
       }
@@ -9456,7 +9581,11 @@
     const leader = document.getElementById('leaderShapeGroup');
     if(leader) leader.style.display = markerMode ? '' : 'none';
     const bar = document.getElementById('canvasFloatBar');
-    if(bar) bar.style.display = (!hideAll && (cropMode || !!sketchTool || eraseMode || markerMode)) ? '' : 'none';
+    // 「선택」은 그린 선을 골랐을 때만(색·굵기·순서를 바꿀 거리가 있을 때만) 바를 띄운다.
+    const pickHasStrokes = sketchTool === 'pick' && selectedSketchIds.size > 0;
+    document.body.classList.toggle('pick-has-strokes', pickHasStrokes);
+    const sketchBar = !!sketchTool && (sketchTool !== 'pick' || pickHasStrokes);
+    if(bar) bar.style.display = (!hideAll && (cropMode || sketchBar || eraseMode || markerMode)) ? '' : 'none';
     // 모드가 바뀌면 바에 담기는 것이 달라져 폭·높이가 변한다 — 옮겨 둔 자리가 그 크기로도
     // 도면 칸 안에 들어오는지 다시 본다.
     applyFloatBarOffset(false);
@@ -9668,7 +9797,7 @@
       renderModeHint('<b>선택</b> (s) — 마커와 그린 것을 함께 고릅니다',
         '빈 곳을 드래그하면 완전히 안에 들어온 것만 선택됩니다(<b>Shift</b>: 추가/해제) · <b>Shift</b>+드래그: 곧게 옮기기 · <b>Ctrl</b>+드래그: 복제');
     } else if(moveMode){
-      renderModeHint('<b>이동</b> (m) — 마커를 드래그해 옮깁니다',
+      renderModeHint('<b>이동</b> (m) — 끌어서 옮깁니다 — 골라 둔 마커·그린 선은 함께',
         '빈 곳을 클릭·드래그해도 아무 일도 일어나지 않습니다(실수로 마커가 찍히지 않게 하는 모드입니다). <b>Shift</b>+드래그: 곧게');
     } else if(getType(activeTypeKey).endStyle==='rect'){
       // 3클릭 생성은 "지금 무엇을 클릭할 차례인지"를 단계마다 다르게 알려준다. 예전에는 세 단계
@@ -11418,7 +11547,9 @@
       // 헤더 문구의 "LV"는 화면 카드 라벨과 맞춰 뺐다(데이터 필드명 m.lvGroup 자체는 그대로).
       '그룹명','LV측정값(cm)','LV경간(mm)',
       // 3-2: 장비조사(SH/PH/DM) 공통 값. "번호" 열이 이미 SH-01/PH-01/DM-01 배지를 담는다.
-      '장비_층수','장비_위치','장비_부재','장비_사진번호'];
+      '장비_층수','장비_위치','장비_부재','장비_사진번호',
+      // 2026-11-18 : 외관조사 결함의 층수·위치 — 옛 소비 코드와 자리를 맞추려고 맨 끝에 붙인다.
+      '층수','위치'];
     const rows = [];
     drawings.forEach(d=>{
       d.markers.forEach((m, idx)=>{
@@ -11439,7 +11570,8 @@
           (m.note||'').replace(/\r?\n/g,' '), m.uid||m.id||'',
           upDms, loDms, m.tiltDist||'', resDms,
           m.lvGroup||'', m.lvValue||'', m.lvSpan||'',
-          m.eqFloor||'', m.eqLoc||'', m.eqMember||'', m.eqTag||''] });
+          m.eqFloor||'', m.eqLoc||'', m.eqMember||'', m.eqTag||'',
+          m.rptFloor||'', m.rptLoc||''] });
       });
     });
     return { header, rows };
@@ -11854,8 +11986,9 @@
     const isArea = /범위|영역|area|range/.test(s);
     // "벽"/"바닥" 줄임 매칭은 외관조사 프리셋(wall/flat 키가 실제로 존재할 때)에서만 쓴다 — 장비조사·
     // 기울기 등 다른 프리셋에서는 이 키 자체가 없어 잘못 배정될 수 있으므로 아래 일반 매칭으로 넘어간다.
-    if(TYPE_MAP.wall && (/벽/.test(s) || /wall/.test(s))) return isArea ? 'wall_area' : 'wall';
-    if(TYPE_MAP.flat && (/바닥|천장|천정|floor|ceiling/.test(s))) return isArea ? 'flat_area' : 'flat';
+    // 새 이름(수직부재·수평부재)과 예전 이름(벽체·바닥/천장)으로 내보낸 CSV를 모두 받는다.
+    if(TYPE_MAP.wall && (/벽|수직/.test(s) || /wall/.test(s))) return isArea ? 'wall_area' : 'wall';
+    if(TYPE_MAP.flat && (/바닥|천장|천정|수평|floor|ceiling/.test(s))) return isArea ? 'flat_area' : 'flat';
     const found = DEFECT_TYPES.find(t => t.label===label || s.includes(t.label.toLowerCase()) || t.key===s);
     return found ? found.key : DEFECT_TYPES[0].key;
   }
@@ -11900,6 +12033,9 @@
       eqLoc:     header.findIndex(h=>/^장비_위치/.test(h)),
       eqMember:  header.findIndex(h=>/^장비_부재/.test(h)),
       eqTag:     header.findIndex(h=>/^장비_사진번호/.test(h)),
+      // 「위치유형」·「장비_위치」와 헷갈리지 않게 이름 전체가 같아야 잡는다.
+      rptFloor:  header.findIndex(h=>/^층수$/.test(h)),
+      rptLoc:    header.findIndex(h=>/^위치$/.test(h)),
     };
     // 내보낼 때 "12°34′56″" 한 칸으로 합쳐 쓰는 도/분/초를 다시 세 값으로 되돌린다.
     // 도°분′초″ 외에 "12 34 56", "12-34-56"처럼 적어 넣은 것도 받아준다.
@@ -11934,7 +12070,7 @@
       }
       // 조사 내용 열들을 마커에 그대로 채운다 — 값이 비어 있으면 아예 넣지 않아, 열이 없는 옛 CSV를
       // 불러왔을 때 빈 문자열이 새로 생기지 않게 한다.
-      ['rptType','rptMember','rptDefect','rptWidth','rptLength','rptCount','rptTag',
+      ['rptFloor','rptLoc','rptType','rptMember','rptDefect','rptWidth','rptLength','rptCount','rptTag',
        'lvGroup','lvValue','lvSpan','eqFloor','eqLoc','eqMember','eqTag','tiltDist'].forEach(key=>{
         if(idx[key] < 0) return;
         const v = String(r[idx[key]] ?? '').trim();
@@ -12834,7 +12970,7 @@
   }
   // 스탬프 카메라의 메모(파일이름 {메모})로 쓸 만한 이 결함의 정보 : 층수·위치·부재 / 부재·결함
   function stampMemoSuggest(m){
-    const parts = (m.eqFloor||m.eqLoc||m.eqMember) ? [m.eqFloor, m.eqLoc, m.eqMember] : [m.rptType, m.rptDefect];
+    const parts = (m.eqFloor||m.eqLoc||m.eqMember) ? [m.eqFloor, m.eqLoc, m.eqMember] : [m.rptFloor, m.rptLoc, m.rptType, m.rptDefect];
     return parts.map(v=>String(v||'').trim()).filter(Boolean).join(' ');
   }
   // 찍은 사진 한 장을 결함에 붙이고, 이번 촬영(session)의 첫 사진이면 그 번호를 사진번호 칸에 넣는다.
@@ -14921,6 +15057,7 @@
     qisBox.addEventListener('click', e=>{
       const t = e.target.closest && e.target;
       if(!t) return;
+      if(t.closest('.ink-box')) return;   // 줄 안에 든 필기 상자를 누른 것은 줄을 누른 것이 아니다
       const w = t.closest('[data-tax-write]');
       if(w){
         const k = w.dataset.taxWrite;
@@ -15512,10 +15649,15 @@
   // 표 최소폭을 바꾸면 이 값도 함께 내려야 한다 — 안 그러면 한 줄 표가 들어가는 폭인데도
   // 카드 배치로 떨어져 한 화면에 보이는 결함 수가 절반이 된다.
   const MARKER_LIST_NARROW_WIDTH = 560;
+  const MARKER_LIST_NARROW_WIDTH_RPT = 680;
   function updateMarkerListNarrowMode(){
     const wrap = document.querySelector('.marker-list-wrap');
     if(!wrap) return;
-    wrap.classList.toggle('narrow', wrap.clientWidth > 0 && wrap.clientWidth < MARKER_LIST_NARROW_WIDTH);
+    // 외관조사 표는 층수·위치 두 칸이 늘어 최소폭이 680px 이 되었다(2026-11-18). 그보다 좁으면
+    // 한 줄 표를 옆으로 밀어 보는 대신 두 줄 카드로 담는다. 다른 위치도 종류는 예전 기준 그대로.
+    const lim = (activePresetName==='기울기' || activePresetName==='부동침하' || activePresetName==='장비조사')
+      ? MARKER_LIST_NARROW_WIDTH : MARKER_LIST_NARROW_WIDTH_RPT;
+    wrap.classList.toggle('narrow', wrap.clientWidth > 0 && wrap.clientWidth < lim);
   }
   (function initMarkerListNarrowWatch(){
     const sidebar = document.querySelector('.sidebar.right');
@@ -15663,7 +15805,7 @@
     markerRadiusNatural, badgeToTipPct, ICON_SIZE_RANGE,
     get iconSizeMult(){ return iconSizeMult; },
     setIconSizeMult, applyIconSizeMult, buildProjectSnapshot, buildProjectMetaSnapshot, applyProjectData,
-    getActiveDrawing, saveFrameLayout, syncFrameTuneUI,
+    getActiveDrawing, saveFrameLayout, syncFrameTuneUI, renderTable, buildDefectExportData, importCSVText,
     sketchTextMetricsNatural, sketchHitTest, textBorderOn, textBorderColor,
     SKETCH_TEXT_BORDER_DEFAULT, fitTbPreviewCanvas,
     get sketchTextBorder(){ return sketchTextBorder; },

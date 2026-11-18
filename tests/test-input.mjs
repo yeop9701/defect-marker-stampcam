@@ -29,7 +29,9 @@ await cdp.send('DOM.enable');
 await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1000, deviceScaleFactor: 1, mobile: false });
 await cdp.send('Page.navigate', { url: APP });
 await sleep(1500);
-await ev('try{localStorage.clear()}catch(e){}; true');
+// 외관조사 표는 층수·위치가 늘어(2026-11-18) 기본 폭에서는 두 줄 카드가 된다 — 여기서는 한 줄 표의
+// 칸 이동을 보므로 결함 목록을 넓혀 둔다(사용자가 목록 가장자리를 끌어 넓힌 것과 같다).
+await ev("try{localStorage.clear(); localStorage.setItem('defectMarkerRightSidebarWidth_v1','780')}catch(e){}; true");
 await cdp.send('Page.navigate', { url: APP });
 await sleep(1800);
 
