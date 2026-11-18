@@ -10,7 +10,8 @@
  *      s: [[x,y,x,y,…],…],   획마다 점 좌표(정수)
  *      st: 'pending'|'done'|'error',   글자로 바꿨는가
  *      text, alts, eng,      바꾼 글자, 다른 후보(구글), 누가 바꿨나('digits'|'google'|'claude'|'pick'|'manual')
- *      conf, at }            숫자 인식 확신도(0~1), 마지막으로 쓴 때
+ *      conf, at,             숫자 인식 확신도(0~1), 마지막으로 쓴 때
+ *      carried }             앞 결함에서 이어받은 글씨(그 위에 쓰면 새 글씨로 바뀐다)
  *  칸 하나를 고칠 때마다 새 객체로 바꿔 끼운다(실행취소 기록이 마커를 얕게 복사하므로 안을 고치면 옛 기록까지 바뀐다).
  *
  *  window.Ink 로 내보낸다. 일반 <script> 라 파일로 열어도(file://) 돈다.
@@ -353,6 +354,8 @@ function createBox(cfg) {
     activePointer = ev.pointerId;
     try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* 지원 안 해도 동작 */ }
     clearTimeout(idleTimer);
+    /* 앞 결함에서 이어받은 글씨 위에 쓰면 겹쳐 쌓지 않는다 — 새로 쓴 글씨가 이 칸의 글씨다 */
+    if (entry && entry.carried) { entry = null; value = ''; status(); }
     if (!entry && !pendingStrokes.length) {         // 첫 획 — 지금 상자 크기를 기준으로 삼는다
       entry = null;
       baseW = Math.round(cw); baseH = Math.round(ch);

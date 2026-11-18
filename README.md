@@ -105,6 +105,15 @@ python taxonomy/build_taxonomy.py taxonomy/부재_자재_결함.xlsx taxonomy/de
 
 (목록 시트에 없는 이름이 조합 시트에 있으면 만들지 않고 알려 준다.) 그다음 service-worker.js 의 CACHE_VERSION 을 올린다.
 
+## 결함 정보(ⓘ) · 내보내기 (2026-11-18)
+
+- **ⓘ** : 결함 카드의 카메라와 ✕ 사이. 그 결함에 손으로 쓴 글씨(칸 이름·원본 그림·바뀐 글자)와 카메라 메모(사진·번호·메모·시각)를 한 창에서 본다.
+  메모는 찍을 때 `m.photoMeta` 에 사진 내용 열쇠로 적는다. 이 기능 전에 찍은 사진은 「메모 기록 없음」.
+- **CSV** : 결함 한 건이 한 줄, 글자 값만(손글씨 그림은 못 넣는다). 아직 글자로 안 바뀐 칸은 빈칸.
+- **엑셀** : 조사 종류별 시트 + 손글씨가 있으면 **「손글씨」 시트**(결함 한 줄, 제목별 칸에 글씨 그림과 바뀐 글자).
+- **사진 ZIP** : `번호_고유번호_층수_위치_부재_자재_결함`.
+- **표로 입력** : 유형·X·Y·각도·배율·층수·위치·부재·자재·결함·폭·길이·개수·사진번호·비고. 예전 9칸 양식을 유형 칸부터 붙여도 제자리에 들어간다.
+
 ## 번호가 이어지는 원리
 
 두 앱이 같은 주소(`yeop9701.github.io`) 아래에 있으면 브라우저가 저장 공간을 같이 쓴다.
@@ -165,6 +174,7 @@ chrome --headless=new --remote-debugging-port=9223 --user-data-dir=<빈 폴더> 
        --use-fake-device-for-media-stream --use-fake-ui-for-media-stream about:blank
 node tests/test-stampcam.mjs
 node tests/test-ink.mjs                                                      # 손글씨
+node tests/test-1118d.mjs                                                    # 위치 입력·ⓘ·손글씨 시트·ZIP 이름·표로 입력
 node tests/test-taxonomy.mjs                                                 # 부재 → 자재 → 결함
 ```
 

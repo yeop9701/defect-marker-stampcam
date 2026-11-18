@@ -36,7 +36,7 @@ async function makeThumb(canvas) {
 }
 
 /* 원본(source)의 crop 영역에 스탬프를 찍어 저장하고 번호를 올린다.
-   돌려주는 것 : { canvas, number, numberText, name, saved: 'download'|'list' } */
+   돌려주는 것 : { canvas, number, numberText, memo, at, name, saved: 'download'|'list' } */
 async function stampAndStore(source, width, height, date, crop) {
   crop = crop || { x: 0, y: 0, w: width, h: height };
   const s = loadSettings();                       // 찍을 때마다 새로 — 스탬프 카메라 앱과 번호를 같이 쓴다
@@ -77,7 +77,7 @@ async function stampAndStore(source, width, height, date, crop) {
     bumped = true;
   }
   saveSettings(now);
-  return { canvas: c, number, numberText, name, saved: mode, sameOn: s.sameOn, listId,
+  return { canvas: c, number, numberText, memo, at: date.getTime(), name, saved: mode, sameOn: s.sameOn, listId,
     counter: bumped ? { before, after: { current: now.current, sub: now.sub } } : null };
 }
 
