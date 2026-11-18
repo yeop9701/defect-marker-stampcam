@@ -1069,7 +1069,7 @@ function open(opts) {
     if (!t) { t = el('div', 'sc-toast'); ov.appendChild(t); }
     t.textContent = msg;
     clearTimeout(state.toastT);
-    state.toastT = setTimeout(() => t.remove(), ms || 2200);
+    state.toastT = setTimeout(() => t.remove(), ms || 2000);
   };
   state.toast = toast;
   const refreshTop = () => {
@@ -1142,7 +1142,7 @@ function open(opts) {
       toast(res.numberText + (res.saved === 'download' ? ' 저장됨' : ' 스탬프 카메라 목록에 저장됨') + (note ? ' · ' + note : ''));
     } catch (e) {
       console.error(e);
-      toast('촬영 실패: ' + (e.message || e), 3000);
+      toast('촬영 실패: ' + (e.message || e), 2000);
     } finally {
       if (lit) camera.setTorch(false);
       state.busy = false;
@@ -1172,7 +1172,7 @@ function open(opts) {
       if (it.res.saved === 'download') msg += ' · 다운로드된 파일은 직접 지워 주세요';
       state.shots = Math.max(0, state.shots - 1);
       refreshTop();
-      toast(msg, 3200);
+      toast(msg, 2000);
     } finally {
       state.busy = false;
       showLast();
@@ -1269,7 +1269,7 @@ function open(opts) {
       downloadBlob(await makeZip(files), `스탬프사진_${stampNow()}.zip`);
       toast(`${items.length}장을 ZIP으로 내보냈습니다.`);
     } catch (e) {
-      console.error(e); toast('ZIP을 만들지 못했습니다: ' + (e.message || e), 3000);
+      console.error(e); toast('ZIP을 만들지 못했습니다: ' + (e.message || e), 2000);
     } finally { btn.textContent = label; btn.disabled = false; }
   }
   /* 지우기 : 목록에서 지우고, 이번에 찍어 결함에 붙인 사진이면 결함에서도 뺀다 */
@@ -1343,7 +1343,7 @@ function open(opts) {
     },
     lselshare: async () => {
       try { const items = await selectedShots(); await shareFiles(items.map((i) => ({ blob: i.blob, name: i.name }))); }
-      catch (e) { toast(e.message || String(e), 3000); }
+      catch (e) { toast(e.message || String(e), 2000); }
     },
     lseldel: async () => {
       const ids = [...L.sel];
@@ -1354,7 +1354,7 @@ function open(opts) {
     },
     vclose: () => closeViewer(),
     vdl: () => L.viewer && downloadBlob(L.viewer.blob, L.viewer.name),
-    vshare: async () => { if (!L.viewer) return; try { await shareBlob(L.viewer.blob, L.viewer.name); } catch (e) { toast(e.message || String(e), 3000); } },
+    vshare: async () => { if (!L.viewer) return; try { await shareBlob(L.viewer.blob, L.viewer.name); } catch (e) { toast(e.message || String(e), 2000); } },
     vdel: async () => {
       if (!L.viewer || !confirm(`${L.viewer.name} 을(를) 목록에서 지울까요?` + (sessionOf(L.viewer.id) && sessionOf(L.viewer.id).back ? '\n(결함에 붙인 사진이라 결함에서도 빠집니다)' : ''))) return;
       const id = L.viewer.id;
@@ -1367,7 +1367,7 @@ function open(opts) {
     const s = loadSettings();
     s.saveMode = $('lmode').checked ? 'download' : 'list';
     saveSettings(s);
-    toast($('lmode').checked ? '찍을 때 다운로드 폴더에도 저장한다.' : '이제 이 목록에만 저장한다 — 다 찍은 뒤 ZIP·다운로드로 꺼낸다.', 3000);
+    toast($('lmode').checked ? '찍을 때 다운로드 폴더에도 저장한다.' : '이제 이 목록에만 저장한다 — 다 찍은 뒤 ZIP·다운로드로 꺼낸다.', 2000);
   });
 
   ov.addEventListener('click', async (e) => {

@@ -220,14 +220,40 @@ function segment(strokes) {
   return { groups, dots };
 }
 function g_mid(g) { return (g.x0 + g.x1) / 2; }
-/* 글씨 → 숫자 문자열. kind: 'num'(소수점 있음) | 'int' */
+/* 층수의 「-」(지하) : 맨 왼쪽에 있는 납작한 가로 획 하나. 숫자 1 과 헷갈리지 않게 가로가 세로의
+   3배 이상이고, 다른 모든 획보다 왼쪽에서 끝나야 한다. */
+function splitMinus(strokes) {
+  if (strokes.length < 2) return { minus: false, rest: strokes };
+  const items = strokes.map(s => ({ s, b: bbox([s]) }));
+  items.sort((a, b) => a.b.x0 - b.b.x0);
+  const first = items[0], others = items.slice(1);
+  const H = Math.max(bbox(others.map(it => it.s)).h, 1);
+  const flat = first.b.w >= 3 * Math.max(first.b.h, 1) && first.b.w >= 0.2 * H && first.b.h <= 0.3 * H;
+  const leftOf = others.every(it => it.b.x0 >= first.b.x1 - 0.1 * H);
+  return flat && leftOf ? { minus: true, rest: others.map(it => it.s) } : { minus: false, rest: strokes };
+}
+/* 층수 글자 → 「지상1층」·「지하1층」. 1 → 지상1층, -1 → 지하1층, B1 → 지하1층, 1F·1층 → 지상1층.
+   그 밖의 말(옥상·PIT·지붕 …)은 그대로 둔다. 0 도 그대로(그런 층은 없다). */
+function formatFloor(v) {
+  const t = String(v == null ? '' : v).trim();
+  let m = /^(-|－|−)?\s*(\d+)\s*(층|f|F)?$/.exec(t);
+  if (m) { const n = parseInt(m[2], 10); if (!n) return t; return (m[1] ? '지하' : '지상') + n + '층'; }
+  m = /^(b|B)\s*(\d+)\s*(층|f|F)?$/.exec(t);
+  if (m) { const n = parseInt(m[2], 10); if (!n) return t; return '지하' + n + '층'; }
+  m = /^지\s*([상하])\s*(\d+)$/.exec(t);          // 「지상1」처럼 층을 빼먹은 것
+  if (m) return '지' + m[1] + parseInt(m[2], 10) + '층';
+  return t;
+}
+/* 글씨 → 숫자 문자열. kind: 'num'(소수점 있음) | 'int' | 'floor'(정수, 앞의 「-」 = 지하) */
 function recognizeDigits(e, kind) {
   if (!hasInk(e) || !getModel()) return { text: '', conf: 0 };
-  const { groups, dots } = segment(e.s);
+  let strokes = e.s, minus = false;
+  if (kind === 'floor') { const sm = splitMinus(e.s); strokes = sm.rest; minus = sm.minus; }
+  const { groups, dots } = segment(strokes);
   const parts = groups.map(g => ({ x: g.x0, r: classify(toMnist(g.s)) }));
   let conf = 1;
   const seq = parts.map(p => { conf = Math.min(conf, p.r ? p.r.p : 0); return { x: p.x, ch: p.r ? String(p.r.digit) : '?' }; });
-  if (kind !== 'int' && dots.length && seq.length) {
+  if (kind === 'num' && dots.length && seq.length) {
     /* 첫 숫자 뒤 ~ 마지막 숫자 앞에 있는 점 하나만 소수점으로 */
     const d = dots.find(dd => dd.x > seq[0].x);
     if (d) seq.push({ x: d.x, ch: '.' });
@@ -236,6 +262,7 @@ function recognizeDigits(e, kind) {
   let text = seq.map(p => p.ch).join('');
   if (text.endsWith('.')) text = text.slice(0, -1);
   if (text.startsWith('.')) text = '0' + text;
+  if (minus && text) text = '-' + text;
   return { text, conf: seq.length ? conf : 0 };
 }
 
@@ -243,9 +270,11 @@ function recognizeDigits(e, kind) {
    createBox({ k, label, kind:'text'|'num'|'int', ink, value, options:()=>[…], onChange({ink,value}) })
    onChange 는 펜을 떼고 잠깐 뒤(쓰는 도중엔 부르지 않음), ✕, ▼ 고르기, 칸에 직접 친 값에서 불린다. */
 let penSeen = false;          // 펜을 한 번이라도 쓰면 손가락·손바닥 닿은 것은 무시한다
-const IDLE_MS = { text: 900, num: 550, int: 550 };
+const IDLE_MS = { text: 900, num: 550, int: 550, floor: 650 };
 function createBox(cfg) {
-  const kind = cfg.kind === 'num' || cfg.kind === 'int' ? cfg.kind : 'text';
+  const kind = cfg.kind === 'num' || cfg.kind === 'int' || cfg.kind === 'floor' ? cfg.kind : 'text';
+  /* 층수 칸 : 숫자만 써도 「지상N층」(앞에 - 를 쓰면 「지하N층」)으로 넣는다. 직접 친 말도 같은 규칙. */
+  const fmt = kind === 'floor' ? formatFloor : (v) => v;
   let entry = cfg.ink || null;
   let value = cfg.value == null ? '' : String(cfg.value);
   const el = document.createElement('div');
@@ -257,8 +286,10 @@ function createBox(cfg) {
     '<button type="button" class="ink-clear" title="이 칸 지우기">✕</button></div>' +
     '<div class="ink-pad"><canvas></canvas><span class="ink-hint"></span></div>' +
     '<input type="text" class="ink-val" autocomplete="off"' + (kind === 'num' ? ' inputmode="decimal"' : kind === 'int' ? ' inputmode="numeric"' : '') + '>';
+  if (kind === 'floor') el.classList.add('ink-int');   // 크기·배치는 숫자 칸과 같다
   el.querySelector('.ink-label').textContent = cfg.label;
-  el.querySelector('.ink-hint').textContent = kind === 'text' ? '여기에 쓰세요' : '숫자를 쓰세요';
+  el.querySelector('.ink-hint').textContent = kind === 'text' ? '여기에 쓰세요'
+    : kind === 'floor' ? '층 숫자 (지하는 앞에 -)' : '숫자를 쓰세요';
   const pad = el.querySelector('.ink-pad');
   const canvas = el.querySelector('canvas');
   const ctx = canvas.getContext('2d');
@@ -362,8 +393,9 @@ function createBox(cfg) {
       value = '';                                   // 새로 쓴 글씨가 기준 — 변환되면 채워진다
     } else {
       const r = recognizeDigits(entry, kind);
-      entry.st = 'done'; entry.eng = 'digits'; entry.text = r.text; entry.conf = Math.round(r.conf * 100) / 100;
-      value = r.text;
+      const v = fmt(r.text);
+      entry.st = 'done'; entry.eng = 'digits'; entry.text = v; entry.conf = Math.round(r.conf * 100) / 100;
+      value = v;
     }
     redraw(); status();
     cfg.onChange && cfg.onChange({ ink: entry, value, reason: 'ink' });
@@ -378,7 +410,8 @@ function createBox(cfg) {
     cfg.onChange && cfg.onChange({ ink: null, value: '', reason: 'clear' });
   });
   input.addEventListener('change', () => {
-    value = input.value.trim();
+    value = fmt(input.value.trim());
+    input.value = value;
     if (hasInk(entry)) entry = Object.assign({}, entry, { st: 'done', eng: 'manual', text: value });
     status();
     cfg.onChange && cfg.onChange({ ink: entry, value, reason: 'type' });
@@ -557,7 +590,7 @@ async function convert(items, opts) {
 
 window.Ink = {
   loadSettings, saveSettings, hasInk, isPending, inkHash,
-  createBox, closePicker, recognizeDigits, segment, toMnist, classify,
+  createBox, closePicker, recognizeDigits, segment, toMnist, classify, formatFloor, splitMinus,
   renderCanvas, thumbURL, convert, googleOne, CLAUDE_MODEL,
 };
 })();

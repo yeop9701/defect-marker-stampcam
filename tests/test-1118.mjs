@@ -88,30 +88,30 @@ await shot('1118-list-tablet.png');
 // 값 넣기 → 마커에 저장
 await ev(`(()=>{const i=document.querySelector('.marker-card [data-role="rptFloor"]'); i.value='3F'; i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true}));
   const j=document.querySelector('.marker-card [data-role="rptLoc"]'); j.value='거실'; j.dispatchEvent(new Event('input',{bubbles:true})); j.dispatchEvent(new Event('change',{bubbles:true})); return true})()`);
-eq(await ev(`[${D}.markers[0].rptFloor, ${D}.markers[0].rptLoc]`), ['3F', '거실'], '층수·위치를 쓰면 결함에 저장된다');
+eq(await ev(`[${D}.markers[0].rptFloor, ${D}.markers[0].rptLoc]`), ['지상3층', '거실'], '층수·위치를 쓰면 결함에 저장된다 (3F → 지상3층, 11-18 2차)');
 ok(await ev(`document.querySelector('.marker-card').dataset.search.includes('거실')`), '층수·위치로 검색된다');
 // 프로젝트 저장 → 다시 열기
 const snap = await ev(`__markerDbg.buildProjectSnapshot()`);
 await ev(`(async()=>{ ${D}.markers[0].rptFloor=''; await __markerDbg.applyProjectData(${JSON.stringify(snap)}); return true; })()`); await sleep(500);
-eq(await ev(`[${D}.markers[0].rptFloor, ${D}.markers[0].rptLoc]`), ['3F', '거실'], '프로젝트로 저장했다 열어도 층수·위치가 남는다');
+eq(await ev(`[${D}.markers[0].rptFloor, ${D}.markers[0].rptLoc]`), ['지상3층', '거실'], '프로젝트로 저장했다 열어도 층수·위치가 남는다');
 // CSV 내보내기·불러오기
 const csv = await ev(`(()=>{const t=__markerDbg.buildDefectExportData(); return t ? {h:t.header, r:t.rows[0].cells} : null;})()`);
-ok(csv.h.slice(-2).join() === '층수,위치' && csv.r.slice(-2).join() === '3F,거실', 'CSV 맨 끝 두 열이 층수·위치', csv.h.slice(-3));
+ok(csv.h.slice(-2).join() === '층수,위치' && csv.r.slice(-2).join() === '지상3층,거실', 'CSV 맨 끝 두 열이 층수·위치', csv.h.slice(-3));
 eq(csv.r[2], '수직부재', 'CSV 위치유형 열도 새 이름');
 // CSV 를 다시 불러오면 층수·위치·유형이 그대로 (새 이름도 옛 이름도 받는다)
 const csvText = [csv.h, csv.r, csv.r.map((v, i) => i === 2 ? '바닥/천장(범위)' : v)].map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join(String.fromCharCode(10));
 await ev(`(()=>{ ${D}.markers=[]; __markerDbg.importCSVText(${JSON.stringify(csvText)}); return true; })()`); await sleep(500);
-eq(await ev(`${D}.markers.map(m=>[m.typeKey, m.rptFloor||'', m.rptLoc||''])`), [['wall', '3F', '거실'], ['flat_area', '3F', '거실']], 'CSV 불러오기 : 층수·위치, 새 이름(수직부재)·옛 이름(바닥/천장(범위)) 모두 맞는 유형으로');
+eq(await ev(`${D}.markers.map(m=>[m.typeKey, m.rptFloor||'', m.rptLoc||''])`), [['wall', '지상3층', '거실'], ['flat_area', '지상3층', '거실']], 'CSV 불러오기 : 층수·위치, 새 이름(수직부재)·옛 이름(바닥/천장(범위)) 모두 맞는 유형으로');
 await ev(`(async()=>{ await __markerDbg.applyProjectData(${JSON.stringify(snap)}); return true; })()`); await sleep(400);
 // 값 이어받기 : 새로 찍는 결함에 층수·위치가 따라온다
 // 서랍을 닫고 도면에 새 결함을 찍는다
-await ev(`(()=>{const b=[...document.querySelectorAll('button,div,span')].find(e=>e.children.length<3&&/결함\s*목록/.test(e.textContent)&&e.getBoundingClientRect().width>0&&e.getBoundingClientRect().left>600); if(b) b.click(); return !!b})()`);
+await ev(`document.getElementById('btnDrawerRight').click(); true`);
 await sleep(600);
 if (await drawerOpen()) await ev(`document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'})); true`);
 const p = await ptAt(0.25, 0.75);
 await click(cdp, p.x, p.y); await sleep(500);
 const nm = await ev(`(()=>{const ms=${D}.markers; const m=ms[ms.length-1]; return [ms.length, m.rptFloor||'', m.rptLoc||''];})()`);
-eq(nm, [3, '3F', '거실'], '값 이어받기 : 새 결함에 직전 층수·위치가 들어간다');
+eq(nm, [3, '지상3층', '거실'], '값 이어받기 : 새 결함에 직전 층수·위치가 들어간다');
 await ev(`document.getElementById('btnQuickInputClose') && document.getElementById('btnQuickInputClose').click(); true`);
 
 /* ══ ④⑤ 퀵입력 손글씨 ══ */
@@ -121,7 +121,7 @@ ok(await ev('__markerDbg.ink && __markerDbg.ink.isInkInputOn()'), '손글씨 입
 let q = await ptAt(0.35, 0.3);
 await click(cdp, q.x, q.y); await sleep(500);
 ok(await waitFor(`document.getElementById('quickInputSheet').style.display!=='none' && document.getElementById('quickInputSheet').classList.contains('ink-mode')`), '손글씨 퀵입력 시트가 열린다');
-const numH = await ev(`[...document.querySelectorAll('#quickInputFields .ink-box.ink-num .ink-pad, #quickInputFields .ink-box.ink-int .ink-pad')].map(p=>Math.round(p.getBoundingClientRect().height))`);
+const numH = await ev(`[...document.querySelectorAll('#quickInputFields .ink-box.ink-num .ink-pad, #quickInputFields .ink-box.ink-int:not(.ink-floor) .ink-pad')].map(p=>Math.round(p.getBoundingClientRect().height))`);
 ok(numH.length === 4 && numH.every(h => h >= 115), '⑤ 폭·길이·개수·사진 필기 칸 높이 118px (예전 92px)', numH);
 const rowH0 = await ev(`Math.round(document.querySelector('#quickInputFields .qis-tax-row:nth-child(1)').getBoundingClientRect().height)`);
 await ev(`document.querySelector('#quickInputFields [data-tax-write="rptType"]').click(); true`); await sleep(300);

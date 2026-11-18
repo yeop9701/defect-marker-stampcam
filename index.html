@@ -228,7 +228,8 @@
     box-shadow:0 8px 28px rgba(0,0,0,0.28);transition:transform .22s ease;
   }
   body.layout-tablet .sidebar.left{left:0;width:300px;transform:translateX(-100%);}
-  body.layout-tablet .sidebar.right{right:0;left:auto;width:min(480px,88vw);transform:translateX(100%);}
+  /* 2026-11-18 : 결함 목록 서랍을 1.5배(480→720px)로 — 사용자 요청. 화면이 좁으면 88vw 까지만. */
+  body.layout-tablet .sidebar.right{right:0;left:auto;width:min(720px,88vw);transform:translateX(100%);}
   body.layout-tablet .sidebar.open{transform:translateX(0);}
   body.layout-tablet .sidebar-resizer{display:none;} /* 서랍 폭은 고정 — 드래그 리사이즈는 데스크톱 전용 */
 
@@ -252,7 +253,7 @@
   /* 해당 서랍이 열려 있는 동안은 탭을 숨기지 않고(전엔 display:none으로 숨겨서 배경(backdrop)을
      따로 눌러야만 닫혔다) 서랍 폭만큼 옆으로 밀어 계속 보이게 한다 — 같은 자리를 한 번 더 누르면
      바로 닫힌다. */
-  .tablet-edge-tab.right.tab-shifted{right:min(480px,88vw);}
+  .tablet-edge-tab.right.tab-shifted{right:min(720px,88vw);}   /* 서랍 폭(720px)과 같이 — 바꾸면 둘 다 */
   .tablet-edge-tab.left.tab-shifted{left:300px;}
 
   /* 태블릿 하단 플로팅 조작바 — 실행취소·유형 선택·선택/이동/지우개처럼 자주 쓰는 조작을 서랍을
@@ -287,7 +288,9 @@
   /* 하단 플로팅 바의 그리기 도구 묶음 — 그리기 모드일 때만 나타나고, 그 대신 그 순간 쓸 수 없는
      선택/이동/지우개 버튼이 사라져 바가 가로로 넘치지 않는다(넘치면 스크롤이라 펜으로 쓰기 나쁘다). */
   .tablet-float-sketch{display:none;align-items:center;gap:6px;flex:0 0 auto;}
-  body.layout-tablet.mode-sketch .tablet-float-sketch{display:flex;}
+  /* 2026-11-18 : 하단 바의 그리기 도구 묶음은 쓰지 않는다 — 그리기를 켜면 도면 아래 떠 있는 그리기 바에
+     같은 도구·색·모눈이 이미 있어 두 바가 겹쳐 보였다(사용자 지적). 그리기 도구는 그리기 바에만 둔다. */
+  body.layout-tablet.mode-sketch .tablet-float-sketch{display:none;}
   /* 그리기 중에도 「선택」은 남긴다 — 그리기 도구줄에 있던 선택 아이콘을 없앴으므로(중복이었다)
      태블릿에서 그린 것을 고칠 통로가 이 단추 하나뿐이다. 이동·지우개는 그릴 때 쓸 일이 없어
      그대로 숨겨 바가 가로로 넘치지 않게 한다. */
@@ -500,6 +503,12 @@
   .stampcam-row{display:flex;gap:8px;margin-top:8px;}
   .stampcam-row .stampcam-main{flex:2;font-weight:700;}
   .stampcam-row .stampcam-native{flex:1;display:block;}
+  /* 2026-11-18 사용자 요청 : 카메라는 「스탬프 촬영」 하나만 남긴다 — 「촬영」(기본 카메라 앱),
+     「사진 촬영」(웹캠 미리보기), 「기본 카메라 + 번호」는 화면에서 숨긴다. 앨범에서 선택은 그대로.
+     (요소와 코드는 남겨 둔다 — 다시 꺼내려면 이 세 줄만 지우면 된다.) */
+  #btnPhotoCaptureLabel, body.layout-tablet #btnPhotoCaptureLabel,
+  #btnOpenCamera,
+  .stampcam-row .stampcam-native{display:none;}
   .stampcam-next{font-weight:600;opacity:.75;margin-left:4px;}
   .stampcam-hint{font-size:12px;color:var(--text-dim, #6b7280);margin-top:6px;line-height:1.5;}
   /* 결함 목록 표(헤더 숨김·칸 2열 쌓기 등)의 태블릿 전용 규칙은 표 grid 정의 옆(.marker-table 부근)에 모아뒀다. */
@@ -1050,22 +1059,23 @@
   .marker-list-wrap.narrow .marker-card.mc-rpt input,
   body.layout-tablet .marker-card.mc-rpt select,
   .marker-list-wrap.narrow .marker-card.mc-rpt select{padding:0 3px;font-size:12.5px;}
-  body.layout-tablet .marker-card.mc-rpt .mc-cell::before,
-  .marker-list-wrap.narrow .marker-card.mc-rpt .mc-cell::before{white-space:nowrap;}
+
   /* 목록 ▼ 단추는 좁게 — 값(콘크리트·수직부재)이 잘리지 않게 글자 칸에 자리를 더 준다 */
   body.layout-tablet .marker-card.mc-rpt .cwrap > .cbtn,
   .marker-list-wrap.narrow .marker-card.mc-rpt .cwrap > .cbtn{flex:0 0 18px;width:18px;padding:0;font-size:9px;}
   body.layout-tablet .marker-card.mc-rpt > select.mc-marktype,
   .marker-list-wrap.narrow .marker-card.mc-rpt > select.mc-marktype{padding:0 0 0 3px;font-size:12px;}
-  body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptFloor"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptFloor"]){grid-column:span 2;}
-  body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptMember"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptMember"]){grid-column:span 5;}
+  /* 1줄 24칸 : 번호2 · 유형4 · 층수3(「지상12층」) · 위치3 · 부재4 · 자재4 · 결함4 */
+  /* 칸 위에 붙던 이름(data-label)은 2026-11-18 사용자 요청으로 뺐다 — 이름은 칸 안의 안내 글자
+     (placeholder : 층수·위치·부재·…·사진번호)로만 보인다. 카드 높이도 그만큼 줄어든다. */
   body.layout-tablet .mc-cell,
-  .marker-list-wrap.narrow .mc-cell{position:relative;padding-top:14px;}
-  body.layout-tablet .mc-cell::before,
-  .marker-list-wrap.narrow .mc-cell::before{
-    content:attr(data-label);position:absolute;top:0;left:1px;font-size:9.5px;color:var(--muted);
+  .marker-list-wrap.narrow .mc-cell{position:relative;}
+  /* 기울기 카드만은 남긴다 — 상부·하부·수평각차가 모두 「도·분·초」 세 칸이라 칸 안 글자만으로는 구분이 안 된다. */
+  body.layout-tablet .marker-card:has(.tilt-dms-group) .mc-cell,
+  .marker-list-wrap.narrow .marker-card:has(.tilt-dms-group) .mc-cell{padding-top:14px;}
+  body.layout-tablet .marker-card:has(.tilt-dms-group) .mc-cell::before,
+  .marker-list-wrap.narrow .marker-card:has(.tilt-dms-group) .mc-cell::before{
+    content:attr(data-label);position:absolute;top:0;left:1px;font-size:9.5px;color:var(--muted);white-space:nowrap;
   }
   /* 줄바꿈 배치에서는 가로 스크롤이 없으므로 사진·삭제 버튼을 오른쪽에 고정할 이유가 없다. */
   body.layout-tablet .marker-card .mc-photo,
@@ -1293,6 +1303,8 @@
 <symbol id="i-select" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3.6 3.2"/></symbol>
 <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m9 6 3-3 3 3M9 18l3 3 3-3M6 9 3 12l3 3M18 9l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 <symbol id="i-eraser" viewBox="0 0 24 24"><path d="m18.4 12.9-7.5-7.5a1.8 1.8 0 0 0-2.6 0L3.6 10a1.8 1.8 0 0 0 0 2.6L9.7 18.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 20h13M11 18l7-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<!-- 선 지우개(E) 전용 — 2026-11-18 「더 강해 보이는 지우개」 요청 : 굵은 테두리 + 고무 쪽을 꽉 채운 지우개 -->
+<symbol id="i-eraser-strong" viewBox="0 0 24 24"><path d="M14 3 21 10 11 20 4 13Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M8.5 8.5 15.5 15.5 11 20 4 13Z" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M11 21h10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
 <!-- 좌회전(반시계) 아이콘: 호가 오른쪽에서 시작해 위·왼쪽·아래를 지나 오른쪽 아래로 반시계 방향으로 돌아온다 -->
 <symbol id="i-rotate-ccw" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 0-2.8 6.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M21 21v-6h-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 <!-- 우회전(시계) 아이콘: 호가 왼쪽에서 시작해 위·오른쪽·아래를 지나 왼쪽 아래로 시계 방향으로 돌아온다 -->
@@ -1637,7 +1649,7 @@
               <button type="button" class="tool sketch-tool-btn" data-sketch-tool="ellipse" title="원/타원 (C) — 드래그. Shift: 정원"><svg class="icon"><use href="#i-sk-ellipse"/></svg></button>
               <button type="button" class="tool sketch-tool-btn" data-sketch-tool="arrow"   title="화살표 (A) — 드래그한 방향으로 화살촉이 붙습니다"><svg class="icon"><use href="#i-sk-arrow"/></svg></button>
               <button type="button" class="tool sketch-tool-btn" data-sketch-tool="text"    title="글자 (T) — 클릭한 자리에 바로 입력합니다(Enter 확정, Esc 취소)"><svg class="icon"><use href="#i-sk-text"/></svg></button>
-              <button type="button" class="tool sketch-tool-btn" data-sketch-tool="sketchErase" title="선 지우개 (E) — 지나간 그린 선을 지웁니다(도면 이미지와 마커는 건드리지 않음). 골라서 지우려면 「선택」(S) 후 Delete"><svg class="icon"><use href="#i-eraser"/></svg></button>
+              <button type="button" class="tool sketch-tool-btn" data-sketch-tool="sketchErase" title="선 지우개 (E) — 지나간 그린 선을 지웁니다(도면 이미지와 마커는 건드리지 않음). 골라서 지우려면 「선택」(S) 후 Delete"><svg class="icon"><use href="#i-eraser-strong"/></svg></button>
             </div>
             <div class="sketch-colors" id="sketchColorRow"></div>
             <div class="btn-group" id="sketchWidthGroup">
@@ -1782,7 +1794,7 @@
           <button type="button" class="tablet-float-btn float-sketch-tool" data-sketch-tool="rect" title="사각형 (R)"><svg class="icon"><use href="#i-sk-rect"/></svg></button>
           <button type="button" class="tablet-float-btn float-sketch-tool" data-sketch-tool="pen" title="자유선 (P)"><svg class="icon"><use href="#i-sk-scribble"/></svg></button>
           <button type="button" class="tablet-float-btn float-sketch-tool" data-sketch-tool="text" title="글자 (T)"><svg class="icon"><use href="#i-sk-text"/></svg></button>
-          <button type="button" class="tablet-float-btn float-sketch-tool" data-sketch-tool="sketchErase" title="선 지우개 (E)"><svg class="icon"><use href="#i-eraser"/></svg></button>
+          <button type="button" class="tablet-float-btn float-sketch-tool" data-sketch-tool="sketchErase" title="선 지우개 (E)"><svg class="icon"><use href="#i-eraser-strong"/></svg></button>
           <!-- 태블릿에는 Shift+G를 누를 자판이 없으므로 모눈 토글은 여기 버튼으로만 켤 수 있다. -->
           <button type="button" class="tablet-float-btn" id="btnFloatSketchGrid" title="모눈 보기 · 격자 스냅 (칸 수는 안내 줄의 「모눈 칸」에서 조절)"><svg class="icon"><use href="#i-sk-grid"/></svg></button>
           <div class="tablet-float-sep"></div>
@@ -3346,7 +3358,7 @@
     toastStackEl.appendChild(el);
     // 실행 버튼(선택이 필요한 경우)이 있는 토스트만 누를 시간을 주기 위해 기본으로 사라지지 않게 한다.
     const sticky = opts.sticky!==undefined ? opts.sticky : !!(opts.actionLabel && opts.onAction);
-    if(!sticky) setTimeout(remove, 6000);
+    if(!sticky) setTimeout(remove, 2000);   // 2026-11-18 사용자 요청 : 알림은 2초
   }
 
   function getActiveDrawing(){ return drawings.find(d=>d.id===activeDrawingId) || null; }
@@ -8112,9 +8124,9 @@
           <select data-role="type" class="mc-marktype" tabindex="-1" title="마킹 색상·모양">${typeOptionsHTML(m.typeKey)}</select>
           <span class="mc-type-badge" title="자동 채번(P1, P2…)">${escapeHTML(formatMarkerLabel(m, idx))}</span>
         </span>
-        <span class="mc-cell" data-label="그룹명"><input type="text" data-role="lvGroup" placeholder="예: 1구간" title="그룹명 — 같은 이름을 입력한 위치끼리 자동으로 묶여 침하량이 계산됩니다" value="${escapeAttr(m.lvGroup||'')}"/></span>
-        <span class="mc-cell" data-label="측정값(cm)"><input type="text" class="num" inputmode="decimal" data-role="lvValue" placeholder="측정값" title="측정값(cm)" value="${escapeAttr(m.lvValue||'')}"/></span>
-        <span class="mc-cell" data-label="경간(mm)"><input type="text" class="num" inputmode="decimal" data-role="lvSpan" placeholder="경간" title="경간(mm)" value="${escapeAttr(m.lvSpan||'')}"/></span>
+        <span class="mc-cell" data-label="그룹명"><input type="text" data-role="lvGroup" placeholder="그룹명(예: 1구간)" title="그룹명 — 같은 이름을 입력한 위치끼리 자동으로 묶여 침하량이 계산됩니다" value="${escapeAttr(m.lvGroup||'')}"/></span>
+        <span class="mc-cell" data-label="측정값(cm)"><input type="text" class="num" inputmode="decimal" data-role="lvValue" placeholder="측정값(cm)" title="측정값(cm)" value="${escapeAttr(m.lvValue||'')}"/></span>
+        <span class="mc-cell" data-label="경간(mm)"><input type="text" class="num" inputmode="decimal" data-role="lvSpan" placeholder="경간(mm)" title="경간(mm)" value="${escapeAttr(m.lvSpan||'')}"/></span>
         <button class="mc-photo" data-role="photo" tabindex="-1" title="사진 첨부"><svg class="icon"><use href="#i-camera"/></svg>${(m.photos&&m.photos.length)?`<span class="photo-count">${m.photos.length}</span>`:''}</button>
         <button class="row-del" data-role="del" tabindex="-1" title="삭제"><svg class="icon"><use href="#i-close"/></svg></button>`;
   }
@@ -8211,12 +8223,15 @@
       {k:'lvSpan', label:'경간(mm)', kind:'num', ph:'경간'},
     ];
     if(t==='sh' || t==='ph' || t==='dm') return [
-      {k:'eqFloor', label:'층수', kind:'text', ph:'층수'},
+      {k:'eqFloor', label:'층수', kind:'floor', ph:'층수 (1 → 지상1층)'},
       {k:'eqLoc', label:'위치', kind:'text', ph:'위치'},
       {k:'eqMember', label:'부재', kind:'text', ph:'부재'},
       {k:'eqTag', label:'사진 #', kind:'int', ph:'사진번호'},
     ];
     return [
+      // 층수·위치 (2026-11-18) — 층수는 숫자만 써도 「지상N층」, 앞에 - 를 쓰면 「지하N층」
+      {k:'rptFloor', label:'층수', kind:'floor', ph:'층수 (1 → 지상1층)'},
+      {k:'rptLoc', label:'위치', kind:'text', ph:'위치'},
       {k:'rptType', label:'부재', kind:'select'},
       {k:'rptMember', label:'자재', kind:'select'},
       {k:'rptDefect', label:'결함', kind:'select'},
@@ -8270,13 +8285,17 @@
       renderInkBoxes(m, spec, box, hasTax ? (k=> TAX_FIELDS.indexOf(k) < 0 || quickTaxWantsInk(m, k)) : null);
       if(hasTax){
         const panel = buildQuickTaxPanel(m, true);
-        box.insertBefore(panel, box.firstChild);
+        // 층수·위치 상자가 맨 앞, 그다음 부재·자재·결함, 그다음 실측값 (결함 목록 카드와 같은 순서)
+        const after = [...box.children].find(el=> el.dataset && ['rptFloor','rptLoc'].indexOf(el.dataset.k) < 0);
+        box.insertBefore(panel, after || null);
         placeTaxInkBoxes(panel);
       }
     } else if(hasTax){
       // 부재·자재·결함 단추 + 실측값(폭·길이·개수·사진#)은 「더 입력」 안에
-      const rest = spec.filter(f=> f.kind !== 'select');
-      box.innerHTML = '';
+      // 층수·위치는 맨 앞에 펼쳐 두고(접지 않는다), 실측값만 「더 입력」 안에
+      const lead = spec.filter(f=> f.k === 'rptFloor' || f.k === 'rptLoc');
+      const rest = spec.filter(f=> f.kind !== 'select' && lead.indexOf(f) < 0);
+      box.innerHTML = lead.map(fld=> quickInputFieldHTML(fld, m)).join('');
       box.appendChild(buildQuickTaxPanel(m, false));
       if(rest.length){
         box.insertAdjacentHTML('beforeend',
@@ -8476,8 +8495,16 @@
   }
   // 타이핑 한 글자마다 호출되므로 시트를 다시 그리지 않는다(포커스 유지). 우측 목록 갱신처럼
   // 무거운 일은 commit=true(값 확정: 드롭다운 선택, 칸을 빠져나갈 때)일 때만 한다.
+  // 층수 칸 : 숫자만 써도 「지상N층」, -N·BN 은 「지하N층」 (ink/ink.js formatFloor 와 같은 규칙)
+  const FLOOR_KEYS = ['rptFloor', 'eqFloor'];
+  function formatFloorValue(v){ return (window.Ink && Ink.formatFloor) ? Ink.formatFloor(v) : String(v||'').trim(); }
   function applyQuickInputField(fieldKey, value, commit){
     const m = quickInputMarker(); if(!m) return;
+    if(commit && FLOOR_KEYS.indexOf(fieldKey) >= 0){
+      value = formatFloorValue(value);
+      const inp = document.querySelector(`#quickInputFields [data-qis="${fieldKey}"]`);
+      if(inp && inp.value !== value) inp.value = value;
+    }
     m[fieldKey] = value;
     markDirty();
     lastQuickInputValues[fieldKey] = value;
@@ -8530,7 +8557,7 @@
         const names = ['도','분','초'];
         fld.keys.forEach((k,i)=> out.push({ k, label: fld.label.replace(/\(.*\)/,'') + ' ' + names[i], kind:'int' }));
       } else {
-        out.push({ k: fld.k, label: fld.label, kind: (fld.kind==='num' || fld.kind==='int') ? fld.kind : 'text' });
+        out.push({ k: fld.k, label: fld.label, kind: (fld.kind==='num' || fld.kind==='int' || fld.kind==='floor') ? fld.kind : 'text' });
       }
     });
     return out;
@@ -8920,11 +8947,9 @@
   function carryKeysFor(m){
     const out = [];
     const spec = quickInputSpecFor(m);
-    // 외관조사의 층수·위치는 결함 목록에만 있는 칸이라(퀵입력 시트에는 없다) 여기서 따로 더한다 —
-    // 같은 층·같은 위치의 결함이 연달아 나오므로 이어받기·여러 건 채우기에 들어가야 한다.
-    if(spec.some(f=> f.k==='rptType')) out.push('rptFloor', 'rptLoc');
+    // 층수(floor)도 분류 칸이다 — 같은 층의 결함이 연달아 나오므로 이어받기·여러 건 채우기에 들어간다.
     spec.forEach(fld=>{
-      if(fld.kind==='select' || fld.kind==='text') out.push(fld.k);
+      if(fld.kind==='select' || fld.kind==='text' || fld.kind==='floor') out.push(fld.k);
     });
     return out;
   }
@@ -8960,7 +8985,19 @@
   document.getElementById('markerTable').addEventListener('change', e=>{
     const el = e.target.closest('[data-role]');
     if(!el) return;
-    recordCarryValue(el.getAttribute('data-role'), el.value);
+    const role = el.getAttribute('data-role');
+    if(FLOOR_KEYS.indexOf(role) >= 0){
+      // 결함 목록에서 친 층수도 같은 규칙으로 (1 → 지상1층)
+      const v = formatFloorValue(el.value);
+      if(v !== el.value){
+        el.value = v;
+        const card = el.closest('.marker-card');
+        const d = getActiveDrawing();
+        const m = card && d && d.markers.find(x=> x.id === card.dataset.id);
+        if(m){ m[role] = v; markDirty(); updateCardSearchIndex(card, m); }
+      }
+    }
+    recordCarryValue(role, el.value);
   });
 
   // ---------- 여러 건 일괄 채우기 ----------
@@ -8991,8 +9028,6 @@
     // 라벨은 그 프리셋의 카드/시트와 같은 이름을 쓴다 — 같은 칸을 두 이름으로 부르지 않기 위함.
     const specByKey = {};
     quickInputSpecFor(targets[0]).forEach(fld=>{ if(fld.k) specByKey[fld.k] = fld; });
-    specByKey.rptFloor = { label:'층수', kind:'text' };
-    specByKey.rptLoc = { label:'위치', kind:'text' };
     box.innerHTML = keys.map(k=>{
       const fld = specByKey[k] || { label:k, kind:'text' };
       if(fld.kind==='select'){
@@ -9435,8 +9470,8 @@
             ${buildReportFieldHTML('rptType', m.rptType, '부재')}
             ${buildReportFieldHTML('rptMember', m.rptMember, '자재')}
             ${buildReportFieldHTML('rptDefect', m.rptDefect, '결함')}
-            <span class="mc-cell" data-label="폭(mm)"><input type="text" class="num" inputmode="decimal" data-role="rptWidth" placeholder="폭" title="폭(mm)" value="${escapeAttr(m.rptWidth||'')}"/></span>
-            <span class="mc-cell" data-label="길이(mm)"><input type="text" class="num" inputmode="decimal" data-role="rptLength" placeholder="길이" title="길이(mm)" value="${escapeAttr(m.rptLength||'')}"/></span>
+            <span class="mc-cell" data-label="폭(mm)"><input type="text" class="num" inputmode="decimal" data-role="rptWidth" placeholder="폭(mm)" title="폭(mm)" value="${escapeAttr(m.rptWidth||'')}"/></span>
+            <span class="mc-cell" data-label="길이(mm)"><input type="text" class="num" inputmode="decimal" data-role="rptLength" placeholder="길이(mm)" title="길이(mm)" value="${escapeAttr(m.rptLength||'')}"/></span>
             <span class="mc-cell" data-label="개수"><input type="text" class="num" inputmode="numeric" data-role="rptCount" placeholder="개수" title="개수" value="${escapeAttr(m.rptCount||'')}"/></span>
             <span class="mc-cell" data-label="사진 #"><input type="text" inputmode="numeric" data-role="rptTag" placeholder="사진번호" title="사진번호" value="${escapeAttr(m.rptTag||'')}"/></span>
             <button class="mc-photo" data-role="photo" tabindex="-1" title="사진 첨부"><svg class="icon"><use href="#i-camera"/></svg>${(m.photos&&m.photos.length)?`<span class="photo-count">${m.photos.length}</span>`:''}</button>
@@ -11697,15 +11732,16 @@
   // 각 시트는 { name, header, rows:[{typeKey,cells}], numericColIdx:Set } 모양. header의 빈 문자열('')은
   // 8장 사용자 설명대로 "칸은 있지만 제목은 비워둔다"는 뜻(마킹유형 배지·단위·# 같은 보조 칸).
   function buildOegwanSheet(items){
-    const header = ['NO','','부재','자재','결함','폭','','길이','','개수','','','사진번호'];
+    // 층수·위치는 2026-11-18 요청으로 부재 앞에 넣었다(결함 목록 카드와 같은 순서).
+    const header = ['NO','','층수','위치','부재','자재','결함','폭','','길이','','개수','','','사진번호'];
     const rows = items.map(({m,idx,d})=>{
       const type = getType(m.typeKey);
       return { typeKey: m.typeKey, cells: [
-        m.seq||idx+1, type.label, m.rptType||'', m.rptMember||'', m.rptDefect||'',
+        m.seq||idx+1, type.label, m.rptFloor||'', m.rptLoc||'', m.rptType||'', m.rptMember||'', m.rptDefect||'',
         m.rptWidth||'', 'mm', m.rptLength||'', 'mm', m.rptCount||'', '개', '#', m.rptTag||'',
       ]};
     });
-    return { name:'외관조사', header, rows, numericColIdx: new Set([0,5,7,9]) };
+    return { name:'외관조사', header, rows, numericColIdx: new Set([0,7,9,11]) };
   }
   function buildEquipSheet(items){
     const header = ['NO','구분','층수','위치','부재','사진번호'];
@@ -11743,16 +11779,16 @@
   // 빌트인 4종이 아닌 프리셋(사용자가 계열 편집으로 새로 만든 커스텀 프리셋 등)은 전용 서식이 없으므로
   // 예전 통합 표와 같은 일반 컬럼 구성으로 시트를 만든다.
   function buildGenericPresetSheet(name, items){
-    const header = ['도면명','번호','위치유형','X(%)','Y(%)','각도','부재','자재','결함','폭','길이','개수','사진번호','비고','UID'];
+    const header = ['도면명','번호','위치유형','X(%)','Y(%)','각도','층수','위치','부재','자재','결함','폭','길이','개수','사진번호','비고','UID'];
     const rows = items.map(({m,idx,d})=>{
       const type = getType(m.typeKey);
       return { typeKey: m.typeKey, cells: [
         d.name, formatMarkerLabel(m,idx,d), type.label, m.xPct.toFixed(1), m.yPct.toFixed(1), Math.round(m.angle||0),
-        m.rptType||'', m.rptMember||'', m.rptDefect||'', m.rptWidth||'', m.rptLength||'', m.rptCount||'', m.rptTag||'',
+        m.rptFloor||'', m.rptLoc||'', m.rptType||'', m.rptMember||'', m.rptDefect||'', m.rptWidth||'', m.rptLength||'', m.rptCount||'', m.rptTag||'',
         (m.note||'').replace(/\r?\n/g,' '), m.uid||m.id||'',
       ]};
     });
-    return { name, header, rows, numericColIdx: new Set([3,4,5,9,10,11]) };
+    return { name, header, rows, numericColIdx: new Set([3,4,5,11,12,13]) };
   }
   function buildSheetForPreset(preset, items){
     if(preset.name==='외관조사') return buildOegwanSheet(items);
@@ -15805,7 +15841,7 @@
     markerRadiusNatural, badgeToTipPct, ICON_SIZE_RANGE,
     get iconSizeMult(){ return iconSizeMult; },
     setIconSizeMult, applyIconSizeMult, buildProjectSnapshot, buildProjectMetaSnapshot, applyProjectData,
-    getActiveDrawing, saveFrameLayout, syncFrameTuneUI, renderTable, buildDefectExportData, importCSVText,
+    getActiveDrawing, saveFrameLayout, syncFrameTuneUI, renderTable, buildDefectExportData, importCSVText, buildOegwanSheet, showToast,
     sketchTextMetricsNatural, sketchHitTest, textBorderOn, textBorderColor,
     SKETCH_TEXT_BORDER_DEFAULT, fitTbPreviewCanvas,
     get sketchTextBorder(){ return sketchTextBorder; },

@@ -79,14 +79,14 @@ eq(await ev('__markerDbg.getActiveDrawing().markers.length'), 1, '결함 하나�
 ok(await waitFor(`document.getElementById('quickInputSheet').style.display!=='none'`), '퀵입력 시트가 열린다');
 ok(await ev(`document.getElementById('quickInputSheet').classList.contains('ink-mode')`), '시트가 손글씨 모드');
 const keys = await ev(`[...document.querySelectorAll('#quickInputFields .ink-box')].map(b=>b.dataset.k)`);
-eq(keys, ['rptWidth', 'rptLength', 'rptCount', 'rptTag'], '실측값 4칸은 필기 상자');
+eq(keys, ['rptFloor', 'rptLoc', 'rptWidth', 'rptLength', 'rptCount', 'rptTag'], '층수·위치(11-18 추가)·실측값 4칸은 필기 상자');
 eq(await ev(`document.querySelectorAll('#quickInputFields .qis-tax-row').length`), 3, '부재·자재·결함은 단추 줄(필기 상자 아님)');
 const kinds = await ev(`[...document.querySelectorAll('#quickInputFields .ink-box')].map(b=>b.className.replace('ink-box ',''))`);
-eq(kinds, ['ink-num', 'ink-num', 'ink-int', 'ink-int'], '숫자 칸 4');
+eq(kinds, ['ink-floor ink-int', 'ink-text', 'ink-num', 'ink-num', 'ink-int', 'ink-int'], '층수(숫자→지상N층)·위치(글자)·숫자 칸 4');
 /* 목록에 없는 말은 ✎ 로 필기 상자를 연다 */
 await writeBtn('rptType');
 await sleep(200);
-eq(await ev(`[...document.querySelectorAll('#quickInputFields .ink-box')].map(b=>b.dataset.k)[0]`), 'rptType', '부재 ✎ → 부재 필기 상자가 열린다');
+ok(await ev(`!!document.querySelector('#quickInputFields .qis-tax .ink-box[data-k="rptType"]')`), '부재 ✎ → 부재 필기 상자가 (부재 줄 안에) 열린다');
 const rType = await padRect('rptType');
 ok(rType && rType.h >= 100 && rType.w >= 250, '글자 칸 필기 자리가 크다(높이 100px 이상)', rType);
 const rW = await padRect('rptWidth');
