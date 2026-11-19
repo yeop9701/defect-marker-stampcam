@@ -40,15 +40,18 @@ async function boot(w, h) {
   await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r.result.objectId }); await sleep(1000);
 }
 
-for (const [w, h, wide] of [[1280, 800, true], [1480, 924, true], [1024, 768, false], [800, 1280, false]]) {
-  console.log(`\n[${w}×${h}] ${wide ? '색·굵기 펼침' : '색·굵기 접음'}`);
+// 2026-11-19 : 마킹 단추를 남기면서 폭에 맞춰 굵기 → 색 → (마지막에) 마킹 단추 순으로 접는다
+for (const [w, h, colors, widths, types] of [[1280, 800, true, false, 4], [1480, 924, true, true, 4], [1024, 768, false, false, 4], [800, 1280, false, false, 0]]) {
+  const wide = colors;
+  console.log(`\n[${w}×${h}] 색 ${colors ? '펼침' : '접음'} · 굵기 ${widths ? '펼침' : '접음'} · 마킹 ${types ? types + '개' : '단추 하나'}`);
   await boot(w, h);
   await click('btnFloatSketchMode'); await sleep(200);
   eq(await vis('#tabletFloatSketchGroup [data-sketch-tool]'), 7, '하단 바에 도구 7개');
   eq([await vis('#canvasFloatBar'), await vis('#sketchToolGroup')], [0, 0], '세부 작업바는 없다');
-  eq(await vis('#tabletFloatSketchGroup .sketch-color-btn'), wide ? 6 : 0, `바의 색 ${wide ? '6개' : '없음(단추로)'}`);
-  eq(await vis('#tabletFloatSketchGroup > .float-sketch-width'), wide ? 4 : 0, `바의 굵기 ${wide ? '4개' : '없음(단추로)'}`);
-  eq([await vis('#btnFloatColorPick'), await vis('#btnFloatWidthPick')], wide ? [0, 0] : [1, 1], '색·굵기 단추');
+  eq(await vis('#tabletFloatSketchGroup .sketch-color-btn'), colors ? 6 : 0, `바의 색 ${colors ? '6개' : '없음(단추로)'}`);
+  eq(await vis('#tabletFloatSketchGroup > .float-sketch-width'), widths ? 4 : 0, `바의 굵기 ${widths ? '4개' : '없음(단추로)'}`);
+  eq([await vis('#btnFloatColorPick'), await vis('#btnFloatWidthPick')], [colors ? 0 : 1, widths ? 0 : 1], '색·굵기 단추');
+  eq([await vis('#tabletFloatTypeGrid .tablet-float-type-btn'), await vis('#btnFloatTypePick')], [types, types ? 0 : 1], '그리는 중에도 마킹 단추가 있다');
   let f = await fit(); ok(fits(f), '직선 : 바가 화면 안, 옆으로 밀리지 않는다', f);
   await shot(`1118e-${w}-line.png`);
   for (const t of ['text', 'sketchErase']) { await tool(t); f = await fit(); ok(fits(f), `${t} : 바가 화면 안`, f); }

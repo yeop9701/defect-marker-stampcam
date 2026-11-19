@@ -285,8 +285,10 @@ ok(await waitFor(`!!(${M(1)}.ink && ${M(1)}.ink.rptDefect)`, 3000), '결함 칸�
 await ev(`__markerDbg.ink.hideQuickInputSheet(); window.__toasts=[]; const _st=document.querySelector('.app-toast-stack'); if(_st) _st.innerHTML=''; true`);
 await ev(`document.getElementById('btnExportCSV') ? document.getElementById('btnExportCSV').click() : null; true`);
 await sleep(400);
-const toast = await ev(`(document.querySelector('.app-toast-stack')||{}).textContent||''`);
+// 11-19 : 알림 대신 저장 전에 묻는 창
+const toast = await ev(`document.getElementById('inkExportBackdrop').style.display==='flex' ? document.getElementById('inkExportText').textContent : ''`);
 ok(toast.includes('손글씨 1칸'), '내보낼 때 아직 글자가 아닌 칸을 알려 준다', toast);
+await ev(`document.getElementById('btnInkExportCancel').click(); true`);
 await ev(`document.getElementById('btnInkToggle').click(); true`);
 eq(await ev(`[__markerDbg.ink.isInkInputOn(), document.getElementById('inkStateLabel').textContent]`), [false, '끔'], '「손글씨 입력: 끔」');
 await ev(`__markerDbg.ink.openQuickInputSheetFor(${M(1)}); true`);

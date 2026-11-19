@@ -109,8 +109,8 @@ await shot('1118b-drawer.png');
 /* ══ ④ 엑셀 외관조사 시트 ══ */
 console.log('\n[4] 엑셀');
 const sheet = await ev(`(()=>{const d=${D}; d.markers[0].rptFloor='지상1층'; d.markers[0].rptLoc='거실'; const sh=__markerDbg.buildOegwanSheet(d.markers.map((m,idx)=>({m,idx,d}))); return {h:sh.header, r:sh.rows[0].cells, n:[...sh.numericColIdx]};})()`);
-eq(sheet.h.slice(0, 7), ['NO', '', '층수', '위치', '부재', '자재', '결함'], '외관조사 시트 : NO · 유형 · 층수 · 위치 · 부재 · 자재 · 결함');
-eq(sheet.r.slice(2, 5), ['지상1층', '거실', '벽체'], '  → 값도 그 자리에');
+eq(sheet.h.slice(0, 8), ['도면명', 'NO', '', '층수', '위치', '부재', '자재', '결함'], '외관조사 시트 : 도면명 · NO · 유형 · 층수 · 위치 · 부재 · 자재 · 결함');
+eq(sheet.r.slice(3, 6), ['지상1층', '거실', '벽체'], '  → 값도 그 자리에');
 eq(sheet.h[sheet.n[1]], '폭', '  → 숫자 칸 표시도 한 칸씩 밀렸다(폭)');
 
 /* ══ ④ 퀵입력 손글씨 층수 ══ */

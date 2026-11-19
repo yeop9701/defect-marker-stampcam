@@ -314,25 +314,62 @@
   .tablet-sketch-pop > div{display:none;align-items:center;gap:6px;}
   .tablet-sketch-pop[data-pop="color"] > .sketch-colors,
   .tablet-sketch-pop[data-pop="width"] > .tsp-widths{display:flex;}
-  @media (max-width: 1239px){
-    body.layout-tablet #tabletFloatColorRow,
-    body.layout-tablet #tabletFloatSketchGroup > .float-sketch-width,
-    body.layout-tablet #tabletFloatSketchGroup > .float-sketch-wide{display:none;}
-    body.layout-tablet .tablet-float-btn.float-sketch-pick{display:flex;}
-  }
+  /* 2026-11-19 : 그리는 동안에도 마킹 단추를 남긴다. 바가 넘치면 fitFloatSketchBar() 가 이 순서로 줄인다 —
+     굵기 접기 → 색 접기 → 단추 폭 줄이기 → (그래도 넘치면) 마킹 단추를 하나로. 고정 폭 대신 실제 폭을 재는
+     이유는 위치도 종류마다 마킹 단추 수가 다르기 때문이다. */
+  body.layout-tablet.fsb-pick-color #tabletFloatColorRow,
+  body.layout-tablet.fsb-pick-width #tabletFloatSketchGroup > .float-sketch-width,
+  body.layout-tablet.fsb-pick-width #tabletFloatSketchGroup > .float-sketch-wide{display:none;}
+  body.layout-tablet.fsb-pick-color #btnFloatColorPick,
+  body.layout-tablet.fsb-pick-width #btnFloatWidthPick{display:flex;}
+  .tablet-sketch-pop[data-pop="types"] > .tsp-types{display:flex;flex-wrap:wrap;}
+  .float-type-pick{display:none;}
+  .float-type-pick .type-swatch{width:17px;height:17px;flex:0 0 17px;}
+  body.layout-tablet.fsb-pick-type #tabletFloatTypeGrid{display:none;}
+  body.layout-tablet.fsb-pick-type .float-type-pick{display:flex;}
+  body.layout-tablet.fsb-pick-type .tablet-float-bar{max-width:98vw;}
+  /* 지금 도구에 설정할 것이 없으면 ⚙ 자체를 숨긴다(눌리지 않는 단추가 자리만 차지했다) */
+  body.layout-tablet.mode-sketch #btnFloatSketchSettings:disabled{display:none;}
+  /* 변환을 기다리는 손글씨 — 하단 바에서 눈에 띄게, 누르면 변환 창 */
+  .ink-pending-btn{flex:0 0 auto;height:36px;min-height:36px;padding:0 10px;border:none;border-radius:9px;background:#b7791f;color:#fff;
+    font-size:12.5px;font-weight:700;white-space:nowrap;}
+  body.layout-tablet.mode-sketch .ink-pending-btn{display:none !important;}
+  body.layout-tablet:not(.phone-bar):not(.mode-sketch) .ink-float-badge{display:none !important;}
+  /* 휴대폰 세로 하단 바 : 자주 쓰는 것만 두고 나머지는 ⋯ 안으로 (fitFloatSketchBar 가 phone-bar 를 붙인다) */
+  .float-phone-only{display:none;}
+  body.phone-bar #btnFloatMore{display:flex;font-size:18px;font-weight:700;}
+  body.phone-bar.mode-sketch #btnFloatToolPick{display:flex;}
+  body.phone-bar .tablet-float-sep,
+  body.phone-bar #btnFloatRedo,
+  body.phone-bar #btnFloatZoomFit,
+  body.phone-bar #btnFloatCanvasMax,
+  body.phone-bar #btnFloatSketchGrid,
+  body.phone-bar #btnFloatSketchClear,
+  body.phone-bar #btnFloatSketchSettings,
+  body.phone-bar #btnFloatInkPending,
+  body.phone-bar.mode-sketch #btnFloatInk,
+  body.phone-bar.mode-sketch .float-sketch-tool{display:none !important;}
+  .tablet-sketch-pop[data-pop="tools"] > .tsp-proxy,
+  .tablet-sketch-pop[data-pop="more"] > .tsp-proxy{display:flex;flex-wrap:wrap;justify-content:center;}
+  body.layout-tablet .tablet-float-btn.float-proxy{width:68px;height:54px;min-height:54px;padding:2px;flex-direction:column;gap:3px;font-size:10.5px;line-height:1.15;}
+  .tablet-sketch-pop[data-pop="more"],.tablet-sketch-pop[data-pop="tools"]{max-width:min(94vw,312px);}
+  /* 휴대폰에서 만든 파일을 저장·공유하는 창 */
+  .file-ready-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--gridline);}
+  .file-ready-name{flex:1 1 100%;min-width:0;font-size:13px;font-weight:700;color:var(--text-primary);overflow-wrap:anywhere;}
+  .file-ready-size{flex:1;font-size:11.5px;color:var(--muted);}
+  .file-ready-row button{min-height:40px;}
   body.layout-tablet #sketchColorRow,
   body.layout-tablet #sketchWidthGroup,
   body.layout-tablet #btnSketchGrid,
   body.layout-tablet #btnSketchClear{display:none !important;}
-  /* 그리는 동안 하단 바의 결함 유형 단추는 감춘다(누르면 그리기가 꺼지는 단추라 폭만 차지한다) */
-  body.layout-tablet.mode-sketch #tabletFloatTypeGrid,
-  body.layout-tablet.mode-sketch #tabletFloatTypeGrid + .tablet-float-sep{display:none;}
-  /* 세로로 든 태블릿(폭 900px 이하)에서는 하단 바가 넘쳐 옆으로 밀리지 않게 그리기 묶음을 조금 촘촘하게 */
-  @media (max-width: 900px){
-    body.layout-tablet .tablet-float-sketch{gap:3px;}
-    body.layout-tablet .tablet-float-sketch .tablet-float-btn{width:32px;}
-    body.layout-tablet.mode-sketch .tablet-float-bar{gap:3px;}
-  }
+  /* 그리는 동안 마킹 단추는 「누르면 그 유형으로 찍기로 돌아가는 단추」다 — 지금 켜진 것처럼 보이지 않게 강조만 뺀다 */
+  body.layout-tablet.mode-sketch .tablet-float-type-btn.active{border-color:transparent;background:var(--surface-2);}
+  /* 폭이 모자랄 때 하단 바를 촘촘하게 */
+  body.layout-tablet.fsb-tight .tablet-float-sketch{gap:3px;}
+  body.layout-tablet.fsb-tight .tablet-float-sketch .tablet-float-btn{width:32px;}
+  body.layout-tablet.fsb-tight .tablet-float-bar{gap:3px;}
+  body.layout-tablet.fsb-tight .tablet-float-types{gap:3px;}
+  body.layout-tablet.fsb-tight .tablet-float-types .tablet-float-type-btn{width:32px;}
   .float-sketch-width{display:flex;align-items:center;justify-content:center;}
   .float-sketch-width i{display:block;width:22px;background:currentColor;border-radius:2px;}
   .float-sketch-width.active{background:var(--mode-sketch);color:#fff;}
@@ -352,14 +389,32 @@
     bottom:calc(var(--float-bar-reserve, 74px) + env(safe-area-inset-bottom));
     flex-direction:column;gap:8px;width:min(820px,96vw);padding:10px 12px;border-radius:14px;
     background:var(--surface-1);border:1px solid var(--gridline);box-shadow:0 8px 28px rgba(0,0,0,.28);
+    /* 화면보다 길어지면 머리줄은 두고 입력칸만 스크롤한다(휴대폰에서 아래가 잘리던 문제) */
+    max-height:calc(100vh - var(--float-bar-reserve, 74px) - 22px);
+    max-height:calc(100dvh - var(--float-bar-reserve, 74px) - env(safe-area-inset-bottom) - env(safe-area-inset-top) - 22px);
   }
   .quick-input-sheet.pinned-top{bottom:auto;top:calc(14px + env(safe-area-inset-top));}
-  .qis-row{display:flex;align-items:center;gap:8px;}
-  .qis-title{flex:1;font-size:12.5px;font-weight:700;color:var(--text-primary);}
+  .qis-row{display:flex;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:wrap;}
+  .qis-title{flex:1 1 200px;min-width:0;font-size:12.5px;font-weight:700;color:var(--text-primary);}
+  #btnQuickInputClose{margin-left:auto;}
+  /* 필기 칸은 손가락이 글씨를 쓰므로 밀어서 스크롤할 수 없다 — 그래서 늘 보이는 스크롤 막대를 따로 둔다 */
+  .qis-scrollbar{display:none;position:absolute;right:5px;width:18px;border-radius:9px;background:var(--surface-2);
+    touch-action:none;cursor:pointer;}
+  .qis-scrollbar i{display:block;position:absolute;left:3px;right:3px;top:0;border-radius:6px;background:var(--accent);}
+  .quick-input-sheet.has-scroll{z-index:61;}   /* 서랍 탭(60)이 스크롤 막대를 가리지 않게 */
+  .quick-input-sheet.has-scroll .qis-scrollbar{display:block;}
+  .quick-input-sheet.has-scroll .qis-fields{padding-right:18px;}
+  @media (max-width: 640px){
+    .qis-row{flex-wrap:wrap;row-gap:4px;}
+    .qis-title{order:-2;flex:1 1 calc(100% - 56px);min-width:0;}
+    #btnQuickInputClose{order:-1;}
+  }
   #btnQuickInputStamp.qis-stamp{align-items:center;gap:4px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:8px;}
   #btnQuickInputStamp.qis-stamp:not([style*="none"]){display:inline-flex;}
   .qis-stamp-next{font-weight:400;color:var(--text-secondary);}
-  .qis-fields{display:flex;gap:8px;flex-wrap:wrap;}
+  .qis-fields{display:flex;gap:8px;flex-wrap:wrap;align-content:flex-start;flex:1 1 auto;min-height:0;
+    overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;}
+  .qis-fields::-webkit-scrollbar{display:none;}
   /* 마지막 줄에 칸이 한두 개만 남았을 때 그 칸들이 줄 전체로 늘어나 보기 흉해지지 않도록 상한을 둔다. */
   .qis-field{flex:1 1 150px;max-width:230px;display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--text-secondary);}
   .qis-field select,.qis-field input{padding:9px 8px;border-radius:8px;border:1px solid var(--gridline);
@@ -421,8 +476,7 @@
   .ink-head button{min-width:34px;min-height:30px;padding:2px 6px;border-radius:7px;border:1px solid var(--gridline);
     background:var(--surface-1);color:var(--text-secondary);font-size:13px;line-height:1;}
   body.layout-tablet .ink-head button{min-height:34px;min-width:40px;}
-  .ink-pad{position:relative;height:112px;touch-action:none;cursor:crosshair;
-    background:linear-gradient(to bottom, transparent calc(78% - 1px), var(--gridline) calc(78% - 1px), var(--gridline) 78%, transparent 78%);}
+  .ink-pad{position:relative;height:112px;touch-action:none;cursor:crosshair;}
   .ink-box.ink-num .ink-pad,.ink-box.ink-int .ink-pad{height:118px;}  /* 2026-11-18 : 92px 이 좁다는 요청으로 늘림 */
   .ink-pad canvas{position:absolute;left:0;top:0;touch-action:none;}
   .ink-hint{position:absolute;left:10px;top:8px;font-size:12px;color:var(--muted);pointer-events:none;opacity:.8;}
@@ -721,6 +775,7 @@
   body.no-drawing #btnRedo,
   body.no-drawing #btnToggleRightPanel,
   body.no-drawing #btnDuplicateOpen,
+  body.no-drawing #btnDuplicateNoMarkOpen,
   body.no-drawing .needs-drawing,
   body.no-drawing .tablet-float-bar{
     opacity:.38;pointer-events:none;filter:saturate(.4);
@@ -1078,37 +1133,38 @@
   /* 외관조사 카드는 두 줄로 (2026-11-18 요청 : 세 줄 → 두 줄, 부재 앞에 층수·위치)
      60칸 격자에 칸마다 넓이를 따로 준다 (같은 날 3차 요청 : 번호·개수·사진번호는 많이 줄이고,
      폭·길이는 조금 줄이고, 위치·부재·자재·결함은 넓게)
-       1줄 : 번호3 · 유형8 · 층수6 · 위치10 · 부재11 · 자재11 · 결함11            = 60
-       2줄 : 폭9 · 길이9 · 개수6 · 사진번호7 · 사진첨부5 · 정보5 · (빈 자리) · 삭제4 — 삭제는 맨 오른쪽 끝에
-             따로 둔다(사진 단추 옆에 붙어 있으면 잘못 누르기 쉽다). */
+       1줄 : 번호3 · 유형9 · 층수7 · 위치13 · 부재14 · 자재14                      = 60
+       2줄 : 결함23 · 폭7 · 길이7 · 개수5 · 사진번호6 · 사진첨부4 · 정보4 · 삭제4   = 60
+       2026-11-19 요청 : 결함은 여러 개를 「/」로 잇기도 하므로 아래 줄로 내려 넓게 쓰고, 그 자리로
+       입력칸과 아이콘 사이의 빈 자리를 없앴다. */
   body.layout-tablet .marker-card.mc-rpt,
   .marker-list-wrap.narrow .marker-card.mc-rpt{grid-template-columns:repeat(60,minmax(0,1fr));gap:8px 4px;}
   body.layout-tablet .marker-card.mc-rpt > .mc-seq,
   .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-seq{grid-column:span 3;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > select.mc-marktype,
-  .marker-list-wrap.narrow .marker-card.mc-rpt > select.mc-marktype{grid-column:span 8;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > select.mc-marktype{grid-column:span 9;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptFloor"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptFloor"]){grid-column:span 6;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptFloor"]){grid-column:span 7;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptLoc"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptLoc"]){grid-column:span 10;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptLoc"]){grid-column:span 13;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptType"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptType"]){grid-column:span 11;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptType"]){grid-column:span 14;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptMember"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptMember"]){grid-column:span 11;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptMember"]){grid-column:span 14;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptDefect"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptDefect"]){grid-column:span 11;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptDefect"]){grid-column:span 23;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptWidth"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptWidth"]){grid-column:span 9;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptWidth"]){grid-column:span 7;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptLength"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptLength"]){grid-column:span 9;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptLength"]){grid-column:span 7;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptCount"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptCount"]){grid-column:span 6;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptCount"]){grid-column:span 5;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .mc-cell:has([data-role="rptTag"]),
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptTag"]){grid-column:span 7;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-cell:has([data-role="rptTag"]){grid-column:span 6;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .mc-photo,
   .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-photo,
   body.layout-tablet .marker-card.mc-rpt > .mc-info,
-  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-info{grid-column:span 5;min-width:0;}
+  .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-info{grid-column:span 4;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > .row-del,
   .marker-list-wrap.narrow .marker-card.mc-rpt > .row-del{grid-column:57 / span 4;min-width:0;}
   /* 한 줄에 일곱 칸이 들어가므로 글자·여백을 조금 줄인다 */
@@ -1492,7 +1548,10 @@
         <!-- "모든 도면을 한 번에 훑어보기"는 도면 목록에 대한 조작이므로 도구줄이 아니라 여기 둔다.
              (도구줄은 지금 보고 있는 도면 하나를 다루는 자리다. 단축키 g는 그대로 동작한다.) -->
         <button id="btnGridView" class="tool needs-drawing" style="width:100%;margin-top:6px;" title="모든 도면을 축소판으로 한 번에 훑어봅니다 (단축키 g)"><svg class="icon"><use href="#i-grid"/></svg> 전체 보기 (G)</button>
-        <button type="button" id="btnDuplicateOpen" style="width:100%;margin-top:6px;" title="현재 도면의 마킹을 다른 도면들에 그대로 복제합니다(같은 평면도가 동만 바뀌어 반복될 때 유용)"><svg class="icon"><use href="#i-archive"/></svg> 마킹 전체 복사</button>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button type="button" id="btnDuplicateOpen" style="flex:1 1 0;min-width:0;padding-inline:6px;" title="현재 도면의 마킹을 다른 도면들에 그대로 복제합니다(같은 평면도가 동만 바뀌어 반복될 때 유용)"><svg class="icon"><use href="#i-archive"/></svg> 마킹 전체 복사</button>
+          <button type="button" id="btnDuplicateNoMarkOpen" style="flex:1 1 0;min-width:0;padding-inline:6px;" title="마킹은 빼고, 현재 도면에 직접 그린 선·글자만 다른 도면들에 복제합니다"><svg class="icon"><use href="#i-pencil"/></svg> 마킹 제외 복사</button>
+        </div>
       </div>
 
       <div class="needs-drawing">
@@ -1867,6 +1926,8 @@
         <!-- 머리줄·도구줄 접기. 접고 나면 도구줄의 같은 단추가 사라지므로 여기에도 둔다. -->
         <button type="button" class="tablet-float-btn" id="btnFloatCanvasMax" title="크게 보기 — 머리줄과 도구줄을 접어 도면을 화면 가득 봅니다"><svg class="icon"><use href="#i-expand"/></svg></button>
         <div class="tablet-float-sep"></div>
+        <!-- 폭이 모자라면 마킹 단추들 대신 이 단추 하나가 나오고, 누르면 고르기 창이 뜬다 -->
+        <button type="button" class="tablet-float-btn float-type-pick" id="btnFloatTypePick" title="마킹 유형 고르기"></button>
         <div class="tablet-float-types" id="tabletFloatTypeGrid"></div>
         <div class="tablet-float-sep"></div>
         <button type="button" class="tablet-float-btn" id="btnFloatSelectMode" title="선택 — 마커와 그린 것 (S)"><svg class="icon"><use href="#i-select"/></svg></button>
@@ -1881,6 +1942,7 @@
              도구마다 다른 설정은 ⚙ 를 누르면 위에 뜬다. 폭이 모자란 화면에서는 색·굵기를 단추 하나씩으로 접는다. -->
         <div class="tablet-float-sketch" id="tabletFloatSketchGroup">
           <div class="tablet-float-sep"></div>
+          <button type="button" class="tablet-float-btn float-phone-only" id="btnFloatToolPick" title="그리기 도구 고르기"></button>
           <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="line" title="직선"><svg class="icon"><use href="#i-sk-line"/></svg></button>
           <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="rect" title="사각형"><svg class="icon"><use href="#i-sk-rect"/></svg></button>
           <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="pen" title="자유선"><svg class="icon"><use href="#i-sk-scribble"/></svg></button>
@@ -1910,9 +1972,13 @@
         <span class="tablet-float-autosave" id="tabletFloatAutosaveLabel"></span>
         <!-- 손글씨 : 고른 결함(없으면 마지막 결함)의 필기 상자를 연다 / 변환 대기 칸 수 -->
         <button type="button" class="tablet-float-btn ink-float-btn" id="btnFloatInk" title="손글씨로 입력 — 고른 결함의 칸에 바로 씁니다">✎<span class="ink-float-badge" id="inkFloatBadge" style="display:none;"></span></button>
+        <button type="button" class="ink-pending-btn" id="btnFloatInkPending" style="display:none;" title="아직 글자로 바뀌지 않은 손글씨 — 눌러서 변환·확인"></button>
+        <button type="button" class="tablet-float-btn float-phone-only" id="btnFloatMore" title="더 보기">⋯</button>
       </div>
       <!-- 좁은 화면에서 색·굵기 단추를 누르면 뜨는 고르기 창 (하단 바는 가로로 밀리는 상자라 그 안에 두면 잘린다) -->
       <div class="tablet-sketch-pop" id="tabletSketchPop" hidden>
+        <div class="tsp-types" id="tabletPopTypeRow"></div>
+        <div class="tsp-proxy" id="tabletPopProxy"></div>
         <div class="sketch-colors" id="tabletPopColorRow"></div>
         <div class="tsp-widths">
           <button type="button" class="tablet-float-btn float-sketch-width" data-sketch-width="0.35" title="아주 가는 선"><i style="height:1px;opacity:0.55;"></i></button>
@@ -1935,9 +2001,11 @@
           <!-- 이 결함으로 바로 스탬프 촬영(사진 창을 거치지 않고). 사진번호 칸이 있는 결함에만 보인다 -->
           <button type="button" id="btnQuickInputStamp" class="tool qis-stamp" style="display:none;" title="이 결함으로 스탬프 촬영 — 찍은 사진이 붙고 빈 사진번호 칸이 채워집니다"><svg class="icon"><use href="#i-camera"/></svg> 스탬프 촬영 <span class="qis-stamp-next"></span></button>
           <button type="button" id="btnQuickInputSame" class="tool" style="display:none;">직전 값 그대로</button>
+          <button type="button" id="btnQuickInputCopyNext" class="tool" style="display:none;" title="이 결함의 내용을 다음 번호 결함에 복사하고 그 결함으로 넘어갑니다(사진번호는 빼고)">다음에 복사 ▶</button>
           <button type="button" id="btnQuickInputClose" class="icon-btn" title="닫기"><svg class="icon"><use href="#i-close"/></svg></button>
         </div>
         <div class="qis-fields" id="quickInputFields"></div>
+        <div class="qis-scrollbar" id="quickInputScrollbar" title="끌어서 위아래로 이동"><i></i></div>
       </div>
     </main>
 
@@ -2219,12 +2287,43 @@
   </div>
 </div>
 
+<!-- 내보내기 전 : 아직 글자가 아닌 손글씨가 있을 때 -->
+<div class="modal-backdrop" id="inkExportBackdrop" style="display:none;">
+  <div class="modal-panel" style="width:min(460px, 92vw);">
+    <div class="modal-header"><div>
+      <div class="modal-title">변환하지 않은 손글씨가 있습니다</div>
+      <div class="modal-sub" id="inkExportText"></div>
+    </div></div>
+    <div class="modal-footer" style="flex-wrap:wrap;">
+      <button type="button" class="tool" id="btnInkExportCancel">취소</button>
+      <button type="button" id="btnInkExportReview">확인하기</button>
+      <button type="button" id="btnInkExportConvert">지금 변환 후 저장</button>
+      <button type="button" class="strong" id="btnInkExportAnyway">그대로 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 휴대폰·태블릿 : 만든 파일을 사용자가 직접 눌러 저장·공유한다 -->
+<div class="modal-backdrop" id="fileReadyBackdrop" style="display:none;">
+  <div class="modal-panel" style="width:min(480px, 94vw);">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">파일이 준비되었습니다</div>
+        <div class="modal-sub">「저장」은 기기의 다운로드 폴더로, 「공유」는 파일 앱·카카오톡·메일 같은 다른 앱으로 보냅니다.</div>
+      </div>
+      <button type="button" id="btnFileReadyClose" class="icon-btn" title="닫기"><svg class="icon icon-lg"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-body" id="fileReadyList"></div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="duplicateBackdrop" style="display:none;">
   <div class="modal-panel" id="duplicatePanel" style="width:min(520px, 92vw);">
     <div class="modal-header" id="duplicateDragHandle" title="여기를 마우스로 눌러 끌면 창을 옮길 수 있습니다">
       <div>
-        <div class="modal-title">마킹 전체 복사</div>
-        <div class="modal-sub">현재 도면(<b id="duplicateSourceName"></b>)의 마킹 <b id="duplicateSourceCount"></b>건을 아래서 고른 도면에 그대로 복제합니다. 직접 그린 선이 있으면 함께 복제할지 고를 수 있습니다. 번호는 대상 도면에서 다시 매겨지고, 사진은 복제되지 않습니다.</div>
+        <div class="modal-title" id="duplicateTitle">마킹 전체 복사</div>
+        <div class="modal-sub" id="duplicateSubAll">현재 도면(<b id="duplicateSourceName"></b>)의 마킹 <b id="duplicateSourceCount"></b>건을 아래서 고른 도면에 그대로 복제합니다. 직접 그린 선이 있으면 함께 복제할지 고를 수 있습니다. 번호는 대상 도면에서 다시 매겨지고, 사진은 복제되지 않습니다.</div>
+        <div class="modal-sub" id="duplicateSubNoMark" style="display:none;">현재 도면(<b id="duplicateNoMarkName"></b>)에 직접 그린 선·글자 <b id="duplicateNoMarkCount"></b>개를 아래서 고른 도면에 복제합니다. 마킹은 복제하지 않고, 대상 도면의 마킹도 건드리지 않습니다.</div>
       </div>
       <button type="button" id="btnDuplicateClose" class="icon-btn"><svg class="icon icon-lg"><use href="#i-close"/></svg></button>
     </div>
@@ -2606,6 +2705,9 @@
     const tabR = document.getElementById('btnDrawerRight'); if(tabR){ tabR.classList.remove('tab-shifted'); tabR.setAttribute('aria-expanded', 'false'); }
     // 서랍이 닫혔으니 플로팅 바를 다시 보여준다(CSS: body.layout-tablet.drawer-open).
     document.body.classList.remove('drawer-open');
+    // 서랍이 열린 동안 숨어 있던 것들은 폭·높이를 잴 수 없었다 — 다시 보일 때 맞춘다.
+    fitFloatSketchBar();
+    syncQuickInputScrollbar();
   }
   function openDrawer(side){
     const el = document.querySelector('.sidebar.'+side);
@@ -2648,6 +2750,7 @@
     // #btnPhotoCaptureLabel 등)로만 처리한다 — 두 입력이 이미 분리돼 있어 JS에서 속성을 붙였다 뗐다 할 필요가 없다.
     moveTabletHeaderExtras(on);
     updateTabletEdgeTabTop();
+    fitFloatSketchBar();
   }
   // 태블릿에서만 헤더의 저빈도 버튼들을 "설정" 드롭다운 안으로 옮긴다. 버튼 자체를 그대로 이동시키므로
   // id로 걸어둔 클릭 핸들러·상태 갱신 로직은 전혀 손댈 필요가 없고, 데스크톱으로 돌아오면 원래 자리
@@ -3068,7 +3171,15 @@
   // 다만 끝없이 키울 수는 없다 — 캔버스 한 장이 메모리를 먹고(픽셀 하나에 4바이트), PDF는 그
   //   픽셀을 전부 무손실로 압축해 담는다. 아래 상한은 도면 긴 변 상한(MAX_DRAWING_DIM 4000px)인
   //   세로 도면을 1:1로 담고도 남는 크기다(A4 가로 종이에 약 530dpi).
-  const EXPORT_MAX_PIXELS = 38e6;
+  // 휴대폰·태블릿은 캔버스 크기와 메모리 한도가 훨씬 낮아, 이 상한 그대로면 저장 파일을 만들다 실패한다.
+  // 1600만 화소면 A4 가로 한 장에 약 340dpi 이다.
+  function isMobileDevice(){
+    const ua = navigator.userAgent || '';
+    return (navigator.userAgentData && navigator.userAgentData.mobile === true)
+      || /Android|iPhone|iPad|iPod|Mobile/i.test(ua)
+      || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);   // iPadOS 는 Mac 으로 자신을 알린다
+  }
+  const EXPORT_MAX_PIXELS = isMobileDevice() ? 16e6 : 38e6;
   const EXPORT_MAX_SUPERSAMPLE = 6;
 
   // ---------- 내보내기 용지(A4/A3) ----------
@@ -8423,11 +8534,63 @@
   })();
   // 시트 전체를 다시 그린다. 타이핑 중에는 부르지 않는다(입력칸이 통째로 새로 만들어져 포커스가
   // 날아가기 때문) — 값 반영은 applyQuickInputField가 DOM을 건드리지 않고 처리한다.
+  // 시트가 화면보다 길 때의 스크롤 막대. 브라우저 기본 막대는 휴대폰에서 평소엔 보이지 않고, 필기 칸은
+  // 손가락이 글씨를 쓰느라 밀어 올릴 수도 없어서 늘 보이고 끌 수 있는 막대를 직접 둔다.
+  function positionQuickInputThumb(){
+    const box = document.getElementById('quickInputFields');
+    const rail = document.getElementById('quickInputScrollbar');
+    if(!box || !rail) return;
+    const ch = box.clientHeight, sh = box.scrollHeight;
+    const h = Math.min(ch, Math.max(40, Math.round(ch * ch / Math.max(sh, 1))));
+    const ratio = sh > ch ? Math.min(1, box.scrollTop / (sh - ch)) : 0;
+    rail.style.top = box.offsetTop + 'px';
+    rail.style.height = ch + 'px';
+    rail.firstElementChild.style.height = h + 'px';
+    rail.firstElementChild.style.transform = `translateY(${Math.round((ch - h) * ratio)}px)`;
+  }
+  function syncQuickInputScrollbar(){
+    const sheet = document.getElementById('quickInputSheet');
+    const box = document.getElementById('quickInputFields');
+    if(!sheet || !box || sheet.style.display === 'none') return;
+    // 막대 자리(오른쪽 여백)를 뺀 상태로 재야 여백 때문에 넘친 것으로 잘못 판단해 깜빡이지 않는다.
+    const keep = box.scrollTop;
+    sheet.classList.remove('has-scroll');
+    const over = box.scrollHeight > box.clientHeight + 1;
+    sheet.classList.toggle('has-scroll', over);
+    box.scrollTop = keep;
+    if(over) positionQuickInputThumb();
+  }
+  (function wireQuickInputScrollbar(){
+    const box = document.getElementById('quickInputFields');
+    const rail = document.getElementById('quickInputScrollbar');
+    if(!box || !rail) return;
+    box.addEventListener('scroll', positionQuickInputThumb, { passive:true });
+    if(window.ResizeObserver) new ResizeObserver(syncQuickInputScrollbar).observe(box);
+    new MutationObserver(syncQuickInputScrollbar).observe(box, { childList:true, subtree:true });
+    let grab = null;
+    const scrollTo = e=>{
+      const r = rail.getBoundingClientRect(), h = rail.firstElementChild.offsetHeight;
+      const range = r.height - h;
+      if(range > 0) box.scrollTop = (e.clientY - r.top - grab) / range * (box.scrollHeight - box.clientHeight);
+    };
+    rail.addEventListener('pointerdown', e=>{
+      e.preventDefault();
+      const t = rail.firstElementChild.getBoundingClientRect();
+      // 손잡이를 잡으면 잡은 자리를 유지하고, 빈 곳을 누르면 손잡이 가운데를 그리로 옮긴다
+      grab = e.target === rail.firstElementChild ? e.clientY - t.top : t.height / 2;
+      try{ rail.setPointerCapture(e.pointerId); }catch(err){}
+      scrollTo(e);
+    });
+    rail.addEventListener('pointermove', e=>{ if(grab !== null){ e.preventDefault(); scrollTo(e); } });
+    ['pointerup','pointercancel'].forEach(n=> rail.addEventListener(n, ()=>{ grab = null; }));
+  })();
   function renderQuickInputSheet(){
     const m = quickInputMarker();
     const el = document.getElementById('quickInputSheet');
     const box = document.getElementById('quickInputFields');
     if(!el || !m || !box) return;
+    // 같은 결함을 다시 그릴 때는 보던 자리를 지키고, 다른 결함으로 넘어가면 맨 위부터 보여 준다
+    const keepScroll = qisTaxFor === m.id ? box.scrollTop : 0;
     const spec = quickInputSpecFor(m);
     destroyInkBoxes();
     const inkMode = isInkInputOn() && spec.length > 0;
@@ -8488,6 +8651,8 @@
     updateQuickInputSameButton();
     updateQuickInputStampButton(m);
     el.style.display = 'flex';
+    box.scrollTop = keepScroll;
+    syncQuickInputScrollbar();
   }
   function updateQuickInputStampButton(m){
     const btn = document.getElementById('btnQuickInputStamp');
@@ -8617,6 +8782,45 @@
     const keys = m ? quickInputKeys(m) : [];
     const hasLast = keys.some(k=> lastQuickInputValues[k]);
     btn.style.display = hasLast ? '' : 'none';
+    const copyBtn = document.getElementById('btnQuickInputCopyNext');
+    if(copyBtn) copyBtn.style.display = (m && nextQuickInputMarker()) ? '' : 'none';
+  }
+  function nextQuickInputMarker(){
+    const d = getActiveDrawing(); if(!d) return null;
+    const list = d.markers.filter(x=> quickInputSpecFor(x).length > 0);
+    const i = list.findIndex(x=> x.id===quickInputMarkerId);
+    return i >= 0 ? (list[i+1] || null) : null;
+  }
+  // 같은 결함이 이어질 때 : 지금 결함의 내용을 다음 번호 결함에 한 번에 넣고 그리로 넘어간다.
+  // 사진번호는 결함마다 달라야 하므로 빼고, 지금 칸이 비어 있으면 다음 결함의 값을 지우지 않는다.
+  function copyQuickInputToNext(){
+    const m = quickInputMarker(), n = nextQuickInputMarker();
+    if(!m || !n) return;
+    destroyInkBoxes();   // 아직 넘기지 않은 획을 먼저 저장한다
+    const skip = [photoTagKey(m), photoTagKey(n)];
+    const nextKeys = quickInputKeys(n);
+    const hasInk = k=> !!(m.ink && m.ink[k] && Ink.hasInk(m.ink[k]));
+    const keys = quickInputKeys(m).filter(k=> nextKeys.indexOf(k) >= 0 && skip.indexOf(k) < 0
+      && (String(m[k]||'').trim() || (window.Ink && hasInk(k))));
+    if(!keys.length){ renderQuickInputSheet(); showToast('복사할 내용이 없습니다.'); return; }
+    const clash = keys.filter(k=> String(n[k]||'').trim() && String(n[k]) !== String(m[k]||'')).length;
+    if(clash && !confirm(`#${n.seq||''} 결함에 이미 입력된 ${clash}칸을 이 내용으로 덮어쓸까요?`)){ renderQuickInputSheet(); return; }
+    pushUndo();
+    keys.forEach(k=>{
+      n[k] = m[k] || '';
+      const ink = Object.assign({}, n.ink || {});
+      if(window.Ink && hasInk(k)) ink[k] = Object.assign({}, m.ink[k], { carried:true }); else delete ink[k];
+      if(Object.keys(ink).length) n.ink = ink; else delete n.ink;
+    });
+    markDirty();
+    selectOnly(n.id);
+    scrollCanvasToMarker(n);
+    openQuickInputSheetFor(n);
+    renderTable();
+    renderLvSummary();
+    renderCanvas();
+    scheduleInkAutoConvert();
+    showToast(`#${n.seq||''} 결함에 ${keys.length}칸을 복사했습니다(사진번호 제외).`);
   }
   // 그 마커가 쓰는 필드키 전부(도분초 묶음은 안쪽 3개로 펼친다).
   function quickInputKeys(m){
@@ -8832,7 +9036,16 @@
     const n = inkItemsAll().filter(inkNeedsConvert).length;
     b.style.display = n ? '' : 'none';
     b.textContent = String(n);
+    inkPendingCount = n;
+    const pill = document.getElementById('btnFloatInkPending');
+    if(pill){
+      const was = pill.style.display;
+      pill.style.display = n ? '' : 'none';
+      pill.textContent = `글자 변환 ${n}`;
+      if(was !== pill.style.display) fitFloatSketchBar();
+    }
   }
+  var inkPendingCount = 0;
   function inkVocab(){
     const set = new Set();
     const X = taxIndex();
@@ -8930,11 +9143,37 @@
   window.addEventListener('online', ()=> scheduleInkAutoConvert(800));
   setTimeout(()=> scheduleInkAutoConvert(0), 5000);   // 앱을 열 때 남아 있던 것(자동저장 복원 뒤)
 
-  // 내보내기 전에 : 아직 글자가 아닌 손글씨 칸은 빈칸으로 나간다
-  function warnPendingInkBeforeExport(){
-    const n = inkItemsAll().filter(it=> it.kind==='text' && it.ink.st!=='done' && !String(it.m[it.k]||'').trim()).length;
-    if(n) showToast(`손글씨 ${n}칸이 아직 글자로 바뀌지 않아 빈칸으로 나갑니다 — 설정 › 손글씨 변환에서 바꿀 수 있습니다.`);
+  // 내보내기 전에 : 아직 글자가 아닌 손글씨 칸은 빈칸으로 나가므로, 저장하기 전에 고르게 한다
+  var inkExportProceed = null;
+  function pendingInkExportCount(){
+    return inkItemsAll().filter(it=> it.kind==='text' && it.ink.st!=='done' && !String(it.m[it.k]||'').trim()).length;
   }
+  function closeInkExportDialog(){
+    document.getElementById('inkExportBackdrop').style.display = 'none';
+    inkExportProceed = null;
+  }
+  function guardPendingInkBeforeExport(proceed){
+    const n = pendingInkExportCount();
+    if(!n){ proceed(); return; }
+    inkExportProceed = proceed;
+    const online = navigator.onLine !== false;
+    document.getElementById('inkExportText').textContent =
+      `손글씨 ${n}칸이 아직 글자로 바뀌지 않았습니다. 그대로 저장하면 그 칸은 빈칸으로 나갑니다.` + (online ? '' : ' 지금은 인터넷이 없어 변환할 수 없습니다.');
+    document.getElementById('btnInkExportConvert').disabled = !online;
+    document.getElementById('inkExportBackdrop').style.display = 'flex';
+  }
+  document.getElementById('btnInkExportCancel').addEventListener('click', closeInkExportDialog);
+  document.getElementById('btnInkExportReview').addEventListener('click', ()=>{ closeInkExportDialog(); openInkConvert(); });
+  document.getElementById('btnInkExportAnyway').addEventListener('click', ()=>{
+    const go = inkExportProceed; closeInkExportDialog(); if(go) go();
+  });
+  document.getElementById('btnInkExportConvert').addEventListener('click', async ()=>{
+    const go = inkExportProceed; closeInkExportDialog();
+    setExportProgressText('손글씨를 글자로 바꾸는 중...');
+    try{ await runInkConvert({}); } finally { hideExportProgress(); }
+    if(go) guardPendingInkBeforeExport(go);   // 못 바꾼 칸이 남았으면 다시 묻는다
+  });
+  document.getElementById('btnFloatInkPending').addEventListener('click', openInkConvert);
 
   // ----- 손글씨 시트 열기 · 결함 넘기기 -----
   function openQuickInputSheetFor(m){
@@ -9888,6 +10127,7 @@
     document.body.classList.toggle('pick-has-strokes', pickHasStrokes);
     const sketchBar = !!sketchTool && (sketchTool !== 'pick' || pickHasStrokes);
     if(bar) bar.style.display = (!hideAll && (cropMode || sketchBar || eraseMode || markerMode)) ? '' : 'none';
+    fitFloatSketchBar();
     // 모드가 바뀌면 바에 담기는 것이 달라져 폭·높이가 변한다 — 옮겨 둔 자리가 그 크기로도
     // 도면 칸 안에 들어오는지 다시 본다.
     applyFloatBarOffset(false);
@@ -10296,11 +10536,65 @@
     document.body.classList.toggle('sketch-settings-open', sketchSettingsOpen);
     const btn = document.getElementById('btnFloatSketchSettings');
     if(btn){ btn.disabled = !has; btn.classList.toggle('active', sketchSettingsOpen); }
+    // 휴대폰의 도구 단추는 지금 도구의 아이콘을 보여 준다
+    const cur = document.querySelector('.float-sketch-tool.active');
+    const pick = document.getElementById('btnFloatToolPick');
+    if(pick && cur) pick.innerHTML = cur.innerHTML;
+    fitFloatSketchBar();
+  }
+  // 휴대폰 하단 바의 ⋯ 와 도구 단추 : 숨겨 둔 원래 단추를 그대로 눌러 주는 대리 단추를 창에 띄운다
+  function openFloatProxyPop(kind, btn, items){
+    const row = document.getElementById('tabletPopProxy');
+    row.innerHTML = '';
+    items.forEach(({ src, label, noIcon })=>{
+      if(!src || src.disabled) return;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tablet-float-btn float-proxy' + (src.classList.contains('active') ? ' active' : '');
+      b.title = src.title;
+      b.innerHTML = (noIcon ? '' : (src.querySelector('svg') ? src.querySelector('svg').outerHTML : '')) + `<span>${escapeHTML(label)}</span>`;
+      b.addEventListener('click', ()=>{ closeTabletSketchPop(); src.click(); });
+      row.appendChild(b);
+    });
+    openTabletSketchPop(kind, btn);
+  }
+  function openFloatMorePop(btn){
+    const c = document.body.classList;
+    const by = (id, label, noIcon)=> ({ src: document.getElementById(id), label, noIcon });
+    const items = [by('btnFloatRedo','다시 실행'), by('btnFloatZoomFit','화면 맞춤'), by('btnFloatCanvasMax','크게 보기')];
+    if(c.contains('mode-sketch')) items.push(by('btnFloatSketchSettings','도구 설정'));
+    if(c.contains('mode-sketch') || c.contains('pick-has-strokes')) items.push(by('btnFloatSketchGrid','모눈'), by('btnFloatSketchClear','모두 지움'));
+    if(c.contains('mode-sketch')) items.push(by('btnFloatInk','손글씨', true));
+    if(inkPendingCount) items.push(by('btnFloatInkPending', `글자 변환 ${inkPendingCount}`, true));
+    openFloatProxyPop('more', btn, items);
+  }
+  function openFloatToolPop(btn){
+    const names = { line:'직선', rect:'사각형', pen:'자유선', ellipse:'원', arrow:'화살표', text:'글자', sketchErase:'선 지우개' };
+    openFloatProxyPop('tools', btn, [...document.querySelectorAll('.float-sketch-tool')]
+      .map(src=> ({ src, label: names[src.getAttribute('data-sketch-tool')] || src.title })));
   }
   function setFloatSketchSettings(on){
     sketchSettingsOpen = !!on;
     syncFloatSketchSettings();
     applyFloatBarOffset(false);
+  }
+  // 태블릿 하단 바에 그리기 묶음이 나와 있을 때, 옆으로 밀리지 않을 때까지 한 단계씩 접는다.
+  // 마킹 단추를 가장 나중에 접는다 — 그리는 중에도 바로 찍으러 돌아갈 수 있어야 하기 때문이다.
+  function fitFloatSketchBar(){
+    const body = document.body, bar = document.getElementById('tabletFloatBar');
+    const steps = ['fsb-pick-width', 'fsb-pick-color', 'fsb-tight', 'fsb-pick-type'];
+    steps.forEach(c=> body.classList.remove(c));
+    const c = body.classList;
+    // 휴대폰 세로는 재 볼 것 없이 전부 접고, 자주 쓰는 단추만 남긴다(나머지는 ⋯)
+    const phone = c.contains('layout-tablet') && window.innerWidth <= 640;
+    c.toggle('phone-bar', phone);
+    if(phone){ steps.forEach(s=> c.add(s)); return; }
+    const showing = c.contains('layout-tablet') && (c.contains('mode-sketch') || (c.contains('mode-pick') && c.contains('pick-has-strokes')));
+    if(!bar || !showing || !bar.clientWidth) return;
+    for(const step of steps){
+      if(bar.scrollWidth <= bar.clientWidth) return;
+      c.add(step);
+    }
   }
   function closeTabletSketchPop(){
     const pop = document.getElementById('tabletSketchPop');
@@ -10455,18 +10749,29 @@
   function renderFloatTypeGrid(){
     const grid = document.getElementById('tabletFloatTypeGrid');
     if(!grid) return;
-    grid.innerHTML = '';
-    selectableDefectTypes().forEach((type, i)=>{
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'tablet-float-type-btn' + (type.key===activeTypeKey ? ' active':'');
-      const shortcut = shortcutForTypeIndex(i);
-      btn.title = shortcut ? `${type.label} (${shortcut})` : type.label;
-      btn.style.setProperty('--type-color', type.color);
-      btn.innerHTML = `<span class="type-swatch">${typeSwatchSVG(type)}</span>`;
-      btn.addEventListener('click', ()=> setActiveType(type.key)); // 이미 서랍 밖이라 닫을 서랍이 없음
-      grid.appendChild(btn);
+    const popRow = document.getElementById('tabletPopTypeRow');
+    const types = selectableDefectTypes();
+    [grid, popRow].forEach(row=>{
+      if(!row) return;
+      row.innerHTML = '';
+      types.forEach((type, i)=>{
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tablet-float-type-btn' + (type.key===activeTypeKey ? ' active':'');
+        btn.dataset.floatType = type.key;
+        const shortcut = shortcutForTypeIndex(i);
+        btn.title = shortcut ? `${type.label} (${shortcut})` : type.label;
+        btn.style.setProperty('--type-color', type.color);
+        btn.innerHTML = `<span class="type-swatch">${typeSwatchSVG(type)}</span>`;
+        btn.addEventListener('click', ()=> setActiveType(type.key)); // 이미 서랍 밖이라 닫을 서랍이 없음
+        row.appendChild(btn);
+      });
     });
+    // 접혔을 때의 단추 하나는 지금 유형의 모양을 보여 준다
+    const pick = document.getElementById('btnFloatTypePick');
+    const cur = types.find(t=> t.key===activeTypeKey) || types[0];
+    if(pick && cur) pick.innerHTML = `<span class="type-swatch">${typeSwatchSVG(cur)}</span>`;
+    fitFloatSketchBar();
   }
 
   // ---------- 계열(series) 프리셋 선택 · 편집 UI ----------
@@ -11347,11 +11652,8 @@
   function triggerPngDownload(off, d, onDone){
     off.toBlob(blob=>{
       if(onDone) onDone();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filenameBase() + '_' + sanitizeFilename(d.name) + '.png';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 3000);
+      if(!blob){ showToast('이미지를 만들지 못했습니다. 용지 크기를 고르거나 도면을 줄여 다시 저장해 보세요.'); return; }
+      deliverFile(blob, filenameBase() + '_' + sanitizeFilename(d.name) + '.png');
     }, 'image/png');
   }
 
@@ -11813,19 +12115,11 @@
   }
   async function triggerPdfDownload(canvas, d, pageSizeKey){
     const blob = await buildPDFFromCanvases([canvas], pageSizeKey);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filenameBase() + '_' + sanitizeFilename(d.name) + '.pdf';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 3000);
+    deliverFile(blob, filenameBase() + '_' + sanitizeFilename(d.name) + '.pdf');
   }
   async function triggerPdfDownloadMulti(canvases, filename, pageSizeKey, onPage){
     const blob = await buildPDFFromCanvases(canvases, pageSizeKey, onPage);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 3000);
+    deliverFile(blob, filename);
   }
 
   // ---------- 전체 도면 일괄 저장 : 현재 켜진 형식(PNG/PDF)으로 모든 도면을 한 번에 내보낸다 ----------
@@ -11847,7 +12141,7 @@
       const makers = drawings.map((_,i)=> ()=> makeCanvas(i));
       Promise.resolve(triggerPdfDownloadMulti(makers, filenameBase() + '_전체도면.pdf', pageSizeKey,
           (i,n)=> setExportProgressText(`PDF로 묶는 중... (${i+1}/${n}) ${drawings[i].name}`)))
-        .then(()=>{ hideExportProgress(); showToast(`도면 ${total}장을 PDF 한 파일로 저장했습니다.`); })
+        .then(()=>{ hideExportProgress(); if(!isMobileDevice()) showToast(`도면 ${total}장을 PDF 한 파일로 저장했습니다.`); })
         .catch(()=>{ hideExportProgress(); showToast('PDF를 만들지 못했습니다.'); });
       return;
     }
@@ -11858,7 +12152,7 @@
     const next = ()=>{
       if(k >= total){
         hideExportProgress();
-        showToast(`도면 ${total}장을 저장했습니다.`);
+        if(!isMobileDevice()) showToast(`도면 ${total}장을 저장했습니다.`);
         return;
       }
       setExportProgressText(`저장하는 중... (${k+1}/${total}) ${drawings[k].name}`);
@@ -11877,19 +12171,75 @@
     return v;
   }
   function downloadBlob(content, filename, mime){
-    const blob = new Blob([content], {type:mime});
-    const url = URL.createObjectURL(blob);
+    deliverFile(new Blob([content], {type:mime}), filename);
+  }
+  // ---------- 만든 파일 건네기 ----------
+  // 컴퓨터는 곧바로 내려받는다. 휴대폰·태블릿은 파일을 만드는 동안(특히 PDF) 「사용자가 방금 눌렀다」는
+  // 허가가 끝나 저장·공유가 막히거나, 설치한 앱 화면에서 내려받기가 조용히 무시될 수 있다. 그래서 다 만든
+  // 뒤 창을 띄워 사용자가 직접 「저장」이나 「공유」를 누르게 한다.
+  var readyFiles = [];
+  function startDownload(url, filename){
     const a = document.createElement('a');
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 3000);
   }
+  function deliverFile(blob, filename){
+    if(!isMobileDevice()){
+      const url = URL.createObjectURL(blob);
+      startDownload(url, filename);
+      setTimeout(()=>URL.revokeObjectURL(url), 3000);
+      return;
+    }
+    readyFiles.push({ blob, filename, url: URL.createObjectURL(blob) });
+    renderFileReadyList();
+    document.getElementById('fileReadyBackdrop').style.display = 'flex';
+  }
+  function shareFileFor(f){
+    if(!navigator.share || !navigator.canShare || typeof File !== 'function') return null;
+    const file = new File([f.blob], f.filename, { type: f.blob.type || 'application/octet-stream' });
+    try{ return navigator.canShare({ files:[file] }) ? file : null; }catch(err){ return null; }
+  }
+  function renderFileReadyList(){
+    const list = document.getElementById('fileReadyList');
+    list.innerHTML = '';
+    readyFiles.forEach(f=>{
+      const row = document.createElement('div');
+      row.className = 'file-ready-row';
+      const mb = f.blob.size / 1048576;
+      row.innerHTML = `<div class="file-ready-name">${escapeHTML(f.filename)}</div>`
+        + `<div class="file-ready-size">${mb >= 1 ? mb.toFixed(1) + 'MB' : Math.max(1, Math.round(f.blob.size/1024)) + 'KB'}</div>`
+        + `<button type="button" class="strong" data-file-act="save">저장</button>`;
+      const size = row.querySelector('.file-ready-size');
+      row.querySelector('[data-file-act="save"]').addEventListener('click', ()=>{
+        startDownload(f.url, f.filename);
+        size.textContent = '저장을 시작했습니다 — 다운로드 폴더를 확인하세요';
+      });
+      const file = shareFileFor(f);
+      if(file){
+        const b = document.createElement('button');
+        b.type = 'button'; b.dataset.fileAct = 'share'; b.textContent = '공유';
+        b.addEventListener('click', ()=>{
+          navigator.share({ files:[file], title:f.filename }).catch(err=>{
+            if(!err || err.name !== 'AbortError') showToast('공유하지 못했습니다 — 「저장」을 눌러 주세요.');
+          });
+        });
+        row.appendChild(b);
+      }
+      list.appendChild(row);
+    });
+  }
+  document.getElementById('btnFileReadyClose').addEventListener('click', ()=>{
+    readyFiles.forEach(f=> URL.revokeObjectURL(f.url));
+    readyFiles = [];
+    document.getElementById('fileReadyBackdrop').style.display = 'none';
+  });
   // CSV/xlsx 내보내기가 공유하는 결함 목록 데이터 — 헤더와 각 행의 값(cells) + 색상 구분에 쓰는 typeKey.
   function buildDefectExportData(){
     // 도면 전환 없이도 모든 도면의 번호가 최신이어야 하므로(활성 도면 렌더링에 의존하지 않음) 내보내기
     // 직전에 전체 도면을 조용히(토스트 없이) 재정렬해 seq를 맞춘다.
     renumberAllDrawings({silent:true});
-    const header = ['도면명','번호','위치유형','X(%)','Y(%)','각도','인출선길이배율','범위X(%)','범위Y(%)','범위폭(%)','범위높이(%)',
+    // 층수·위치는 2026-11-19 요청으로 번호 바로 오른쪽. 불러오기는 열 이름으로 찾으므로 옛 CSV(맨 끝)도 그대로 읽힌다.
+    const header = ['도면명','번호','층수','위치','위치유형','X(%)','Y(%)','각도','인출선길이배율','범위X(%)','범위Y(%)','범위폭(%)','범위높이(%)',
       '부재','자재','결함','폭','길이','개수','#','사진','비고','UID',
       // 2·4장: 기울기·부동침하 전용 값 — 다른 프리셋의 마커는 빈 칸으로 남는다(기존 CSV/XLSX 소비 코드와
       // 자리를 맞추기 위해 항상 맨 끝에 추가). "번호" 열이 이미 "구분-N" 배지를 담으므로 따로 구분 열을
@@ -11899,9 +12249,7 @@
       // 헤더 문구의 "LV"는 화면 카드 라벨과 맞춰 뺐다(데이터 필드명 m.lvGroup 자체는 그대로).
       '그룹명','LV측정값(cm)','LV경간(mm)',
       // 3-2: 장비조사(SH/PH/DM) 공통 값. "번호" 열이 이미 SH-01/PH-01/DM-01 배지를 담는다.
-      '장비_층수','장비_위치','장비_부재','장비_사진번호',
-      // 2026-11-18 : 외관조사 결함의 층수·위치 — 옛 소비 코드와 자리를 맞추려고 맨 끝에 붙인다.
-      '층수','위치'];
+      '장비_층수','장비_위치','장비_부재','장비_사진번호'];
     const rows = [];
     drawings.forEach(d=>{
       d.markers.forEach((m, idx)=>{
@@ -11914,7 +12262,7 @@
         // 값과 내보내기 결과가 어긋나지 않도록 계산식을 여기서 따로 반복하지 않고 그대로 재사용한다.
         const resParts = tiltResultParts(m);
         const resDms = (resParts.d!=='' || resParts.m!=='' || resParts.s!=='') ? `${resParts.d}°${resParts.m}′${resParts.s}″` : '';
-        rows.push({ typeKey: m.typeKey, cells: [d.name, formatMarkerLabel(m, idx, d), type.label, m.xPct.toFixed(1), m.yPct.toFixed(1), Math.round(m.angle||0), lenStr,
+        rows.push({ typeKey: m.typeKey, cells: [d.name, formatMarkerLabel(m, idx, d), m.rptFloor||'', m.rptLoc||'', type.label, m.xPct.toFixed(1), m.yPct.toFixed(1), Math.round(m.angle||0), lenStr,
           isRect ? (m.rectXPct||0).toFixed(1) : '', isRect ? (m.rectYPct||0).toFixed(1) : '',
           isRect ? (m.rectWPct||0).toFixed(1) : '', isRect ? (m.rectHPct||0).toFixed(1) : '',
           m.rptType||'', m.rptMember||'', m.rptDefect||'', m.rptWidth||'', m.rptLength||'', m.rptCount||'', m.rptTag||'',
@@ -11922,8 +12270,7 @@
           (m.note||'').replace(/\r?\n/g,' '), m.uid||m.id||'',
           upDms, loDms, m.tiltDist||'', resDms,
           m.lvGroup||'', m.lvValue||'', m.lvSpan||'',
-          m.eqFloor||'', m.eqLoc||'', m.eqMember||'', m.eqTag||'',
-          m.rptFloor||'', m.rptLoc||''] });
+          m.eqFloor||'', m.eqLoc||'', m.eqMember||'', m.eqTag||''] });
       });
     });
     return { header, rows };
@@ -11932,8 +12279,10 @@
     return drawings.length>0 && drawings.some(d=>d.markers.length>0);
   }
   function exportCSV(){
-    warnPendingInkBeforeExport();
     if(!hasAnyMarkers()){ showToast('내보낼 결함 데이터가 없습니다.'); return; }
+    guardPendingInkBeforeExport(writeCSVFile);
+  }
+  function writeCSVFile(){
     const { header, rows } = buildDefectExportData();
     // 프리셋 전용 열(기울기_·그룹명·LV·장비_)은 값이 하나도 없으면 빼고 내보낸다. 외관조사만 하는
     // 보통의 작업에서도 이 열들이 20개 넘게 빈 칸으로 따라붙어, 엑셀에서 열자마자 가로로 한참
@@ -12050,48 +12399,49 @@
   // 8장 사용자 설명대로 "칸은 있지만 제목은 비워둔다"는 뜻(마킹유형 배지·단위·# 같은 보조 칸).
   function buildOegwanSheet(items){
     // 층수·위치는 2026-11-18 요청으로 부재 앞에 넣었다(결함 목록 카드와 같은 순서).
-    const header = ['NO','','층수','위치','부재','자재','결함','폭','','길이','','개수','','','사진번호'];
+    // 도면명은 2026-11-19 요청 — 번호가 도면마다 다시 시작하므로 모든 시트의 맨 앞에서 도면을 구분한다.
+    const header = ['도면명','NO','','층수','위치','부재','자재','결함','폭','','길이','','개수','','','사진번호'];
     const rows = items.map(({m,idx,d})=>{
       const type = getType(m.typeKey);
       return { typeKey: m.typeKey, cells: [
-        m.seq||idx+1, type.label, m.rptFloor||'', m.rptLoc||'', m.rptType||'', m.rptMember||'', m.rptDefect||'',
+        d.name, m.seq||idx+1, type.label, m.rptFloor||'', m.rptLoc||'', m.rptType||'', m.rptMember||'', m.rptDefect||'',
         m.rptWidth||'', 'mm', m.rptLength||'', 'mm', m.rptCount||'', '개', '#', m.rptTag||'',
       ]};
     });
-    return { name:'외관조사', header, rows, numericColIdx: new Set([0,7,9,11]) };
+    return { name:'외관조사', header, rows, numericColIdx: new Set([1,8,10,12]) };
   }
   function buildEquipSheet(items){
-    const header = ['NO','구분','층수','위치','부재','사진번호'];
+    const header = ['도면명','NO','구분','층수','위치','부재','사진번호'];
     const rows = items.map(({m,idx,d})=> ({ typeKey: m.typeKey, cells: [
-      m.seq||idx+1, formatMarkerLabel(m,idx,d), m.eqFloor||'', m.eqLoc||'', m.eqMember||'', m.eqTag||'',
+      d.name, m.seq||idx+1, formatMarkerLabel(m,idx,d), m.eqFloor||'', m.eqLoc||'', m.eqMember||'', m.eqTag||'',
     ]}));
-    return { name:'장비조사', header, rows, numericColIdx: new Set([0]) };
+    return { name:'장비조사', header, rows, numericColIdx: new Set([1]) };
   }
   // 측정방향(tilt_dir) 마커는 독자적인 각도 입력이 없는 자동 생성 짝 마커라 이 시트에서는 뺀다
   // (측정위치 행 하나가 그 짝의 데이터까지 전부 담고 있음).
   function buildTiltSheet(items){
-    const header = ['NO','구분','도','분','초','도','분','초','수평거리','도','분','초'];
+    const header = ['도면명','NO','구분','도','분','초','도','분','초','수평거리','도','분','초'];
     const rows = items.filter(x=>x.m.typeKey==='tilt_pos').map(({m,idx,d})=>{
       // tiltResultParts()는 수동으로 덮어쓴 수평각차 값이 있으면 그 값을 우선한다 — 표에 보이는
       // 값과 내보내기 결과가 어긋나지 않도록 계산식을 여기서 따로 반복하지 않고 그대로 재사용한다.
       const res = tiltResultParts(m);
       return { typeKey: m.typeKey, cells: [
-        formatMarkerLabel(m,idx,d), m.tiltBldg||'',
+        d.name, formatMarkerLabel(m,idx,d), m.tiltBldg||'',
         m.tiltUpD||'', m.tiltUpM||'', m.tiltUpS||'',
         m.tiltLoD||'', m.tiltLoM||'', m.tiltLoS||'',
         m.tiltDist||'',
         res.d, res.m, res.s,
       ]};
     });
-    return { name:'기울기', header, rows, numericColIdx: new Set([2,3,4,5,6,7,8,9,10,11]) };
+    return { name:'기울기', header, rows, numericColIdx: new Set([3,4,5,6,7,8,9,10,11,12]) };
   }
   // 부동침하는 사용자 확인대로 LV그룹·경간을 유지한다(9단계) — 자동계산에 필요한 값이라 표에서 뺄 수 없음.
   function buildLvSheet(items){
-    const header = ['NO','그룹명','측점','측정값(cm)','경간(mm)'];
+    const header = ['도면명','NO','그룹명','측점','측정값(cm)','경간(mm)'];
     const rows = items.map(({m,idx,d})=> ({ typeKey: m.typeKey, cells: [
-      m.seq||idx+1, m.lvGroup||'', formatMarkerLabel(m,idx,d), m.lvValue||'', m.lvSpan||'',
+      d.name, m.seq||idx+1, m.lvGroup||'', formatMarkerLabel(m,idx,d), m.lvValue||'', m.lvSpan||'',
     ]}));
-    return { name:'부동침하', header, rows, numericColIdx: new Set([0,3,4]) };
+    return { name:'부동침하', header, rows, numericColIdx: new Set([1,4,5]) };
   }
   // 빌트인 4종이 아닌 프리셋(사용자가 계열 편집으로 새로 만든 커스텀 프리셋 등)은 전용 서식이 없으므로
   // 예전 통합 표와 같은 일반 컬럼 구성으로 시트를 만든다.
@@ -12211,7 +12561,7 @@
     const sheetFiles = sheets.map((sheet, si)=>{
       const sheetName = sanitizeXlsxSheetName(sheet.name, usedNames);
       const colCount = sheet.header.length;
-      const colsXml = `<cols>${sheet.header.map((h,i)=>`<col min="${i+1}" max="${i+1}" width="${sheet.colWidth || Math.min(30, Math.max(8, (h||'').length*1.6+6))}" customWidth="1"/>`).join('')}</cols>`;
+      const colsXml = `<cols>${sheet.header.map((h,i)=>`<col min="${i+1}" max="${i+1}" width="${sheet.colWidth || (h==='도면명' ? 20 : Math.min(30, Math.max(8, (h||'').length*1.6+6)))}" customWidth="1"/>`).join('')}</cols>`;
       const headerRow = `<row r="1">${sheet.header.map((h,i)=>`<c r="${xlsxColLetter(i+1)}1" t="inlineStr" s="1"><is><t>${xmlEscape(h)}</t></is></c>`).join('')}</row>`;
       const dataRows = sheet.rows.map((row,ri)=>{
         const type = getType(row.typeKey);
@@ -12308,15 +12658,10 @@
     return sheets;
   }
   function exportXLSX(){
-    warnPendingInkBeforeExport();
     if(!hasAnyMarkers()){ showToast('내보낼 결함 데이터가 없습니다.'); return; }
-    const sheets = buildWorkbookSheets();
-    const blob = buildXLSXBlob(sheets);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filenameBase() + '_결함목록.xlsx';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 3000);
+    guardPendingInkBeforeExport(()=>{
+      deliverFile(buildXLSXBlob(buildWorkbookSheets()), filenameBase() + '_결함목록.xlsx');
+    });
   }
 
   // ---------- 사진 일괄 저장 ----------
@@ -12364,12 +12709,7 @@
       });
     });
     if(entries.length===0){ showToast('첨부된 사진이 없습니다.'); return; }
-    const blob = buildZipBlob(entries, 'application/zip');
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filenameBase() + '_사진.zip';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 3000);
+    deliverFile(buildZipBlob(entries, 'application/zip'), filenameBase() + '_사진.zip');
   }
 
   // CSV 파일의 인코딩을 자동 판별해 문자열로 디코딩한다. 엑셀에서 "CSV UTF-8"이 아니라 그냥
@@ -12713,10 +13053,13 @@
   // 같은 평면도가 동만 바뀌어 6~7장 반복되는 실무 패턴을 위해, 현재 도면(source)의 마킹을 통째로
   // 골라둔 다른 도면들에 복제한다. 사진은 제외, 번호(seq)는 대상 도면에서 renumberDrawingMarkers가
   // 다시 매긴다. Ctrl+Z 한 번으로 관련 도면 전체가 원상복구되도록 pushMultiUndo를 쓴다.
+  // 「마킹 제외 복사」(2026-11-19)는 같은 창을 쓰되 마킹은 건드리지 않고 그린 선·글자만 옮긴다.
   let duplicateSourceId = null;
+  let duplicateNoMarks = false;
   let duplicateSelectedIds = new Set();
   let duplicateLastClickedIdx = null;
   function otherDrawings(){ return drawings.filter(d=>d.id!==duplicateSourceId); }
+  function duplicateExistingCount(d){ return duplicateNoMarks ? (d.sketch||[]).length : d.markers.length; }
   function renderDuplicateList(){
     const wrap = document.getElementById('duplicateDrawingList');
     wrap.innerHTML = '';
@@ -12730,8 +13073,9 @@
       row.className = 'check-row';
       row.style.justifyContent = 'space-between';
       row.dataset.idx = i;
+      const have = duplicateExistingCount(d);
       row.innerHTML = `<span style="display:flex;align-items:center;gap:7px;"><input type="checkbox" data-id="${d.id}" ${duplicateSelectedIds.has(d.id)?'checked':''}/> ${escapeHTML(d.name)}</span>
-        <span style="color:var(--muted);font-size:11px;">${d.markers.length>0 ? d.markers.length+'건 있음' : '비어있음'}</span>`;
+        <span style="color:var(--muted);font-size:11px;">${have>0 ? have+(duplicateNoMarks?'개 있음':'건 있음') : '비어있음'}</span>`;
       const checkbox = row.querySelector('input');
       checkbox.addEventListener('click', e=>{
         // Shift+클릭: 마지막으로 클릭한 행부터 지금 행까지 범위를 한 번에 같은 상태로 맞춘다(데스크톱 전용
@@ -12757,15 +13101,24 @@
     const foot = document.getElementById('duplicateFootNote');
     const n = duplicateSelectedIds.size;
     if(n===0){ foot.textContent = '대상 도면을 선택하세요.'; return; }
-    const hasExisting = otherDrawings().some(d=> duplicateSelectedIds.has(d.id) && d.markers.length>0);
-    foot.textContent = `${n}개 도면 선택됨` + (hasExisting ? ' · 일부 도면에 이미 마킹이 있습니다 — 아래에서 방식을 고르세요.' : '');
+    const hasExisting = otherDrawings().some(d=> duplicateSelectedIds.has(d.id) && duplicateExistingCount(d)>0);
+    foot.textContent = `${n}개 도면 선택됨` + (hasExisting ? ` · 일부 도면에 이미 ${duplicateNoMarks?'그린 선':'마킹'}이 있습니다 — 아래에서 방식을 고르세요.` : '');
   }
-  function openDuplicateModal(){
+  function openDuplicateModal(noMarks){
     const d = getActiveDrawing();
     if(!d){ showToast('먼저 도면을 추가하고 선택해주세요.'); return; }
     const sketchN = (d.sketch||[]).length;
+    if(noMarks && sketchN===0){ showToast('현재 도면에 복제할 그린 선·글자가 없습니다.'); return; }
     // 마킹이 없어도 그린 선만 복제하고 싶을 수 있다(백지에 평면만 그려둔 도면).
     if(d.markers.length===0 && sketchN===0){ showToast('현재 도면에 복제할 마킹도, 그린 선도 없습니다.'); return; }
+    duplicateNoMarks = !!noMarks;
+    document.getElementById('duplicateTitle').textContent = noMarks ? '마킹 제외 복사' : '마킹 전체 복사';
+    document.getElementById('duplicateSubAll').style.display = noMarks ? 'none' : '';
+    document.getElementById('duplicateSubNoMark').style.display = noMarks ? '' : 'none';
+    document.getElementById('duplicateNoMarkName').textContent = d.name;
+    document.getElementById('duplicateNoMarkCount').textContent = sketchN;
+    document.getElementById('btnDuplicateAppend').title = noMarks ? '대상 도면에 그린 선은 그대로 두고 뒤에 이어붙입니다' : '대상 도면의 기존 마킹은 그대로 두고 뒤에 이어붙입니다';
+    document.getElementById('btnDuplicateOverwrite').title = noMarks ? '대상 도면에 그린 선을 전부 지우고 복제한 선으로 바꿉니다(마킹은 그대로)' : '대상 도면에 이미 있는 마킹을 전부 지우고 복제한 마킹으로 바꿉니다';
     duplicateSourceId = d.id;
     duplicateSelectedIds = new Set();
     duplicateLastClickedIdx = null;
@@ -12775,7 +13128,7 @@
     const sketchCb = document.getElementById('duplicateIncludeSketch');
     const sketchLabel = document.getElementById('duplicateSketchLabel');
     if(sketchRow && sketchCb && sketchLabel){
-      sketchRow.style.display = sketchN>0 ? '' : 'none';
+      sketchRow.style.display = (sketchN>0 && !noMarks) ? '' : 'none';
       // 그린 선이 있는 도면이면 기본으로 켜 둔다 — 화면에 보이는 스위치이므로 원치 않으면 바로 끌 수
       // 있고, 손으로 그린 평면을 빼고 마킹만 옮기는 경우가 오히려 드물다.
       sketchCb.checked = sketchN>0;
@@ -12793,8 +13146,8 @@
     const targets = otherDrawings().filter(d=> duplicateSelectedIds.has(d.id));
     if(targets.length===0){ showToast('대상 도면을 1개 이상 선택하세요.'); return; }
     const sketchCb = document.getElementById('duplicateIncludeSketch');
-    const includeSketch = !!(sketchCb && sketchCb.checked) && (source.sketch||[]).length>0;
-    const what = includeSketch ? '마킹과 그린 선' : '마킹';
+    const includeSketch = (duplicateNoMarks || !!(sketchCb && sketchCb.checked)) && (source.sketch||[]).length>0;
+    const what = duplicateNoMarks ? '그린 선·글자' : includeSketch ? '마킹과 그린 선' : '마킹';
     if(mode==='overwrite' && !confirm(`선택한 ${targets.length}개 도면의 기존 ${what}을 전부 지우고 "${source.name}"의 것으로 덮어쓸까요?\n이 작업은 도면마다 있던 기존 ${what}을 모두 지웁니다(실행취소로 되돌릴 수 있습니다).`)) return;
     pushMultiUndo(targets);
     targets.forEach(target=>{
@@ -12803,11 +13156,13 @@
       // linkedDirId/linkedFromId(기울기 짝 마커 연결)는 복제하지 않는다 — 원본 도면의 마커 id를
       // 그대로 들고 가면 대상 도면에는 존재하지 않는 id를 가리키게 되어 죽은 참조가 남기 때문.
       // 각도 입력을 다시 손대면 updateTiltMarker()가 새 짝을 만들어주므로 기능은 그대로 유지된다.
-      const cloned = source.markers.map(m=>{
-        const { photos, id, uid: _uid, seq, linkedDirId, linkedFromId, ...rest } = m;
-        return { ...rest, ...newMarkerIdPair() };
-      });
-      target.markers = (mode==='overwrite') ? cloned : target.markers.concat(cloned);
+      if(!duplicateNoMarks){
+        const cloned = source.markers.map(m=>{
+          const { photos, id, uid: _uid, seq, linkedDirId, linkedFromId, ...rest } = m;
+          return { ...rest, ...newMarkerIdPair() };
+        });
+        target.markers = (mode==='overwrite') ? cloned : target.markers.concat(cloned);
+      }
       if(includeSketch){
         // 그린 선도 좌표 기준(도면 대비 %)이 마커와 완전히 같으므로 그대로 옮기면 된다.
         // id만 새로 발급한다 — 원본과 겹치면 「선택」에서 두 도면의 획이 같은 것으로 취급된다.
@@ -12821,7 +13176,8 @@
     closeDuplicateModal();
     showToast(`"${source.name}"의 ${what}을 ${targets.length}개 도면에 복제했습니다(${mode==='overwrite'?'덮어쓰기':'뒤에 추가'}).`);
   }
-  document.getElementById('btnDuplicateOpen').addEventListener('click', openDuplicateModal);
+  document.getElementById('btnDuplicateOpen').addEventListener('click', ()=> openDuplicateModal(false));
+  document.getElementById('btnDuplicateNoMarkOpen').addEventListener('click', ()=> openDuplicateModal(true));
   document.getElementById('btnDuplicateClose').addEventListener('click', closeDuplicateModal);
   document.getElementById('btnDuplicateCancel').addEventListener('click', closeDuplicateModal);
   document.getElementById('btnDuplicateSelectAll').addEventListener('click', ()=>{
@@ -14072,15 +14428,19 @@
   document.getElementById('btnFloatSketchSettings').addEventListener('click', ()=> setFloatSketchSettings(!sketchSettingsOpen));
   document.getElementById('btnFloatColorPick').addEventListener('click', e=> openTabletSketchPop('color', e.currentTarget));
   document.getElementById('btnFloatWidthPick').addEventListener('click', e=> openTabletSketchPop('width', e.currentTarget));
+  document.getElementById('btnFloatTypePick').addEventListener('click', e=> openTabletSketchPop('types', e.currentTarget));
+  document.getElementById('btnFloatToolPick').addEventListener('click', e=> openFloatToolPop(e.currentTarget));
+  document.getElementById('btnFloatMore').addEventListener('click', e=> openFloatMorePop(e.currentTarget));
   document.getElementById('tabletSketchPop').addEventListener('click', e=>{
-    if(e.target.closest('[data-sketch-color],[data-sketch-width]')) closeTabletSketchPop();
+    if(e.target.closest('[data-sketch-color],[data-sketch-width],[data-float-type]')) closeTabletSketchPop();
   });
+  window.addEventListener('resize', ()=>{ closeTabletSketchPop(); fitFloatSketchBar(); syncQuickInputScrollbar(); });
   // 바깥(도면 포함)을 누르면 뜬 창을 닫는다
   document.addEventListener('pointerdown', e=>{
     const t = e.target;
     if(!t || !t.closest) return;
     if(sketchSettingsOpen && !t.closest('#canvasFloatBar, #btnFloatSketchSettings')) setFloatSketchSettings(false);
-    if(!t.closest('#tabletSketchPop, #btnFloatColorPick, #btnFloatWidthPick')) closeTabletSketchPop();
+    if(!t.closest('#tabletSketchPop, #btnFloatColorPick, #btnFloatWidthPick, #btnFloatTypePick, #btnFloatToolPick, #btnFloatMore')) closeTabletSketchPop();
   }, true);
   document.getElementById('btnSketchTextBorder').addEventListener('click', ()=> setSketchTextBorder(!sketchTextBorder));
   // 색 고르개는 끄는 동안 input이 계속 흘러나온다 — 그때마다 다시 그려도 부담이 크지 않고,
@@ -15602,6 +15962,7 @@
     });
   }
   document.getElementById('btnQuickInputSame').addEventListener('click', applyQuickInputSameAsLast);
+  document.getElementById('btnQuickInputCopyNext').addEventListener('click', copyQuickInputToNext);
   document.getElementById('btnQuickInputClose').addEventListener('click', ()=>{
     // 닫을 때 뭔가 하나라도 입력돼 있었다면 "직전 값"으로 남겨, 다음 마커에서 이어 쓸 수 있게 한다.
     const m = quickInputMarker();
@@ -16294,7 +16655,7 @@
       get quickInputMarkerId(){ return quickInputMarkerId; },
       get lastCarryInk(){ return lastCarryInk; },
     },
-    info: { openMarkerInfo, closeMarkerInfo, photoKey, attachStampShot, buildInkSheet, buildWorkbookSheets, buildXLSXBlob, photoZipBaseName, shortTypeLabel },
+    info: { openMarkerInfo, closeMarkerInfo, photoKey, attachStampShot, buildInkSheet, buildWorkbookSheets, buildXLSXBlob, photoZipBaseName, shortTypeLabel, allPresets, buildSheetForPreset, isMobileDevice },
     get frameLayout(){ return frameLayout; },
     set frameLayout(v){ frameLayout = sanitizeFrameLayout(v); },
     get docTitlePct(){ return docTitlePct; },

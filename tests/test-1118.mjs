@@ -79,7 +79,7 @@ eq(roles.slice(0, 5), ['pos', 'type', 'rptFloor', 'rptLoc', 'rptType'], '카드 
 const rowsOf = await ev(`(()=>{const c=document.querySelector('.marker-card'); const rs=[...c.children].map(e=>e.getBoundingClientRect()).filter(r=>r.height>0).sort((a,b)=>a.top-b.top); const rows=[]; rs.forEach(r=>{const row=rows.find(x=> r.top < x.bottom && r.bottom > x.top); if(row){row.top=Math.min(row.top,r.top); row.bottom=Math.max(row.bottom,r.bottom);} else rows.push({top:r.top,bottom:r.bottom});}); return rows.length;})()`);
 eq(rowsOf, 2, '카드가 두 줄이다 (태블릿)');
 const firstRow = await ev(`(()=>{const c=document.querySelector('.marker-card'); const kids=[...c.children]; const r0=kids[0].getBoundingClientRect(); return kids.filter(e=>{const r=e.getBoundingClientRect(); return r.top < r0.bottom && r.bottom > r0.top;}).map(e=>(e.querySelector('[data-role]')||e).dataset.role);})()`);
-eq(firstRow, ['pos', 'type', 'rptFloor', 'rptLoc', 'rptType', 'rptMember', 'rptDefect'], '  1줄 : 번호·유형·층수·위치·부재·자재·결함');
+eq(firstRow, ['pos', 'type', 'rptFloor', 'rptLoc', 'rptType', 'rptMember'], '  1줄 : 번호·유형·층수·위치·부재·자재 (결함은 11-19 부터 아래 줄)');
 const clipped = await ev(`(()=>{const c=document.querySelector('.marker-card'); const i=c.querySelector('[data-role="rptMember"]'); return i.scrollWidth<=i.clientWidth+1;})()`);
 ok(await drawerOpen(), '결함 목록 서랍이 열렸다');
 ok(clipped, '자재 「콘크리트」가 잘리지 않는다');
@@ -96,10 +96,10 @@ await ev(`(async()=>{ ${D}.markers[0].rptFloor=''; await __markerDbg.applyProjec
 eq(await ev(`[${D}.markers[0].rptFloor, ${D}.markers[0].rptLoc]`), ['지상3층', '거실'], '프로젝트로 저장했다 열어도 층수·위치가 남는다');
 // CSV 내보내기·불러오기
 const csv = await ev(`(()=>{const t=__markerDbg.buildDefectExportData(); return t ? {h:t.header, r:t.rows[0].cells} : null;})()`);
-ok(csv.h.slice(-2).join() === '층수,위치' && csv.r.slice(-2).join() === '지상3층,거실', 'CSV 맨 끝 두 열이 층수·위치', csv.h.slice(-3));
-eq(csv.r[2], '수직부재', 'CSV 위치유형 열도 새 이름');
+ok(csv.h.slice(1, 4).join() === '번호,층수,위치' && csv.r.slice(2, 4).join() === '지상3층,거실', 'CSV : 번호 오른쪽에 층수·위치 (11-19)', csv.h.slice(0, 5));
+eq(csv.r[4], '수직부재', 'CSV 위치유형 열도 새 이름');
 // CSV 를 다시 불러오면 층수·위치·유형이 그대로 (새 이름도 옛 이름도 받는다)
-const csvText = [csv.h, csv.r, csv.r.map((v, i) => i === 2 ? '바닥/천장(범위)' : v)].map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join(String.fromCharCode(10));
+const csvText = [csv.h, csv.r, csv.r.map((v, i) => i === 4 ? '바닥/천장(범위)' : v)].map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join(String.fromCharCode(10));
 await ev(`(()=>{ ${D}.markers=[]; __markerDbg.importCSVText(${JSON.stringify(csvText)}); return true; })()`); await sleep(500);
 eq(await ev(`${D}.markers.map(m=>[m.typeKey, m.rptFloor||'', m.rptLoc||''])`), [['wall', '지상3층', '거실'], ['flat_area', '지상3층', '거실']], 'CSV 불러오기 : 층수·위치, 새 이름(수직부재)·옛 이름(바닥/천장(범위)) 모두 맞는 유형으로');
 await ev(`(async()=>{ await __markerDbg.applyProjectData(${JSON.stringify(snap)}); return true; })()`); await sleep(400);

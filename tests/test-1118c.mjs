@@ -48,7 +48,9 @@ ok(await ev(`document.body.classList.contains('layout-tablet')`), '태블릿 모
 console.log('\n[1] 그리기 바');
 await ev(`__markerDbg.setSketchTool('line'); true`); await sleep(400);
 eq(await vis('#tabletFloatSketchGroup .sketch-color-btn'), 6, '하단 바에 색 6개');
-eq(await vis('#tabletFloatSketchGroup .float-sketch-width'), 4, '하단 바에 선 굵기 4개');
+// 2026-11-19 : 마킹 단추가 남으므로 1280 폭에서는 굵기가 단추 하나로 접힌다(누르면 4개)
+eq([await vis('#tabletFloatSketchGroup > .float-sketch-width'), await vis('#btnFloatWidthPick')], [0, 1], '하단 바에 선 굵기 단추');
+eq(await ev(`document.querySelectorAll('#tabletSketchPop .float-sketch-width').length`), 4, '  고르기 창에 선 굵기 4개');
 eq([await vis('#btnFloatSketchGrid'), await vis('#btnFloatSketchClear')], [1, 1], '하단 바에 모눈 · 모두 지움');
 eq(await vis('#tabletFloatSketchGroup [data-sketch-tool]'), 7, '하단 바에 도형·글자·선 지우개 7개');
 eq(await vis('#canvasFloatBar'), 0, '그 위의 세부 작업바는 나오지 않는다');
@@ -136,7 +138,8 @@ const W = await ev(`(()=>{const c=document.querySelector('.marker-card'); const 
     폭:w('[data-role="rptWidth"]'), 길이:w('[data-role="rptLength"]'), 개수:w('[data-role="rptCount"]'), 사진:w('[data-role="rptTag"]') };})()`);
 console.log('       칸 폭', JSON.stringify(W));
 ok(W.번호 <= 45, '번호 칸이 좁다(45px 이하)', W.번호);
-ok(W.개수 < W.폭 * 0.7 && W.사진 < W.폭 * 0.8, '개수·사진번호는 폭 칸보다 확실히 좁다', W);
+ok(W.개수 < W.폭 * 0.8 && W.사진 < W.폭 * 0.9, '개수·사진번호는 폭 칸보다 좁다', W);   // 11-19 : 폭 칸도 줄어 비율 조정
+ok(W.결함 > W.자재 * 1.5, '결함 칸이 가장 넓다(11-19)', W);
 ok(W.위치 > W.폭 && W.부재 > W.폭 && W.자재 > W.폭 && W.결함 > W.폭, '위치·부재·자재·결함은 폭·길이보다 넓다', W);
 ok(await ev(`(()=>{const i=document.querySelector('.marker-card [data-role="rptMember"]'); return i.scrollWidth<=i.clientWidth+1;})()`), '「콘크리트」가 잘리지 않는다');
 const cb = await ev(`(()=>{const w=document.querySelector('.marker-card .cwrap'); const i=w.querySelector('input'), b=w.querySelector('.cbtn'); const ri=i.getBoundingClientRect(), rb=b.getBoundingClientRect(), cs=getComputedStyle(b), ci=getComputedStyle(i);
