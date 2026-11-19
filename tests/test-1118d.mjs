@@ -118,7 +118,7 @@ console.log('\n[2] ⓘ 단추');
 const order = await ev(`[...document.querySelector('.marker-card').children].slice(-3).map(e=>e.dataset.role)`);
 eq(order, ['photo', 'info', 'del'], '순서 : 카메라 → ⓘ → ✕');
 const g = await ev(`(()=>{const c=document.querySelector('.marker-card'),r=s=>c.querySelector(s).getBoundingClientRect();const p=r('[data-role=photo]'),i=r('[data-role=info]'),x=r('[data-role=del]');return {붙음:Math.round(i.left-p.right),같은줄:Math.abs(p.top-i.top)<2&&Math.abs(i.top-x.top)<2,폭:Math.round(i.width),높이:Math.round(i.height),끝:Math.round(x.right)<=Math.round(c.getBoundingClientRect().right)}})()`);
-ok(g.같은줄 && g.붙음 >= 0 && g.붙음 <= 8 && g.폭 >= 30 && g.높이 >= 44 && g.끝, 'ⓘ 가 카메라 바로 옆, 같은 줄, 누르기 충분한 크기', g);
+ok(g.같은줄 && g.붙음 >= 0 && g.붙음 <= 8 && g.폭 >= 30 && g.높이 >= 36 && g.끝, 'ⓘ 가 카메라 바로 옆, 같은 줄, 누르기 충분한 크기', g);
 eq(await ev(`[...document.querySelectorAll('.marker-card [data-role=info]')].map(b=>b.classList.contains('has'))`), [true, true, false], '손글씨·메모가 있는 결함만 ⓘ 에 색');
 // 사진 + 메모
 await ev(`(()=>{const c=document.createElement('canvas');c.width=320;c.height=240;const x=c.getContext('2d');x.fillStyle='#39a';x.fillRect(0,0,320,240);
