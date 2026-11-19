@@ -3,7 +3,7 @@
 // 캐시 전략은 "앱 셸(정적 파일)만 캐시하고 나머지는 그대로 통과"로 단순하게 유지한다.
 // 앱 파일을 바꿀 때마다 이 버전 문자열만 올리면 된다 — 캐시 이름이 바뀌므로 activate 단계에서
 // 이전 버전 캐시가 자동으로 지워지고, 브라우저가 새 서비스워커를 새 파일로 다시 설치·활성화한다.
-const CACHE_VERSION = 'sc16';
+const CACHE_VERSION = 'sc18';
 const CACHE_NAME = 'defect-marker-stampcam-cache-' + CACHE_VERSION;
 const APP_SHELL = [
   './',
@@ -23,6 +23,7 @@ const APP_SHELL = [
   './ink/digits-model.js',
   // 부재 → 자재 → 결함 연결 목록
   './taxonomy/defect-taxonomy.js',
+  './taxonomy/location-taxonomy.js',
 ];
 
 self.addEventListener('install', event => {

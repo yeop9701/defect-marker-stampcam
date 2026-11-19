@@ -66,6 +66,8 @@ await sleep(1800);
 await ev(`Ink.saveSettings({on:false}); true`);
 const r0 = await cdp.send('Runtime.evaluate', { expression: `document.querySelector('#addDrawingInput')` });
 await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r0.result.objectId });
+/* 이 검사는 층수·위치를 손글씨 칸으로 쓰던 예전 배치를 본다 — 층수·위치 목록(11-19)은 끄고 본다. 목록이 있을 때는 tests/test-1119e.mjs */
+await ev(`window.LocationTaxonomy = null; true`);
 await sleep(1400);
 const cv = await ev(`(()=>{const r=document.getElementById('mainCanvas').getBoundingClientRect();return {x:r.left,y:r.top,w:r.width,h:r.height};})()`);
 

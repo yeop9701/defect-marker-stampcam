@@ -130,7 +130,7 @@ eq(inRow, '부재', '④ 부재 ✎ → 필기 상자가 「부재」 줄 안에
 const rowH1 = await ev(`Math.round(document.querySelector('.ink-box[data-k="rptType"]').closest('.qis-tax-row').getBoundingClientRect().height)`);
 ok(rowH1 > rowH0 + 80, '  → 그 줄이 아래로 넓어진다', { 전: rowH0, 후: rowH1 });
 const order = await ev(`[...document.querySelectorAll('#quickInputFields .qis-tax-row')].map(r=>r.querySelector('.qis-tax-label').textContent)`);
-eq(order, ['부재', '자재', '결함'], '  → 줄 순서는 그대로 (부재 다음에 자재·결함)');
+eq(order, ['층수', '위치', '부재', '자재', '결함'], '  → 줄 순서는 그대로 (11-19 부터 층수·위치가 앞에)');
 ok(await ev(`(()=>{const b=document.querySelector('.ink-box[data-k="rptType"]'); const nxt=document.querySelector('#quickInputFields .qis-tax'); return nxt.contains(b);})()`), '  → 시트 아래쪽에 따로 생기지 않는다');
 const padR = await ev(`(()=>{const r=document.querySelector('.ink-box[data-k="rptType"] .ink-pad').getBoundingClientRect(); return {x:r.left,y:r.top,w:r.width,h:r.height};})()`);
 ok(padR.w > 250 && padR.h >= 100, '  → 쓸 자리가 넉넉하다', padR);

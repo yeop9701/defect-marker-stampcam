@@ -36,9 +36,9 @@ for (const [w, h, mobile] of [[1280, 800, false], [800, 1280, false], [390, 844,
   t.forEach((x, i) => {
     const name = i ? '결함목록' : '도면유형';
     ok(x.글 === name && x.방향 === 'vertical-rl' && x.세움 === 'upright', `${name} : 한 글자씩 세로`, x);
-    ok(x.글자높이 >= 44 && x.글자폭 <= 20, '  글자가 한 줄로 세로로 놓인다', x);
+    ok(x.글자높이 >= 66 && x.글자폭 <= 30, '  글자가 한 줄로 세로로 놓인다', x);
     ok(x.중심차 <= 1.5, '  도면 칸의 세로 가운데', x);
-    ok(x.높이 >= 64 && x.폭 >= 28 && (i ? x.오 : x.왼) <= 0.5, '  가장자리에 붙고 누르기 충분한 크기', x);
+    ok(x.높이 >= 120 && x.폭 >= 44 && (i ? x.오 : x.왼) <= 0.5, '  가장자리에 붙고 누르기 충분한 크기', x);
   });
   await shot(`1119d-tabs-${w}.png`);
   await ev(`document.getElementById('btnFloatCanvasMax').click(); true`); await sleep(350);
@@ -57,6 +57,24 @@ for (const [w, h, mobile] of [[1280, 800, false], [800, 1280, false], [390, 844,
   ok(await ev(`(()=>{document.getElementById('btnDrawerRight').click();return true})()`) && await (async () => { await sleep(300); const o = await ev(`(()=>{const v=id=>{const e=document.getElementById(id);return getComputedStyle(e).display!=='none'?e.getBoundingClientRect():null};const a=v('btnDrawerLeft'),b=v('btnDrawerRight');return !a||!b||a.right<=b.left||b.right<=a.left||a.bottom<=b.top||b.bottom<=a.top})()`); await ev(`document.getElementById('btnDrawerRight').click(); true`); await sleep(300); return o; })(), '서랍을 열어도 두 탭이 겹치지 않는다');
   await shot(`1119d-cards-${w}.png`);
   await click('btnDrawerRight');
+}
+console.log('\n[결함 목록 바탕 · 복사 단추]');
+for (const theme of ['light', 'dark']) {
+  await ev(`document.documentElement.setAttribute('data-theme','${theme}'); true`); await sleep(150);
+  await click('btnDrawerRight');
+  const bg = await ev(`(()=>{const cs=[...document.querySelectorAll('.marker-card')],g=e=>getComputedStyle(e).backgroundColor;return {a:g(cs[2]),b:g(cs[3]),입력:g(cs[2].querySelector('[data-role=rptLoc]')),목록:g(document.querySelector('.sidebar.right'))}})()`);
+  ok(bg.a !== bg.b && bg.a !== bg.입력 && bg.b !== bg.입력 && bg.a !== bg.목록, `${theme} : 카드 바탕이 입력칸·목록 바탕과 다르고 한 줄 건너 바뀐다`, bg);
+  await shot(`1119d-zebra-${theme}.png`);
+  await click('btnDrawerRight');
+}
+for (const w of [1280, 800, 390]) {
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: w === 390 ? 844 : 800, deviceScaleFactor: 1, mobile: w === 390 });
+  await sleep(300);
+  await click('btnDrawerLeft');
+  const fit = await ev(`['btnDuplicateOpen','btnDuplicateNoMarkOpen'].map(id=>{const b=document.getElementById(id),r=b.getBoundingClientRect(),g=document.createRange();g.selectNodeContents(b);const t=g.getBoundingClientRect();return {id,안:t.left>=r.left-0.5&&t.right<=r.right+0.5&&t.top>=r.top-0.5&&t.bottom<=r.bottom+0.5,넘침:b.scrollWidth-b.clientWidth}})`);
+  ok(fit.every(f => f.안 && f.넘침 <= 0), `${w}px : 복사 단추 글자가 테두리 안`, fit);
+  await shot(`1119d-dup-${w}.png`);
+  await click('btnDrawerLeft');
 }
 console.log(`\n${passes} 통과 / ${fails} 실패`);
 finish(cdp, fails ? 1 : 0);

@@ -43,6 +43,8 @@ async function boot(inkOn) {
   await cdp.send('Page.navigate', { url: APP }); await sleep(1500);
   const r0 = await cdp.send('Runtime.evaluate', { expression: `document.querySelector('#addDrawingInput')` });
   await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r0.result.objectId });
+  /* 이 검사는 층수·위치를 손글씨 칸으로 쓰던 예전 배치를 본다 — 층수·위치 목록(11-19)은 끄고 본다. 목록이 있을 때는 tests/test-1119e.mjs */
+  await ev(`window.LocationTaxonomy = null; true`);
   await sleep(1200);
 }
 const tapXY = async (x, y) => {
@@ -195,6 +197,8 @@ await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1900, height: 1000
 await cdp.send('Page.navigate', { url: APP }); await sleep(1500);
 const r1 = await cdp.send('Runtime.evaluate', { expression: `document.querySelector('#addDrawingInput')` });
 await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r1.result.objectId }); await sleep(1200);
+// (위와 같은 까닭)
+await ev(`window.LocationTaxonomy = null; true`);
 await ev(`(()=>{const d=${D}; d.markers=[{id:'a',uid:'a1',typeKey:'wall',xPct:20,yPct:30,angle:0}]; __markerDbg.renderCanvas(); __markerDbg.renderTable(); return true})()`); await sleep(200);
 const dk = await ev(`(()=>{const w=document.querySelector('.marker-list-wrap'),h=document.querySelector('.marker-list-head'),c=document.querySelector('.marker-card');return {narrow:w.classList.contains('narrow'),head:h.children.length,card:c.children.length,tracks:getComputedStyle(document.getElementById('markerTable')).gridTemplateColumns.split(' ').length,row:new Set(['photo','info','del'].map(k=>Math.round(c.querySelector('[data-role='+k+']').getBoundingClientRect().top))).size}})()`);
 ok(dk.narrow || (dk.head === dk.card && dk.card === dk.tracks && dk.row === 1), '머리글·카드·표 칸 수가 같다', dk);

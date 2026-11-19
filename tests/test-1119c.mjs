@@ -36,6 +36,8 @@ async function boot(w = 1280, h = 800) {
   await cdp.send('Page.navigate', { url: APP }); await sleep(1400);
   const r = await cdp.send('Runtime.evaluate', { expression: `document.querySelector('#addDrawingInput')` });
   await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r.result.objectId }); await sleep(1100);
+  /* 이 검사는 층수·위치를 손글씨 칸으로 쓰던 예전 배치를 본다 — 층수·위치 목록(11-19)은 끄고 본다. 목록이 있을 때는 tests/test-1119e.mjs */
+  await ev(`window.LocationTaxonomy = null; true`);
 }
 const setMarkers = (list) => ev(`(()=>{const d=${D},k=${I}.allPresets()[0].series[0].key;d.markers=${JSON.stringify(list)}.map((x,i)=>Object.assign({id:'t'+i,uid:'u'+i,typeKey:k,xPct:15+i*12,yPct:30,angle:0,seq:i+1},x));__markerDbg.renderTable();__markerDbg.renderCanvas();return d.markers.length})()`);
 const full = { rptType: '벽체', rptMember: '콘크리트', rptDefect: '균열' };

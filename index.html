@@ -24,6 +24,8 @@
     --surface-1:#ffffff;      /* 패널·카드 — 예전 #fcfcfb보다 대비를 올려 경계가 또렷하다 */
     --surface-2:#e7ebf0;      /* 버튼그룹·유형 팔레트처럼 옅게 들어간 배경 */
     --surface-3:#f5f7f9;      /* 결함 목록 카드 */
+    --card-bg:#e3eaf2;        /* 결함 목록 카드 바탕 — 흰 입력칸과 구분되게 옅은 청회색(2026-11-19) */
+    --card-bg-alt:#d8e1eb;    /*   한 줄 건너 조금 짙게 */
     --surface-hover:#dfe5eb;
     --text-primary:#0f151c;
     --text-secondary:#3a4653; /* 안내문·라벨 — 본문과 충분히 구분되면서 대비는 유지 */
@@ -56,6 +58,8 @@
       --surface-1:#1c2229;
       --surface-2:#252c34;
       --surface-3:#212831;
+      --card-bg:#27313c;
+      --card-bg-alt:#2d3946;
       --surface-hover:#2d353e;
       --text-primary:#eef2f6;
       --text-secondary:#bcc7d2;
@@ -85,6 +89,8 @@
     --surface-1:#1c2229;
     --surface-2:#252c34;
     --surface-3:#212831;
+    --card-bg:#27313c;
+    --card-bg-alt:#2d3946;
     --surface-hover:#2d353e;
     --text-primary:#eef2f6;
     --text-secondary:#bcc7d2;
@@ -244,11 +250,13 @@
      겹쳐, 1024×768에서는 오른쪽 탭이 "아이콘 크기"의 +버튼과 값까지 가렸다. 변수가 아직 없을 때를
      대비해 fallback(120px)을 둔다. */
   /* 2026-11-19 : 글자를 한 글자씩 세로로, 자리는 도면 칸의 세로 가운데로(--edge-tab-top = 가운데 높이) */
+  /* 같은 날 다시 1.5배로(폭 30→45px, 글자 13.5→20px) */
   .tablet-edge-tab{display:none;position:absolute;top:var(--edge-tab-top,50%);transform:translateY(-50%);z-index:60;
-    align-items:center;justify-content:center;width:30px;padding:10px 0;min-height:64px;
-    writing-mode:vertical-rl;text-orientation:upright;letter-spacing:1px;
-    background:var(--accent);color:#fff;border:none;font-size:11.5px;font-weight:700;
+    align-items:center;justify-content:center;width:45px;padding:15px 0;min-height:96px;
+    writing-mode:vertical-rl;text-orientation:upright;letter-spacing:2px;
+    background:var(--accent);color:#fff;border:none;font-size:20px;font-weight:700;
     box-shadow:0 2px 10px rgba(0,0,0,.25);line-height:1;}
+  body.layout-tablet .tablet-edge-tab{font-size:20px;}
   body.layout-tablet .tablet-edge-tab{display:inline-flex;}
   .tablet-edge-tab.left{left:0;border-radius:0 10px 10px 0;}
   .tablet-edge-tab.right{right:0;border-radius:10px 0 0 10px;}
@@ -458,6 +466,9 @@
   .qis-tax-chips button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
   .qis-tax-chips button.extra{border-style:dashed;}
   .qis-tax-chips button.clear{color:var(--muted);border-style:dashed;}
+  .qis-tax-chips button.back{color:var(--text-secondary);font-weight:700;border-style:dashed;}
+  .qis-tax-chips button.mezz{border-color:var(--accent);color:var(--accent);}
+  .qis-tax-chips button.mezz.on{color:#fff;}
   .qis-tax-value{flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .qis-tax-value.empty{font-weight:400;color:var(--muted);}
   .qis-tax-row .qis-tax-side{flex:0 0 auto;display:flex;gap:4px;}
@@ -1075,9 +1086,15 @@
   /* 카드 테두리를 border로 그리면 그만큼 트랙이 밀린다 — box-shadow는 레이아웃에 영향이 없다.
      좌우 padding도 금지(트랙 기준이 어긋남). 세로 여백만 padding-block으로 준다. */
   .marker-card{
-    padding-block:5px;border-radius:8px;background:var(--surface-3);
+    padding-block:5px;border-radius:8px;background:var(--card-bg);
     box-shadow:0 0 0 1px var(--gridline);
   }
+  .marker-card:nth-child(odd){background:var(--card-bg-alt);}
+  /* 「마킹 전체 복사」「마킹 제외 복사」 : 좁은 서랍에서 글자가 버튼 밖으로 나가지 않게 줄을 바꿔 담는다 */
+  .dup-btn{flex:1 1 0;min-width:0;padding:6px 6px;justify-content:center;gap:5px;
+    white-space:normal;word-break:keep-all;text-align:center;line-height:1.2;font-size:12.5px;}
+  body.layout-tablet .dup-btn{font-size:12.5px;}
+  .dup-btn .icon{flex:0 0 auto;}   /* 첫 자식은 머리줄이라 결함은 2·4·6… 번째가 옅고 3·5·7… 이 짙다 */
   .marker-card.selected{background:var(--accent-soft);box-shadow:0 0 0 1px rgba(42,120,214,.45);}
   .marker-card:hover{background:var(--surface-hover);}
   .mc-cell{min-width:0;font-size:12px;text-align:center;}
@@ -1593,8 +1610,8 @@
              (도구줄은 지금 보고 있는 도면 하나를 다루는 자리다. 단축키 g는 그대로 동작한다.) -->
         <button id="btnGridView" class="tool needs-drawing" style="width:100%;margin-top:6px;" title="모든 도면을 축소판으로 한 번에 훑어봅니다 (단축키 g)"><svg class="icon"><use href="#i-grid"/></svg> 전체 보기 (G)</button>
         <div style="display:flex;gap:6px;margin-top:6px;">
-          <button type="button" id="btnDuplicateOpen" style="flex:1 1 0;min-width:0;padding-inline:6px;" title="현재 도면의 마킹을 다른 도면들에 그대로 복제합니다(같은 평면도가 동만 바뀌어 반복될 때 유용)"><svg class="icon"><use href="#i-archive"/></svg> 마킹 전체 복사</button>
-          <button type="button" id="btnDuplicateNoMarkOpen" style="flex:1 1 0;min-width:0;padding-inline:6px;" title="마킹은 빼고, 현재 도면에 직접 그린 선·글자만 다른 도면들에 복제합니다"><svg class="icon"><use href="#i-pencil"/></svg> 마킹 제외 복사</button>
+          <button type="button" id="btnDuplicateOpen" class="dup-btn" title="현재 도면의 마킹을 다른 도면들에 그대로 복제합니다(같은 평면도가 동만 바뀌어 반복될 때 유용)"><svg class="icon"><use href="#i-archive"/></svg> 마킹 전체 복사</button>
+          <button type="button" id="btnDuplicateNoMarkOpen" class="dup-btn" title="마킹은 빼고, 현재 도면에 직접 그린 선·글자만 다른 도면들에 복제합니다"><svg class="icon"><use href="#i-pencil"/></svg> 마킹 제외 복사</button>
         </div>
       </div>
 
@@ -2687,6 +2704,8 @@
 <script src="stampcam/stampcam.js"></script>
 <!-- 부재 → 자재 → 결함 연결 목록 (taxonomy/부재_자재_결함.xlsx 에서 만든 것 — taxonomy/build_taxonomy.py) -->
 <script src="taxonomy/defect-taxonomy.js"></script>
+<!-- 층수 → (중층) · 분류 → 위치 선택 목록 (taxonomy/위치_층수_선택목록.xlsx 에서 만든 것 — taxonomy/build_location.py) -->
+<script src="taxonomy/location-taxonomy.js"></script>
 <!-- 손글씨 입력 (퀵입력 시트의 필기 상자 · 숫자 인식 모델 · 구글/Claude 변환). ink/ink.js 머리말 참고 -->
 <script src="ink/digits-model.js"></script>
 <script src="ink/ink.js"></script>
@@ -8657,13 +8676,14 @@
     if(titleEl) titleEl.textContent = inkMode
       ? `#${m.seq||''} ${getType(m.typeKey).label} — 손글씨로 칸에 바로 쓰세요`
       : '방금 추가한 결함 — 빠른 입력';
-    if(qisTaxFor !== m.id){ qisTaxFor = m.id; qisTaxOpen = null; qisTaxWrite = {}; }
+    if(qisTaxFor !== m.id){ qisTaxFor = m.id; qisTaxOpen = null; qisTaxWrite = {}; qisFloorGroup = null; qisFloorMezz = null; qisLocCat = null; }
     const hasTax = spec.some(f=> f.kind==='select');
+    const pickFields = quickPickFields(m);
     if(spec.length === 0){
       box.innerHTML = '<div class="qis-none">이 마커는 측정위치에 따라 자동으로 그려져서 따로 채울 값이 없습니다.</div>';
     } else if(inkMode){
       // 부재·자재·결함은 단추로 고른다. 손글씨 상자는 ✎ 를 누른 칸과, 이어받은 손글씨가 아직 글자가 아닌 칸에만 연다.
-      renderInkBoxes(m, spec, box, hasTax ? (k=> TAX_FIELDS.indexOf(k) < 0 || quickTaxWantsInk(m, k)) : null);
+      renderInkBoxes(m, spec, box, hasTax ? (k=> pickFields.indexOf(k) < 0 || quickTaxWantsInk(m, k)) : null);
       if(hasTax){
         const panel = buildQuickTaxPanel(m, true);
         // 층수·위치 상자가 맨 앞, 그다음 부재·자재·결함, 그다음 실측값 (결함 목록 카드와 같은 순서)
@@ -8674,7 +8694,8 @@
     } else if(hasTax){
       // 부재·자재·결함 단추 + 실측값(폭·길이·개수·사진#)은 「더 입력」 안에
       // 층수·위치는 맨 앞에 펼쳐 두고(접지 않는다), 실측값만 「더 입력」 안에
-      const lead = spec.filter(f=> f.k === 'rptFloor' || f.k === 'rptLoc');
+      // 층수·위치 목록(taxonomy/location-taxonomy.js)이 있으면 그 둘도 단추 줄이 된다
+      const lead = spec.filter(f=> (f.k === 'rptFloor' || f.k === 'rptLoc') && pickFields.indexOf(f.k) < 0);
       const rest = spec.filter(f=> f.kind !== 'select' && lead.indexOf(f) < 0);
       box.innerHTML = lead.map(fld=> quickInputFieldHTML(fld, m)).join('');
       box.appendChild(buildQuickTaxPanel(m, false));
@@ -8741,8 +8762,73 @@
   var qisTaxFor = null;      // 아래 상태가 어느 결함 것인지
   var qisTaxOpen = null;     // 손으로 펼친 줄(없으면 첫 빈 칸)
   var qisTaxWrite = {};      // ✎ 로 직접 쓰기를 연 칸
+  var qisFloorGroup = null;  // 층수 줄에서 고른 1단계(null = 값에서 짐작, '' = 1단계 목록을 보여 줌)
+  var qisFloorMezz = null;   // 중층 단추(null = 값에서 짐작)
+  var qisLocCat = null;      // 위치 줄에서 고른 분류(null = 값에서 짐작, '' = 분류 목록을 보여 줌)
   const QUICK_TAX_ROWS = [['rptType','부재'], ['rptMember','자재'], ['rptDefect','결함']];
+  const QUICK_LOC_ROWS = [['rptFloor','층수'], ['rptLoc','위치']];
+  // 단추로 고르는 칸들 — 층수·위치 목록이 있으면 그 둘이 앞에 붙는다
+  function quickPickFields(m){
+    const keys = quickInputKeys(m);
+    const loc = locTax() ? ['rptFloor','rptLoc'].filter(k=> keys.indexOf(k) >= 0) : [];
+    return loc.concat(TAX_FIELDS);
+  }
+  // ---------- 층수 → (중층) · 분류 → 위치 (taxonomy/위치_층수_선택목록.xlsx) ----------
+  // 층수 : 1단계(지하1-9층·1-9층 … 지붕층·옥탑층·외부)를 누르면 2단계(층)가 나오고, 「중층」은 고를 때만.
+  //        값은 「지상3층」「지하3층」「지상중3층」「지하중3층」(외관조사 앱이 중층을 알아보는 꼴), 2단계가 없는 것은 1단계 그대로.
+  // 위치 : 분류를 누르면 그 분류의 위치가 나오고, 값은 위치만. 층수가 「외부」면 외부 분류를 바로 연다.
+  function locTax(){ return window.LocationTaxonomy || null; }
+  function parseFloorValue(v){
+    const m = /^(지하|지상)?(중)?(\d+)층$/.exec(String(v||'').replace(/\s+/g, ''));
+    return m ? { under: m[1]==='지하', mezz: !!m[2], n: Number(m[3]) } : null;
+  }
+  function makeFloorValue(g, n, mezz){ return (g.under ? '지하' : '지상') + (mezz ? '중' : '') + n + '층'; }
+  function floorGroupOf(v){
+    const T = locTax(); if(!T) return null;
+    const t = String(v||'').trim();
+    const plain = T.floors.find(g=> !g.floors.length && g.group === t);
+    if(plain) return plain;
+    const p = parseFloorValue(t);
+    return p ? (T.floors.find(g=> g.floors.length && g.under === p.under && g.floors.indexOf(p.n) >= 0) || null) : null;
+  }
+  function locCatOf(v, floor){
+    const T = locTax(); if(!T) return null;
+    const hits = T.locations.filter(c=> c.items.indexOf(String(v||'').trim()) >= 0);
+    return hits.find(c=> c.outside === (String(floor||'').trim() === '외부')) || hits[0] || null;
+  }
+  function floorChipsHTML(m){
+    const T = locTax(), val = String(m.rptFloor||'').trim();
+    const g = qisFloorGroup === '' ? null : (qisFloorGroup ? T.floors.find(x=> x.group === qisFloorGroup) : floorGroupOf(val));
+    if(!g || !g.floors.length){
+      return T.floors.map(x=> `<button type="button" data-floor-group="${escapeAttr(x.group)}" class="${(x === g || x.group === val) ? 'on' : ''}">${escapeHTML(x.group)}</button>`).join('');
+    }
+    const p = parseFloorValue(val);
+    const mine = !!(p && p.under === g.under && g.floors.indexOf(p.n) >= 0);
+    const mezz = qisFloorMezz !== null ? qisFloorMezz : !!(mine && p.mezz);
+    return `<button type="button" class="back" data-floor-back="1">◀ ${escapeHTML(g.group)}</button>`
+      + g.floors.map(n=> `<button type="button" data-floor-n="${n}" class="${mine && p.n === n ? 'on' : ''}">${escapeHTML(makeFloorValue(g, n, false))}</button>`).join('')
+      + (g.mezz ? `<button type="button" data-floor-mezz="1" class="mezz${mezz ? ' on' : ''}" title="중층 — 고르면 「${g.under ? '지하' : '지상'}중N층」">중층</button>` : '');
+  }
+  function locChipsHTML(m){
+    const T = locTax(), val = String(m.rptLoc||'').trim(), floor = String(m.rptFloor||'').trim();
+    let cat = null;
+    if(qisLocCat === null) cat = locCatOf(val, floor) || (floor === '외부' ? T.locations.find(c=> c.outside) : null);
+    else if(qisLocCat) cat = T.locations.find(c=> c.name === qisLocCat) || null;
+    if(!cat) return T.locations.map(c=> `<button type="button" data-loc-cat="${escapeAttr(c.name)}">${escapeHTML(c.name)}</button>`).join('');
+    return `<button type="button" class="back" data-loc-back="1">◀ ${escapeHTML(cat.name)}</button>`
+      + cat.items.map(v=> `<button type="button" data-tax-pick="rptLoc" data-v="${escapeAttr(v)}" class="${v === val ? 'on' : ''}">${escapeHTML(v)}</button>`).join('');
+  }
+  function floorSortValue(s){
+    const t = String(s||'').trim();
+    const p = parseFloorValue(t);
+    if(p) return (p.under ? -1 : 1) * (p.n + (p.mezz ? 0.5 : 0));
+    const rest = { '지붕층':9000, '옥탑층':9001, '옥탑지붕층':9002, '외부':9500 };
+    return rest[t] != null ? rest[t] : 1e6;
+  }
   function quickTaxDefaultOpen(m){
+    const keys = quickPickFields(m);
+    if(keys.indexOf('rptFloor') >= 0 && !String(m.rptFloor||'').trim()) return 'rptFloor';
+    if(keys.indexOf('rptLoc') >= 0 && !String(m.rptLoc||'').trim()) return 'rptLoc';
     if(!String(m.rptType||'').trim()) return 'rptType';
     if(!String(m.rptMember||'').trim()) return 'rptMember';
     return 'rptDefect';
@@ -8758,8 +8844,9 @@
     wrap.className = 'qis-tax';
     const open = qisTaxOpen || quickTaxDefaultOpen(m);
     const ctx = { rptType: m.rptType, rptMember: m.rptMember };
+    const pickFields = quickPickFields(m);
     let html = '';
-    QUICK_TAX_ROWS.forEach(([k, label])=>{
+    QUICK_LOC_ROWS.filter(([k])=> pickFields.indexOf(k) >= 0).concat(QUICK_TAX_ROWS).forEach(([k, label])=>{
       const val = String(m[k]||'').trim();
       const writing = !!qisTaxWrite[k];
       const inkHere = inkMode && quickTaxWantsInk(m, k);
@@ -8781,6 +8868,12 @@
           + `<span class="qis-tax-label">${label}</span><span class="qis-tax-value${val ? '' : ' empty'}">${escapeHTML(shown)}</span>${side}${slot}</div>`;
         return;
       }
+      if(k === 'rptFloor' || k === 'rptLoc'){
+        const chips = (k === 'rptFloor' ? floorChipsHTML(m) : locChipsHTML(m))
+          + (val ? `<button type="button" class="clear" data-tax-clear="${k}">지우기</button>` : '');
+        html += `<div class="qis-tax-row open${inkHere ? ' has-ink-slot' : ''}"><span class="qis-tax-label">${label}</span><div class="qis-tax-chips">${chips}</div>${side}${slot}</div>`;
+        return;
+      }
       const picked = k === 'rptDefect' ? splitDefects(val) : (val ? [val] : []);
       const opts = comboOptsFor(k, ctx);
       // 지금 값이 목록에 없으면(다른 부재의 자재, 직접 친 말) 앞에 켜진 단추로 보여 준다
@@ -8789,7 +8882,8 @@
         + (val ? `<button type="button" class="clear" data-tax-clear="${k}">지우기</button>` : '');
       html += `<div class="qis-tax-row open${inkHere ? ' has-ink-slot' : ''}"><span class="qis-tax-label">${label}</span><div class="qis-tax-chips">${chips}</div>${side}${slot}</div>`;
     });
-    const sum = [m.rptType, m.rptMember, m.rptDefect].map(v=> String(v||'').trim()).filter(Boolean).join(' ');
+    const sum = (pickFields.indexOf('rptFloor') >= 0 ? [m.rptFloor, m.rptLoc] : []).concat([m.rptType, m.rptMember, m.rptDefect])
+      .map(v=> String(v||'').trim()).filter(Boolean).join(' ');
     if(sum) html += `<div class="qis-tax-result">→ <b>${escapeHTML(sum)}</b></div>`;
     wrap.innerHTML = html;
     return wrap;
@@ -9044,7 +9138,8 @@
   // 없어진 칸)는 화면에서 뺀다.
   function placeTaxInkBoxes(panel){
     if(!inkBoxes || !panel) return;
-    TAX_FIELDS.forEach(k=>{
+    const m = quickInputMarker();
+    (m ? quickPickFields(m) : TAX_FIELDS).forEach(k=>{   // 층수·위치 목록이 없으면 그 둘의 상자는 제자리
       const b = inkBoxes[k]; if(!b) return;
       const slot = panel.querySelector(`[data-ink-slot="${k}"]`);
       if(slot) slot.appendChild(b.el);
@@ -12702,11 +12797,6 @@
   // 집계 시트 — 외관조사 결함을 전체·도면·층·부재·자재·결함·부재+결함별로 묶는다. 건수는 결함 줄 수,
   // 개수·길이는 입력된 숫자의 합, 폭은 최댓값이다. 「균열/백태」는 결함별에서 각각 한 건으로 센다.
   function summaryNumber(v){ const n = parseFloat(String(v==null?'':v).replace(/,/g,'')); return isFinite(n) ? n : null; }
-  function floorSortValue(s){
-    const m = /(지하|지상)?\s*(\d+)/.exec(s||'');
-    if(!m) return 1e6;
-    return m[1]==='지하' ? -Number(m[2]) : Number(m[2]);
-  }
   function buildSummarySheet(){
     const items = [];
     drawings.forEach(d=> d.markers.forEach(m=>{ if(quickInputKeys(m).indexOf('rptDefect') >= 0) items.push({ d, m }); }));
@@ -16244,6 +16334,47 @@
       }
       const p = t.closest('[data-tax-pick]');
       if(p){ pickQuickTax(p.dataset.taxPick, p.dataset.v); return; }
+      // 층수 : 1단계 → 2단계 → (중층)
+      const fg = t.closest('[data-floor-group]');
+      if(fg){
+        const m = quickInputMarker(); const g = locTax() && locTax().floors.find(x=> x.group === fg.dataset.floorGroup);
+        if(!m || !g) return;
+        if(!g.floors.length){                     // 지붕층·옥탑층·외부 : 바로 끝
+          setQuickTaxValue(m, 'rptFloor', g.group);
+          qisFloorGroup = null; qisFloorMezz = null; qisTaxOpen = null;
+          commitQuickTax();
+        } else { qisFloorGroup = g.group; qisTaxOpen = 'rptFloor'; rerenderQuickInputSheet(); }
+        return;
+      }
+      const fb = t.closest('[data-floor-back]');
+      if(fb){ qisFloorGroup = ''; qisTaxOpen = 'rptFloor'; rerenderQuickInputSheet(); return; }
+      const fn = t.closest('[data-floor-n]');
+      const fz = t.closest('[data-floor-mezz]');
+      if(fn || fz){
+        const m = quickInputMarker(); if(!m) return;
+        const T = locTax();
+        const g = (qisFloorGroup && T.floors.find(x=> x.group === qisFloorGroup)) || floorGroupOf(m.rptFloor);
+        if(!g) return;
+        const p = parseFloorValue(m.rptFloor);
+        const cur = (p && p.under === g.under && g.floors.indexOf(p.n) >= 0) ? p : null;
+        let mezz = qisFloorMezz !== null ? qisFloorMezz : !!(cur && cur.mezz);
+        if(fz){
+          mezz = !mezz; qisFloorMezz = mezz;
+          // 층을 이미 골랐으면 그 값을 바로 바꾸고, 아직이면 다음에 고를 층에 붙는다
+          if(cur){ setQuickTaxValue(m, 'rptFloor', makeFloorValue(g, cur.n, mezz)); qisTaxOpen = 'rptFloor'; commitQuickTax(); }
+          else { qisTaxOpen = 'rptFloor'; rerenderQuickInputSheet(); }
+          return;
+        }
+        setQuickTaxValue(m, 'rptFloor', makeFloorValue(g, Number(fn.dataset.floorN), mezz));
+        qisFloorGroup = null; qisFloorMezz = null; qisTaxOpen = null;   // 다음 빈 칸(위치)으로
+        commitQuickTax();
+        return;
+      }
+      // 위치 : 분류 → 위치
+      const lc = t.closest('[data-loc-cat]');
+      if(lc){ qisLocCat = lc.dataset.locCat; qisTaxOpen = 'rptLoc'; rerenderQuickInputSheet(); return; }
+      const lb = t.closest('[data-loc-back]');
+      if(lb){ qisLocCat = ''; qisTaxOpen = 'rptLoc'; rerenderQuickInputSheet(); return; }
       const c = t.closest('[data-tax-clear]');
       if(c){
         const m = quickInputMarker(); if(!m) return;
@@ -16256,6 +16387,8 @@
         }
         setQuickTaxValue(m, k, '');
         qisTaxOpen = c.dataset.taxClear;
+        if(k === 'rptFloor'){ qisFloorGroup = null; qisFloorMezz = null; }
+        if(k === 'rptLoc') qisLocCat = null;
         commitQuickTax();
         return;
       }
@@ -16264,6 +16397,8 @@
         const k = o.dataset.taxOpen;
         if(qisTaxWrite[k]) return;
         qisTaxOpen = k;
+        if(k === 'rptFloor'){ qisFloorGroup = null; qisFloorMezz = null; }
+        if(k === 'rptLoc') qisLocCat = null;
         rerenderQuickInputSheet();
       }
     });
