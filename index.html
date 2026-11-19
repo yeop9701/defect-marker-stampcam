@@ -358,6 +358,24 @@
   .file-ready-name{flex:1 1 100%;min-width:0;font-size:13px;font-weight:700;color:var(--text-primary);overflow-wrap:anywhere;}
   .file-ready-size{flex:1;font-size:11.5px;color:var(--muted);}
   .file-ready-row button{min-height:40px;}
+  /* 저장 전 점검 목록 */
+  .export-check-group{margin-top:10px;}
+  .export-check-title{font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:4px;}
+  .export-check-item{display:block;width:100%;text-align:left;margin-top:3px;padding:7px 9px;font-size:12.5px;font-weight:400;overflow-wrap:anywhere;}
+  /* 결함 목록 거르기 */
+  .marker-filter{display:flex;gap:5px;flex-wrap:wrap;margin:0 0 6px;}
+  .marker-filter button{min-height:30px;padding:3px 9px;border-radius:15px;font-size:11.5px;font-weight:400;}
+  body.layout-tablet .marker-filter button{min-height:36px;}
+  .marker-filter button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+  /* 화면 위에 잠깐 뜨는 안내(백업 권유 · 글자 변환 실패) */
+  .app-nudge{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);z-index:1100;
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:max-content;max-width:94vw;padding:8px 10px;border-radius:12px;
+    background:var(--surface-1);border:1px solid #b7791f;box-shadow:0 8px 24px rgba(0,0,0,.28);font-size:12.5px;color:var(--text-primary);}
+  .app-nudge[hidden]{display:none;}
+  .app-nudge span{flex:1 1 180px;min-width:0;}
+  .ink-cv-fallback{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;border:1px solid #b7791f;border-radius:8px;font-size:12.5px;}
+  .ink-cv-fallback[hidden]{display:none;}
+  .ink-cv-fallback span{flex:1 1 240px;}
   body.layout-tablet #sketchColorRow,
   body.layout-tablet #sketchWidthGroup,
   body.layout-tablet #btnSketchGrid,
@@ -2020,6 +2038,8 @@
           <button type="button" class="tool" id="btnEditFieldOptions" style="font-size:10.5px;padding:3px 7px;font-weight:400;text-transform:none;letter-spacing:0;" title="유형·부재명·결함명 드롭다운의 선택지 목록을 수정합니다"><svg class="icon"><use href="#i-settings"/></svg> 목록수정</button>
         </div>
         <input type="text" class="side-input" id="markerSearchInput" placeholder="검색 (유형·부재명·결함명·사진번호)" style="width:100%;margin:2px 0 6px;" />
+        <!-- 전체 · 미입력 · 사진 없음 · 손글씨 미변환 — 퀵입력의 앞/다음도 고른 것만 건너다닌다 -->
+        <div class="marker-filter" id="markerFilterRow"></div>
         <!-- 값 이어받기 — 같은 부재·자재·결함이 연달아 나오는 게 보통인데(벽체·콘크리트·균열이
              스무 건씩), 예전에는 데스크톱에서 그 세 칸을 매번 다시 골라야 했다. 켜 두면 새로 찍는
              결함이 "직전에 내가 채운 값"을 그대로 물려받고, 다른 것만 고치면 된다.
@@ -2246,6 +2266,10 @@
       <button type="button" id="btnInkConvertClose" class="icon-btn"><svg class="icon icon-lg"><use href="#i-close"/></svg></button>
     </div>
     <div class="modal-body">
+      <div class="ink-cv-fallback" id="inkCvFallback" hidden>
+        <span>구글 변환이 계속 되지 않습니다. 쓴 글씨는 그대로 남아 있습니다. Claude로 바꾸거나, 아래 오른쪽 칸에 직접 입력해 주세요.</span>
+        <button type="button" id="btnInkUseClaude">Claude로 바꾸기</button>
+      </div>
       <div class="ink-cv-settings">
         <label class="ink-cv-opt"><input type="radio" name="inkEngine" value="google"> 구글 필기 인식 <span class="ink-cv-note">무료 · 공식 공개 API 가 아니라 언젠가 막힐 수 있음 · 글씨가 구글로 전송됨</span></label>
         <label class="ink-cv-opt"><input type="radio" name="inkEngine" value="claude"> Claude <span class="ink-cv-note">점검 용어를 알려 주어 더 정확 · API 키 필요 · 쓴 만큼 요금</span></label>
@@ -2287,13 +2311,16 @@
   </div>
 </div>
 
-<!-- 내보내기 전 : 아직 글자가 아닌 손글씨가 있을 때 -->
+<div class="app-nudge" id="appNudge" hidden></div>
+
+<!-- 엑셀·CSV 저장 전 점검 : 빈 칸 · 사진번호 중복 · 사진 없음 · 변환 안 된 손글씨 -->
 <div class="modal-backdrop" id="inkExportBackdrop" style="display:none;">
-  <div class="modal-panel" style="width:min(460px, 92vw);">
+  <div class="modal-panel" style="width:min(520px, 94vw);">
     <div class="modal-header"><div>
-      <div class="modal-title">변환하지 않은 손글씨가 있습니다</div>
+      <div class="modal-title">저장 전 확인</div>
       <div class="modal-sub" id="inkExportText"></div>
     </div></div>
+    <div class="modal-body" id="exportCheckList" style="max-height:52vh;overflow:auto;"></div>
     <div class="modal-footer" style="flex-wrap:wrap;">
       <button type="button" class="tool" id="btnInkExportCancel">취소</button>
       <button type="button" id="btnInkExportReview">확인하기</button>
@@ -3448,7 +3475,8 @@
   // 이미지(도면 imgSrc, 결함 사진 photos)만 별도로 추적 — 자동저장에서 이미지는 마커/메타데이터와
   // 분리된 IndexedDB 키에 "변경이 있을 때만" 저장하기 위한 플래그(30초 주기 틱과 무관하게 동작).
   let imagesDirty = false;
-  function markDirty(){ isDirty = true; }
+  var dirtySince = 0;   // 마지막 백업 뒤 처음 바뀐 시각 (백업 권유에 쓴다)
+  function markDirty(){ isDirty = true; if(!dirtySince) dirtySince = Date.now(); }
   function markImagesDirty(){ markDirty(); imagesDirty = true; scheduleImagesAutosave(); }
   let pendingAction = null; // {mode:'move'|'rotate'|'create'|'rubberband'|'crop', hitId, startX, startY, moved}
   let cropMode = false;
@@ -9115,12 +9143,13 @@
     const itemKey = it=> it.m.id + '|' + it.k + '|' + Ink.inkHash(it.ink);
     const sent = new Set(items.map(itemKey));
     inkConvertBusy = true;
-    let ok = 0, fail = 0, done = 0;
+    let ok = 0, fail = 0, done = 0, svcOk = 0, svcFail = 0;
     const prog = opts.onProgress || (()=>{});
     prog(0, items.length);
     try{
       await Ink.convert(items, { vocab: inkVocab(), onResult: (it, r, err, engine)=>{
         done++;
+        if(r) svcOk++; else if(err) svcFail++;
         const st = applyInkConversion(it, r, err, engine);
         if(st==='done') ok++; else fail++;
         prog(done, items.length);
@@ -9129,6 +9158,7 @@
       if(!opts.auto) showToast('변환하지 못했습니다 — ' + ((err && err.message) || err));
     } finally {
       inkConvertBusy = false;
+      noteInkServiceResult(svcOk, svcFail);
       renderTable();
       if(isInkConvertOpen()) renderInkConvertList();
       if(opts.auto){ if(ok) showToast(`손글씨 ${ok}칸을 글자로 바꿨습니다 — 설정 › 손글씨 변환에서 원본과 비교할 수 있습니다.`); }
@@ -9137,13 +9167,118 @@
       // 이번에 보냈는데도 남은 것(현장의 약한 인터넷)은 30초 뒤에 다시 시도한다.
       const waiting = inkItemsAll().filter(it=> inkNeedsConvert(it) && it.ink.st !== 'error');
       if(waiting.some(it=> !sent.has(itemKey(it)))) scheduleInkAutoConvert(200);
-      else if(waiting.length) scheduleInkAutoConvert(30000);
+      else if(waiting.length) scheduleInkAutoConvert(inkGoogleFailStreak >= 3 ? 300000 : 30000);
     }
+  }
+  // 구글 필기 인식은 공식 공개 API 가 아니어서 언제든 막힐 수 있다. 인터넷이 되는데도 응답을 한 건도
+  // 못 받는 일이 이어지면 알려 주고 다른 길(Claude·직접 입력)을 보여 준다. Claude 는 글씨를 다른 곳으로
+  // 보내고 요금이 드는 일이라 저절로 바꾸지 않고 사용자가 고르게 한다.
+  var inkGoogleFailStreak = 0, inkFallbackNotified = false;
+  function noteInkServiceResult(okCount, failCount){
+    if(Ink.loadSettings().engine !== 'google' || navigator.onLine === false) return;
+    if(okCount){ inkGoogleFailStreak = 0; inkFallbackNotified = false; hideAppNudge('ink'); return; }
+    if(!failCount) return;
+    inkGoogleFailStreak++;
+    if(inkGoogleFailStreak >= 2 && !inkFallbackNotified){
+      inkFallbackNotified = true;
+      showAppNudge('ink', '구글 글자 변환이 계속 되지 않습니다. 쓴 글씨는 그대로 남아 있습니다.', [
+        { label:'변환 창 열기', primary:true, run: openInkConvert }, { label:'나중에' },
+      ]);
+    }
+  }
+  function syncInkFallbackBanner(){
+    document.getElementById('inkCvFallback').hidden = !(inkGoogleFailStreak >= 2 && Ink.loadSettings().engine === 'google');
+  }
+  document.getElementById('btnInkUseClaude').addEventListener('click', ()=>{
+    Ink.saveSettings({ engine:'claude' });
+    document.querySelectorAll('input[name="inkEngine"]').forEach(r=>{ r.checked = r.value==='claude'; });
+    syncInkCvKeyRow();
+    syncInkFallbackBanner();
+    if(!Ink.loadSettings().apiKey) document.getElementById('inkCvApiKey').focus();
+  });
+  // ---------- 화면 위 안내 (한 번에 하나) ----------
+  var appNudgeKind = '';
+  function hideAppNudge(kind){
+    if(kind && kind !== appNudgeKind) return;
+    document.getElementById('appNudge').hidden = true;
+    appNudgeKind = '';
+  }
+  function showAppNudge(kind, text, actions){
+    const el = document.getElementById('appNudge');
+    el.innerHTML = '';
+    const t = document.createElement('span'); t.textContent = text; el.appendChild(t);
+    actions.forEach(a=>{
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = a.label;
+      if(a.primary) b.className = 'strong';
+      b.addEventListener('click', ()=>{ hideAppNudge(); if(a.run) a.run(); });
+      el.appendChild(b);
+    });
+    el.dataset.kind = kind;
+    el.hidden = false;
+    appNudgeKind = kind;
   }
   window.addEventListener('online', ()=> scheduleInkAutoConvert(800));
   setTimeout(()=> scheduleInkAutoConvert(0), 5000);   // 앱을 열 때 남아 있던 것(자동저장 복원 뒤)
 
-  // 내보내기 전에 : 아직 글자가 아닌 손글씨 칸은 빈칸으로 나가므로, 저장하기 전에 고르게 한다
+  // ---------- 결함 상태 판정 (저장 전 점검 · 결함 목록 거르기가 함께 쓴다) ----------
+  const REQUIRED_FIELDS = [['rptType','부재'], ['rptMember','자재'], ['rptDefect','결함'], ['eqMember','부재']];
+  function hasInkIn(m, k){ return !!(window.Ink && m.ink && m.ink[k] && Ink.hasInk(m.ink[k])); }
+  // 손글씨로 써 둔 칸은 「비었다」가 아니라 「미변환」으로 따로 센다
+  function missingFieldLabels(m){
+    const keys = quickInputKeys(m);
+    return REQUIRED_FIELDS.filter(([k])=> keys.indexOf(k) >= 0 && !String(m[k]||'').trim() && !hasInkIn(m, k)).map(x=> x[1]);
+  }
+  function markerPhotoTag(m){ const k = photoTagKey(m); return k ? String(m[k]||'').trim() : ''; }
+  function markerHasNoPhoto(m){ return !!photoTagKey(m) && !(m.photos && m.photos.length); }
+  function markerInkTodo(m){
+    if(!window.Ink || !m.ink) return false;
+    const fields = inkFieldsFor(m);
+    return Object.keys(m.ink).some(k=>{
+      if(!Ink.hasInk(m.ink[k])) return false;
+      const f = fields.find(x=> x.k===k) || { kind:'text' };
+      return inkNeedsConvert({ m, k, kind:f.kind, ink:m.ink[k] });
+    });
+  }
+  function markerMatchesFilter(m, f){
+    if(f === 'missing') return missingFieldLabels(m).length > 0;
+    if(f === 'nophoto') return markerHasNoPhoto(m);
+    if(f === 'ink') return markerInkTodo(m);
+    return true;
+  }
+  // ---------- 저장 전 점검 ----------
+  function buildExportChecks(){
+    renumberAllDrawings({silent:true});
+    const multi = drawings.length > 1;
+    const missing = [], noPhoto = [], byTag = new Map();
+    drawings.forEach(d=> d.markers.forEach((m, idx)=>{
+      const where = (multi ? d.name + ' · ' : '') + '#' + formatMarkerLabel(m, idx, d);
+      const lack = missingFieldLabels(m);
+      if(lack.length) missing.push({ d, m, text: `${where} — ${lack.join('·')} 없음` });
+      const tag = markerPhotoTag(m);
+      if(!tag) return;
+      if(!(m.photos && m.photos.length)) noPhoto.push({ d, m, text: `${where} — 사진번호 ${tag}` });
+      const key = /^\d+$/.test(tag) ? String(Number(tag)) : tag;
+      if(!byTag.has(key)) byTag.set(key, []);
+      byTag.get(key).push({ d, m, text: `${where} — 사진번호 ${tag}` });
+    }));
+    const dup = Array.from(byTag.values()).filter(a=> a.length > 1).flat();
+    return [
+      { title:'부재·자재·결함이 빈 결함', items: missing },
+      { title:'사진번호가 겹치는 결함', items: dup },
+      { title:'사진번호는 있는데 사진이 없는 결함', items: noPhoto },
+    ].filter(g=> g.items.length);
+  }
+  function goToMarker(d, m){
+    closeInkExportDialog();
+    closeExportModal();
+    closeAllDrawers();
+    if(getActiveDrawing() !== d) setActiveDrawing(d.id);
+    selectOnly(m.id);
+    scrollCanvasToMarker(m);
+    if(document.body.classList.contains('layout-tablet') && quickInputSpecFor(m).length) openQuickInputSheetFor(m);
+  }
+  // 엑셀·CSV 저장 전에 : 문제가 있으면 목록을 보여 주고, 눌러서 고치거나 그대로 저장을 고르게 한다
   var inkExportProceed = null;
   function pendingInkExportCount(){
     return inkItemsAll().filter(it=> it.kind==='text' && it.ink.st!=='done' && !String(it.m[it.k]||'').trim()).length;
@@ -9154,12 +9289,35 @@
   }
   function guardPendingInkBeforeExport(proceed){
     const n = pendingInkExportCount();
-    if(!n){ proceed(); return; }
+    const groups = buildExportChecks();
+    if(!n && !groups.length){ proceed(); return; }
     inkExportProceed = proceed;
     const online = navigator.onLine !== false;
-    document.getElementById('inkExportText').textContent =
-      `손글씨 ${n}칸이 아직 글자로 바뀌지 않았습니다. 그대로 저장하면 그 칸은 빈칸으로 나갑니다.` + (online ? '' : ' 지금은 인터넷이 없어 변환할 수 없습니다.');
-    document.getElementById('btnInkExportConvert').disabled = !online;
+    document.getElementById('inkExportText').textContent = n
+      ? `손글씨 ${n}칸이 아직 글자로 바뀌지 않았습니다. 그대로 저장하면 그 칸은 빈칸으로 나갑니다.` + (online ? '' : ' 지금은 인터넷이 없어 변환할 수 없습니다.')
+      : '아래 결함을 누르면 그 자리로 이동합니다.';
+    const list = document.getElementById('exportCheckList');
+    list.innerHTML = '';
+    list.style.display = groups.length ? '' : 'none';
+    groups.forEach(g=>{
+      const box = document.createElement('div');
+      box.className = 'export-check-group';
+      const h = document.createElement('div');
+      h.className = 'export-check-title';
+      h.textContent = `${g.title} (${g.items.length})`;
+      box.appendChild(h);
+      g.items.forEach(it=>{
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'export-check-item'; b.textContent = it.text;
+        b.addEventListener('click', ()=> goToMarker(it.d, it.m));
+        box.appendChild(b);
+      });
+      list.appendChild(box);
+    });
+    document.getElementById('btnInkExportReview').style.display = n ? '' : 'none';
+    const conv = document.getElementById('btnInkExportConvert');
+    conv.style.display = n ? '' : 'none';
+    conv.disabled = !online;
     document.getElementById('inkExportBackdrop').style.display = 'flex';
   }
   document.getElementById('btnInkExportCancel').addEventListener('click', closeInkExportDialog);
@@ -9190,8 +9348,12 @@
     blurQuickInputFocus();
     const list = d.markers.filter(x=> quickInputSpecFor(x).length > 0);
     const i = list.findIndex(x=> x.id===quickInputMarkerId);
-    const n = list[i + dir];
-    if(!n){ showToast(dir > 0 ? '마지막 결함입니다.' : '첫 결함입니다.'); return; }
+    // 결함 목록에서 거르는 중이면 그 결함들만 건너다닌다 (지금 결함이 다 채워져 목록에서 빠졌어도 자리는 안다)
+    let n = null;
+    for(let j = i + dir; j >= 0 && j < list.length; j += dir){
+      if(markerMatchesFilter(list[j], markerListFilter)){ n = list[j]; break; }
+    }
+    if(!n){ showToast(markerListFilter !== 'all' ? '이 방향에는 해당하는 결함이 더 없습니다.' : (dir > 0 ? '마지막 결함입니다.' : '첫 결함입니다.')); return; }
     destroyInkBoxes();
     selectOnly(n.id);
     scrollCanvasToMarker(n);
@@ -9253,6 +9415,7 @@
     const all = inkItemsAll();
     const todo = all.filter(inkNeedsConvert);
     const rows = filter==='all' ? all : todo;
+    syncInkFallbackBanner();
     document.getElementById('inkCvCount').textContent = `변환할 것 ${todo.length}칸 · 손글씨 전부 ${all.length}칸`;
     const run = document.getElementById('btnInkConvertRun');
     run.textContent = todo.length ? `변환하기 (${todo.length}칸)` : '변환하기';
@@ -10077,20 +10240,41 @@
   // 결함 목록 검색/필터 — 마커 데이터·내보내기 로직은 건드리지 않고, 렌더링된 카드를
   // display:none으로 숨기고 보여주는 순수 UI 필터다(검색해도 CSV/PDF 내보내기 내용은 그대로).
   let emptyMarkerNoteDefaultText = null;
+  var markerListFilter = 'all';
+  function renderMarkerFilterRow(){
+    const row = document.getElementById('markerFilterRow');
+    const d = getActiveDrawing();
+    if(!row) return;
+    const list = d ? d.markers : [];
+    row.style.display = list.length ? '' : 'none';
+    row.innerHTML = [['all','전체'],['missing','미입력'],['nophoto','사진 없음'],['ink','손글씨 미변환']].map(([k, label])=>{
+      const n = list.filter(m=> markerMatchesFilter(m, k)).length;
+      return `<button type="button" data-filter="${k}" class="${markerListFilter===k ? 'on' : ''}">${label} ${n}</button>`;
+    }).join('');
+  }
+  document.getElementById('markerFilterRow').addEventListener('click', e=>{
+    const b = e.target.closest('[data-filter]'); if(!b) return;
+    markerListFilter = b.dataset.filter;
+    applyMarkerSearchFilter();
+  });
   function applyMarkerSearchFilter(){
+    renderMarkerFilterRow();
     const noteEl = document.getElementById('emptyMarkerNote');
     if(emptyMarkerNoteDefaultText===null) emptyMarkerNoteDefaultText = noteEl.textContent;
     const cards = document.querySelectorAll('#markerTable .marker-card');
     if(cards.length===0) return; // 결함이 아예 없는 경우는 renderTable()의 빈 상태 처리에 맡긴다
     const q = (document.getElementById('markerSearchInput').value||'').trim().toLowerCase();
+    const d = getActiveDrawing();
+    const byId = new Map((d ? d.markers : []).map(m=> [m.id, m]));
     let visibleCount = 0;
     cards.forEach(card=>{
-      const match = !q || (card.dataset.search||'').includes(q);
+      const m = byId.get(card.dataset.id);
+      const match = (!q || (card.dataset.search||'').includes(q)) && (!m || markerMatchesFilter(m, markerListFilter));
       card.style.display = match ? '' : 'none';
       if(match) visibleCount++;
     });
-    if(q && visibleCount===0){
-      noteEl.textContent = '검색 결과가 없습니다.';
+    if((q || markerListFilter !== 'all') && visibleCount===0){
+      noteEl.textContent = q ? '검색 결과가 없습니다.' : '해당하는 결함이 없습니다.';
       noteEl.style.display = 'block';
     } else {
       noteEl.textContent = emptyMarkerNoteDefaultText;
@@ -10561,7 +10745,7 @@
   function openFloatMorePop(btn){
     const c = document.body.classList;
     const by = (id, label, noIcon)=> ({ src: document.getElementById(id), label, noIcon });
-    const items = [by('btnFloatRedo','다시 실행'), by('btnFloatZoomFit','화면 맞춤'), by('btnFloatCanvasMax','크게 보기')];
+    const items = [by('btnFloatRedo','다시 실행'), by('btnFloatZoomFit','화면 맞춤'), by('btnFloatCanvasMax','크게 보기'), by('btnSaveProject','프로젝트 백업')];
     if(c.contains('mode-sketch')) items.push(by('btnFloatSketchSettings','도구 설정'));
     if(c.contains('mode-sketch') || c.contains('pick-has-strokes')) items.push(by('btnFloatSketchGrid','모눈'), by('btnFloatSketchClear','모두 지움'));
     if(c.contains('mode-sketch')) items.push(by('btnFloatInk','손글씨', true));
@@ -12170,8 +12354,8 @@
     if(/[",\n\r]/.test(v)) return '"' + v.replace(/"/g,'""') + '"';
     return v;
   }
-  function downloadBlob(content, filename, mime){
-    deliverFile(new Blob([content], {type:mime}), filename);
+  function downloadBlob(content, filename, mime, opts){
+    deliverFile(new Blob([content], {type:mime}), filename, opts);
   }
   // ---------- 만든 파일 건네기 ----------
   // 컴퓨터는 곧바로 내려받는다. 휴대폰·태블릿은 파일을 만드는 동안(특히 PDF) 「사용자가 방금 눌렀다」는
@@ -12183,14 +12367,17 @@
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
   }
-  function deliverFile(blob, filename){
+  // opts.onSaved : 파일이 실제로 나갔을 때(휴대폰은 저장·공유를 누른 뒤) 불린다
+  function deliverFile(blob, filename, opts){
+    const onSaved = (opts && opts.onSaved) || (()=>{});
     if(!isMobileDevice()){
       const url = URL.createObjectURL(blob);
       startDownload(url, filename);
       setTimeout(()=>URL.revokeObjectURL(url), 3000);
+      onSaved();
       return;
     }
-    readyFiles.push({ blob, filename, url: URL.createObjectURL(blob) });
+    readyFiles.push({ blob, filename, onSaved, url: URL.createObjectURL(blob) });
     renderFileReadyList();
     document.getElementById('fileReadyBackdrop').style.display = 'flex';
   }
@@ -12212,6 +12399,7 @@
       const size = row.querySelector('.file-ready-size');
       row.querySelector('[data-file-act="save"]').addEventListener('click', ()=>{
         startDownload(f.url, f.filename);
+        f.onSaved();
         size.textContent = '저장을 시작했습니다 — 다운로드 폴더를 확인하세요';
       });
       const file = shareFileFor(f);
@@ -12219,7 +12407,7 @@
         const b = document.createElement('button');
         b.type = 'button'; b.dataset.fileAct = 'share'; b.textContent = '공유';
         b.addEventListener('click', ()=>{
-          navigator.share({ files:[file], title:f.filename }).catch(err=>{
+          navigator.share({ files:[file], title:f.filename }).then(()=> f.onSaved()).catch(err=>{
             if(!err || err.name !== 'AbortError') showToast('공유하지 못했습니다 — 「저장」을 눌러 주세요.');
           });
         });
@@ -12482,6 +12670,52 @@
     if(leftover.length>0) sheets.push(buildGenericPresetSheet('기타', leftover));
     return sheets;
   }
+  // 집계 시트 — 외관조사 결함을 전체·도면·층·부재·자재·결함·부재+결함별로 묶는다. 건수는 결함 줄 수,
+  // 개수·길이는 입력된 숫자의 합, 폭은 최댓값이다. 「균열/백태」는 결함별에서 각각 한 건으로 센다.
+  function summaryNumber(v){ const n = parseFloat(String(v==null?'':v).replace(/,/g,'')); return isFinite(n) ? n : null; }
+  function floorSortValue(s){
+    const m = /(지하|지상)?\s*(\d+)/.exec(s||'');
+    if(!m) return 1e6;
+    return m[1]==='지하' ? -Number(m[2]) : Number(m[2]);
+  }
+  function buildSummarySheet(){
+    const items = [];
+    drawings.forEach(d=> d.markers.forEach(m=>{ if(quickInputKeys(m).indexOf('rptDefect') >= 0) items.push({ d, m }); }));
+    if(!items.length) return null;
+    const blank = v=> String(v||'').trim() || '(미입력)';
+    const defects = m=>{ const a = String(m.rptDefect||'').split('/').map(s=> s.trim()).filter(Boolean); return a.length ? a : ['(미입력)']; };
+    const groups = [
+      ['전체', ()=> ['전체']],
+      ['도면별', x=> [x.d.name]],
+      ['층별', x=> [blank(x.m.rptFloor)], (a,b)=> floorSortValue(a)-floorSortValue(b)],
+      ['부재별', x=> [blank(x.m.rptType)]],
+      ['자재별', x=> [blank(x.m.rptMember)]],
+      ['결함별', x=> defects(x.m)],
+      ['부재·결함별', x=> defects(x.m).map(t=> blank(x.m.rptType) + ' · ' + t)],
+    ];
+    const round = n=> Math.round(n*1000)/1000;
+    const rows = [];
+    groups.forEach(([title, keysOf, sort])=>{
+      const map = new Map();
+      items.forEach(x=> keysOf(x).forEach(k=>{
+        if(!map.has(k)) map.set(k, { n:0, count:0, len:0, width:null });
+        const g = map.get(k);
+        g.n++;
+        g.count += summaryNumber(x.m.rptCount) || 0;
+        g.len += summaryNumber(x.m.rptLength) || 0;
+        const w = summaryNumber(x.m.rptWidth);
+        if(w !== null) g.width = g.width === null ? w : Math.max(g.width, w);
+      }));
+      const keys = Array.from(map.keys());
+      if(sort) keys.sort(sort);
+      keys.forEach(k=>{
+        const g = map.get(k);
+        rows.push({ typeKey: items[0].m.typeKey, cells: [title, k, g.n, round(g.count), round(g.len), g.width === null ? '' : g.width] });
+      });
+    });
+    return { name:'집계', header:['구분','항목','건수','개수 합','길이 합(mm)','최대 폭(mm)'], rows,
+      numericColIdx: new Set([2,3,4,5]), colWidth:18, cellStyle:2 };
+  }
   // 손글씨 시트 — 결함 한 줄, 제목(층수·위치·부재 …)마다 쓴 글씨 그림을 칸에 넣고 바뀐 글자를 칸 아래쪽에 적는다.
   // 손글씨가 하나도 없으면 시트를 만들지 않는다.
   const INK_SHEET_ORDER = ['층수','위치','부재','자재','결함','폭(mm)','길이(mm)','개수','사진 #'];
@@ -12653,6 +12887,8 @@
   }
   function buildWorkbookSheets(){
     const sheets = buildPresetSheets();
+    const summary = buildSummarySheet();
+    if(summary) sheets.push(summary);
     const ink = buildInkSheet();
     if(ink) sheets.push(ink);
     return sheets;
@@ -14005,9 +14241,49 @@
   function saveProject(){
     if(drawings.length===0){ showToast('저장할 도면이 없습니다.'); return; }
     const data = buildProjectSnapshot();
-    downloadBlob(JSON.stringify(data), filenameBase()+'_project.json', 'application/json');
-    isDirty = false; // 파일로 실제 저장됐으므로 미저장 표시를 내린다
+    downloadBlob(JSON.stringify(data), filenameBase()+'_project.json', 'application/json', { onSaved: markProjectBackedUp });
   }
+  // ---------- 프로젝트 백업 권유 ----------
+  // 자동저장은 이 기기의 브라우저 안에만 있다. 파일로 내보낸 시각과 그때의 결함 수를 프로젝트별로 기억해,
+  // 백업 뒤 한 시간이 지났거나 결함이 20건 늘면 위쪽에 안내를 띄운다. 「나중에」는 30분 동안 묻지 않는다.
+  const BACKUP_STORE_KEY = 'defectMarkerBackup_v1';
+  const BACKUP_NUDGE_MS = 60*60*1000, BACKUP_NUDGE_MARKERS = 20, BACKUP_SNOOZE_MS = 30*60*1000;
+  var backupSnoozeUntil = 0;
+  function totalMarkerCount(){ return drawings.reduce((s, d)=> s + d.markers.length, 0); }
+  function readBackupMap(){ try{ return JSON.parse(localStorage.getItem(BACKUP_STORE_KEY) || '{}') || {}; }catch(err){ return {}; } }
+  function backupRecord(){ return readBackupMap()[currentAutosaveSlotId()] || { at:0, count:0 }; }
+  function markProjectBackedUp(){
+    isDirty = false; // 파일로 실제 저장됐으므로 미저장 표시를 내린다
+    dirtySince = 0;
+    backupSnoozeUntil = 0;
+    const map = readBackupMap();
+    map[currentAutosaveSlotId()] = { at: Date.now(), count: totalMarkerCount() };
+    try{ localStorage.setItem(BACKUP_STORE_KEY, JSON.stringify(map)); }catch(err){ /* 저장 실패해도 백업 파일은 이미 나갔다 */ }
+    hideAppNudge('backup');
+    updateAutosaveStatusLabel();
+  }
+  function backupAgoText(){
+    const at = backupRecord().at;
+    if(!at) return '백업 없음';
+    const mins = Math.floor((Date.now()-at)/60000);
+    if(mins < 1) return '방금 백업';
+    if(mins < 60) return `${mins}분 전 백업`;
+    if(mins < 1440) return `${Math.floor(mins/60)}시간 전 백업`;
+    return `${Math.floor(mins/1440)}일 전 백업`;
+  }
+  function checkBackupNudge(now){
+    now = now || Date.now();
+    const total = totalMarkerCount();
+    if(!total || !isDirty || now < backupSnoozeUntil || appNudgeKind) return;
+    const rec = backupRecord();
+    const added = total - (rec.count || 0);
+    if(now - (dirtySince || now) < BACKUP_NUDGE_MS && added < BACKUP_NUDGE_MARKERS) return;
+    showAppNudge('backup', `${rec.at ? backupAgoText() : '아직 백업한 적이 없습니다'} — 지금 작업은 이 기기에만 저장되어 있습니다.`, [
+      { label:'지금 백업', primary:true, run: saveProject },
+      { label:'나중에', run: ()=>{ backupSnoozeUntil = Date.now() + BACKUP_SNOOZE_MS; } },
+    ]);
+  }
+  setInterval(()=> checkBackupNudge(), 60000);
 
   function loadProjectFile(file){
     const reader = new FileReader();
@@ -14016,6 +14292,8 @@
       try{ data = JSON.parse(reader.result); }
       catch(err){ showToast('프로젝트 파일을 읽을 수 없습니다: ' + err.message); return; }
       applyProjectData(data);
+      // 방금 파일에서 연 내용은 그 파일이 곧 백업이다
+      if(data && Array.isArray(data.drawings)) setTimeout(markProjectBackedUp, 0);
     };
     reader.readAsText(file);
   }
@@ -16321,7 +16599,7 @@
   function updateAutosaveStatusLabel(){
     const text = lastAutosaveAt==null ? '' : (()=>{
       const mins = Math.floor((Date.now()-lastAutosaveAt)/60000);
-      return mins<1 ? '방금 자동저장됨' : `${mins}분 전 자동저장됨`;
+      return (mins<1 ? '방금 자동저장됨' : `${mins}분 전 자동저장됨`) + ' · ' + backupAgoText();
     })();
     const el = document.getElementById('autosaveStatusLabel');
     if(el) el.textContent = text;
@@ -16655,7 +16933,7 @@
       get quickInputMarkerId(){ return quickInputMarkerId; },
       get lastCarryInk(){ return lastCarryInk; },
     },
-    info: { openMarkerInfo, closeMarkerInfo, photoKey, attachStampShot, buildInkSheet, buildWorkbookSheets, buildXLSXBlob, photoZipBaseName, shortTypeLabel, allPresets, buildSheetForPreset, isMobileDevice },
+    info: { openMarkerInfo, closeMarkerInfo, photoKey, attachStampShot, buildInkSheet, buildWorkbookSheets, buildXLSXBlob, photoZipBaseName, shortTypeLabel, allPresets, buildSheetForPreset, isMobileDevice, buildSummarySheet, buildExportChecks, checkBackupNudge, runInkConvert, get inkGoogleFailStreak(){ return inkGoogleFailStreak; } },
     get frameLayout(){ return frameLayout; },
     set frameLayout(v){ frameLayout = sanitizeFrameLayout(v); },
     get docTitlePct(){ return docTitlePct; },

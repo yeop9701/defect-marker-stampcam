@@ -59,7 +59,9 @@ const exportBtn = await ev(`(()=>{const b=document.getElementById('btnOpenExport
 ok(exportBtn.w, '내보내기 단추가 있다', exportBtn);
 await click('btnOpenExport');
 eq(await vis('#exportBackdrop'), 1, '내보내기 창이 열린다');
-await click('btnExportXLSX', 500);
+await click('btnExportXLSX', 300);
+eq(await vis('#inkExportBackdrop'), 1, '엑셀 : 빈 칸이 있으면 먼저 알려 준다');
+await click('btnInkExportAnyway', 500);
 eq(await vis('#fileReadyBackdrop'), 1, '엑셀 : 저장·공유 창이 뜬다');
 eq(files().length, 0, '  누르기 전에는 저장되지 않는다');
 await shot('1119b-file-ready.png');
@@ -83,7 +85,7 @@ ok(await until(`document.getElementById('fileReadyBackdrop').style.display==='fl
 await sleep(150);
 ok(!(await ev(`/저장했습니다/.test((document.querySelector('.app-toast-stack')||{}).textContent||'')`)), '  누르기 전에 「저장했습니다」 알림이 없다');
 await click('btnFileReadyClose');
-await click('btnExportCSV', 300);
+await click('btnExportCSV', 200); await click('btnInkExportAnyway', 300);
 eq(await ev(`document.querySelectorAll('#fileReadyList .file-ready-row').length`), 1, 'CSV 도 같은 창');
 await ev(`document.querySelector('#fileReadyList [data-file-act=save]').click(); true`);
 const csvPath = await waitFile(/\.csv$/);
@@ -102,7 +104,7 @@ eq([await vis('#btnFloatUndo'), await vis('#btnFloatTypePick'), await vis('#btnF
 eq([await vis('#btnFloatRedo'), await vis('#btnFloatZoomFit'), await vis('#btnFloatCanvasMax'), await vis('#tabletFloatTypeGrid')], [0, 0, 0, 0], '나머지는 숨김');
 await shot('1119b-phone-bar.png');
 await tap('#btnFloatMore');
-eq(await ev(`[...document.querySelectorAll('#tabletPopProxy .float-proxy')].map(b=>b.textContent.trim())`), ['다시 실행', '화면 맞춤', '크게 보기'], '⋯ 안에 3개');
+eq(await ev(`[...document.querySelectorAll('#tabletPopProxy .float-proxy')].map(b=>b.textContent.trim())`), ['다시 실행', '화면 맞춤', '크게 보기', '프로젝트 백업'], '⋯ 안에 4개');
 await shot('1119b-phone-more.png');
 eq(await ev(`(()=>{const a=[...document.querySelectorAll('#tabletPopProxy .float-proxy')].map(b=>b.getBoundingClientRect());const p=document.getElementById('tabletSketchPop').getBoundingClientRect(),bar=document.getElementById('tabletFloatBar').getBoundingClientRect();return [a.every(r=>r.width>=60&&r.height>=50),a.every((r,i)=>!i||r.left>=a[i-1].right||r.top>=a[i-1].bottom),p.left>=0&&p.right<=innerWidth&&p.bottom<=bar.top]})()`), [true, true, true], '  ⋯ 창 단추가 겹치지 않고 화면 안');
 await tap('#tabletPopProxy .float-proxy:nth-child(3)');
@@ -145,6 +147,7 @@ eq(await csvBack(`도면명,번호,위치유형,X(%),Y(%),부재,층수,위치${
 console.log('\n[미변환 손글씨 · ⚙ (태블릿)]');
 await boot(1280, 800);
 await addMarkers(3);
+await ev(`(()=>{${D}.markers.forEach(m=>Object.assign(m,{rptType:'벽체',rptMember:'콘크리트',rptDefect:'균열'}));__markerDbg.renderTable();return true})()`);
 eq(await vis('#btnFloatInkPending'), 0, '변환할 것이 없으면 표시 없음');
 await ev(`(()=>{const m=${D}.markers[0];m.ink={rptLoc:{w:100,h:50,s:[[1,1,20,20,40,10]],st:'pending'}};__markerDbg.renderTable();return true})()`); await sleep(150);
 eq([await vis('#btnFloatInkPending'), await ev(`document.getElementById('btnFloatInkPending').textContent`)], [1, '글자 변환 1'], '하단 바에 「글자 변환 1」');
@@ -212,6 +215,7 @@ const r0 = await cdp.send('Runtime.evaluate', { expression: `document.querySelec
 await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r0.result.objectId }); await sleep(900);
 await addMarkers(1);
 rmSync(DL, { recursive: true, force: true }); mkdirSync(DL, { recursive: true });
+await ev(`(()=>{const m=${D}.markers[0];Object.assign(m,{rptType:'벽체',rptMember:'콘크리트',rptDefect:'균열'});return true})()`);
 await click('btnOpenExport'); await click('btnExportXLSX', 300);
 eq(await vis('#fileReadyBackdrop'), 0, '저장 창 없이');
 ok(!!(await waitFile(/\.xlsx$/)), '  바로 저장된다');

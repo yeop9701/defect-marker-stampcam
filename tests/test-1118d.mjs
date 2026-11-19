@@ -152,7 +152,7 @@ await shot('1118d-cards.png');
 
 console.log('\n[3] 엑셀 손글씨 시트');
 const x = await ev(`(()=>{const s=${I}.buildWorkbookSheets(); const k=s.find(a=>a.name==='손글씨'); return {names:s.map(a=>a.name),header:k.header,rows:k.rows.map(r=>r.cells),images:k.images.map(i=>[i.row,k.header[i.col],i.w<=124&&i.h<=46])}})()`);
-eq(x.names, ['외관조사', '손글씨'], '시트가 하나 더 생긴다');
+eq(x.names, ['외관조사', '집계', '손글씨'], '시트가 하나 더 생긴다 (집계는 11-19)');
 eq(x.header, ['도면', '번호', '유형', '층수', '위치', '부재', '자재', '결함', '폭(mm)', '길이(mm)', '개수', '사진 #'], '제목별 칸');
 eq(x.rows.length, 2, '손글씨가 있는 결함만 줄이 된다');
 eq(x.images, [[1, '위치', true], [1, '폭(mm)', true], [2, '위치', true]], '쓴 칸에만 그림이 들어가고 칸 크기 안');

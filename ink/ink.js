@@ -270,7 +270,9 @@ function recognizeDigits(e, kind) {
 /* ═══ 필기 상자 ═════════════════════════════════════════════
    createBox({ k, label, kind:'text'|'num'|'int', ink, value, options:()=>[…], onChange({ink,value}) })
    onChange 는 펜을 떼고 잠깐 뒤(쓰는 도중엔 부르지 않음), ✕, ▼ 고르기, 칸에 직접 친 값에서 불린다. */
-let penSeen = false;          // 펜을 한 번이라도 쓰면 손가락·손바닥 닿은 것은 무시한다
+let penSeen = false;          // 펜을 한 번이라도 쓰면 필기 칸에서 손가락은 글씨가 아니라 스크롤이다
+let lastPenAt = 0;            // 펜이 닿거나 떠 있던 마지막 시각 — 이때 닿는 손은 손바닥으로 본다
+document.addEventListener('pointermove', (e) => { if (e.pointerType === 'pen') lastPenAt = Date.now(); }, { capture: true, passive: true });
 const IDLE_MS = { text: 900, num: 550, int: 550, floor: 650 };
 function createBox(cfg) {
   const kind = cfg.kind === 'num' || cfg.kind === 'int' || cfg.kind === 'floor' ? cfg.kind : 'text';
@@ -345,9 +347,19 @@ function createBox(cfg) {
     const sc = entry ? view().sc : 1;
     return [Math.round((ev.clientX - r.left) / sc), Math.round((ev.clientY - r.top) / sc)];
   }
+  /* 펜을 쓰기 시작한 뒤의 손가락 : 시트를 직접 밀어 스크롤한다. touch-action 을 풀면 펜 획까지
+     브라우저가 스크롤로 가져갈 수 있어서, 칸은 그대로 두고 손가락만 여기서 처리한다. */
+  let fingerScroll = null;
+  function startFingerScroll(ev) {
+    const scroller = canvas.closest('.qis-fields');
+    if (!scroller || Date.now() - lastPenAt < 500 || ev.width > 48 || ev.height > 48) return;   // 손바닥
+    fingerScroll = { id: ev.pointerId, y: ev.clientY, top: scroller.scrollTop, scroller, moved: false };
+    try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* 지원 안 해도 동작 */ }
+  }
+  function endFingerScroll(ev) { if (fingerScroll && (!ev || ev.pointerId === fingerScroll.id)) fingerScroll = null; }
   canvas.addEventListener('pointerdown', (ev) => {
-    if (ev.pointerType === 'pen') penSeen = true;
-    else if (ev.pointerType === 'touch' && penSeen) return;     // 손바닥
+    if (ev.pointerType === 'pen') { penSeen = true; lastPenAt = Date.now(); endFingerScroll(); }
+    else if (ev.pointerType === 'touch' && penSeen) { startFingerScroll(ev); return; }
     if (ev.button > 0) return;
     if (activePointer !== null) return;
     ev.preventDefault();
@@ -365,6 +377,13 @@ function createBox(cfg) {
   });
   let baseW = 0, baseH = 0;
   canvas.addEventListener('pointermove', (ev) => {
+    if (fingerScroll && ev.pointerId === fingerScroll.id) {
+      const dy = ev.clientY - fingerScroll.y;
+      if (!fingerScroll.moved && Math.abs(dy) < 8) return;     // 살짝 닿은 것은 스크롤이 아니다
+      fingerScroll.moved = true;
+      fingerScroll.scroller.scrollTop = fingerScroll.top - dy;
+      return;
+    }
     if (ev.pointerId !== activePointer || !live) return;
     ev.preventDefault();
     const evs = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev];
@@ -376,6 +395,7 @@ function createBox(cfg) {
     redraw();
   });
   function endStroke(ev) {
+    endFingerScroll(ev);
     if (ev.pointerId !== activePointer) return;
     activePointer = null;
     if (live) { pendingStrokes.push(live); live = null; }
