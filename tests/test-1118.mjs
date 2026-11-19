@@ -35,7 +35,7 @@ const waitFor = async (expr, ms = 2500) => { const t = Date.now(); while (Date.n
 const D = '__markerDbg.getActiveDrawing()';
 const open = async (tablet) => {
   await cdp.send('Page.navigate', { url: APP }); await sleep(1300);
-  await ev(`localStorage.clear(); ${tablet ? "localStorage.setItem('defectMarkerTabletMode_v1','on');" : ''} true`);
+  await ev(`localStorage.clear(); ${tablet ? "localStorage.setItem('defectMarkerTabletMode_v1','on'); localStorage.setItem('defectMarkerFoldDone_v1','off'); /* 카드 칸을 보는 검사라 「완료 접기」는 끈다 */" : ''} true`);
   await cdp.send('Page.navigate', { url: APP }); await sleep(1700);
   const r = await cdp.send('Runtime.evaluate', { expression: `document.querySelector('#addDrawingInput')` });
   await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r.result.objectId });

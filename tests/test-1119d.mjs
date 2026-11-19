@@ -28,7 +28,7 @@ for (const [w, h, mobile] of [[1280, 800, false], [800, 1280, false], [390, 844,
   await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile });
   await cdp.send('Page.navigate', { url: APP }); await sleep(800);
-  await ev(`localStorage.clear(); localStorage.setItem('defectMarkerTabletMode_v1','on'); true`);
+  await ev(`localStorage.clear(); localStorage.setItem('defectMarkerTabletMode_v1','on'); localStorage.setItem('defectMarkerFoldDone_v1','off'); /* 카드 칸을 보는 검사라 「완료 접기」는 끈다 */ true`);
   await cdp.send('Page.navigate', { url: APP }); await sleep(1400);
   const r = await cdp.send('Runtime.evaluate', { expression: `document.querySelector('#addDrawingInput')` });
   await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r.result.objectId }); await sleep(1100);

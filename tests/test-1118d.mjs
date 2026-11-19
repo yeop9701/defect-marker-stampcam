@@ -39,7 +39,7 @@ await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800,
 const fakeGoogle = (ms) => `window.__n=0; window.__of=window.__of||window.fetch; window.fetch=(u,o)=>{ if(String(u).includes('inputtools')){ const n=++window.__n; return new Promise(r=>setTimeout(()=>r(new Response(JSON.stringify(['SUCCESS',[['x',['위치'+n]]]]),{status:200})),${ms})); } return window.__of(u,o); }; true`;
 async function boot(inkOn) {
   await cdp.send('Page.navigate', { url: APP }); await sleep(900);
-  await ev(`localStorage.clear(); localStorage.setItem('defectMarkerTabletMode_v1','on'); localStorage.setItem('defectMarkerInk_v1', JSON.stringify({on:${inkOn},engine:'google',auto:true})); true`);
+  await ev(`localStorage.clear(); localStorage.setItem('defectMarkerTabletMode_v1','on'); localStorage.setItem('defectMarkerFoldDone_v1','off'); /* 카드 칸을 보는 검사라 「완료 접기」는 끈다 */ localStorage.setItem('defectMarkerInk_v1', JSON.stringify({on:${inkOn},engine:'google',auto:true})); true`);
   await cdp.send('Page.navigate', { url: APP }); await sleep(1500);
   const r0 = await cdp.send('Runtime.evaluate', { expression: `document.querySelector('#addDrawingInput')` });
   await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r0.result.objectId });

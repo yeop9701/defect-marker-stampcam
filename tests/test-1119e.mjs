@@ -65,7 +65,9 @@ console.log('\n[층수 — 손글씨 켬]');
 await fresh();
 eq(await ev(`[...document.querySelectorAll('${Q} .qis-tax-label')].map(e=>e.textContent)`), ['층수', '위치', '부재', '자재', '결함'], '층수·위치가 부재 앞 단추 줄');
 eq(await ev(`[...document.querySelectorAll('${Q} .ink-box')].map(b=>b.dataset.k)`), ['rptWidth', 'rptLength', 'rptCount', 'rptTag'], '층수·위치 필기 상자는 ✎ 를 누를 때만');
-eq(await chips('층수'), xl.f.map(r => r[0]), '처음엔 1단계 14개');
+// 11-19 : 지상은 39층까지만 단추로 (40-49층 … 90-99층 1단계는 숨김)
+const shownGroups = xl.f.map(r => r[0]).filter(g => !/^([4-9]0)-/.test(g));
+eq(await chips('층수'), shownGroups, '처음엔 1단계 8개(지상 39층까지)');
 await shot('1119e-floor1.png');
 await chipText('층수', '1-9층');
 eq(await chips('층수'), ['◀ 1-9층', ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `지상${n}층`), '중층'], '1단계를 누르면 2단계 + 중층');
@@ -80,17 +82,17 @@ eq(await M('rptFloor'), '지상중3층', '3단계 중층 → 「지상중3층」
 await press('[data-floor-mezz]');
 eq(await M('rptFloor'), '지상3층', '  다시 누르면 빠진다');
 await press('[data-floor-back]');
-eq((await chips('층수')).length, 15, '◀ 로 1단계로 돌아간다(14 + 지우기)');
+eq((await chips('층수')).length, 9, '◀ 로 1단계로 돌아간다(8 + 지우기)');
 await chipText('층수', '지하1-9층');
 await press('[data-floor-mezz]');
 await chipText('층수', '지하2층');
 eq(await M('rptFloor'), '지하중2층', '중층을 먼저 눌러도 된다 → 「지하중2층」');
 await openRow('층수');
 await chipText('층수', '◀ 지하1-9층');
-await chipText('층수', '90-99층'); await chipText('층수', '지상99층');
-eq(await M('rptFloor'), '지상99층', '90-99층 → 「지상99층」');
+await chipText('층수', '30-39층'); await chipText('층수', '지상39층');
+eq(await M('rptFloor'), '지상39층', '30-39층 → 「지상39층」');
 for (const g of ['지붕층', '옥탑층', '외부']) {
-  await openRow('층수'); await chipText('층수', '◀ 90-99층');
+  await openRow('층수'); await chipText('층수', '◀ 30-39층');
   await chipText('층수', g);
   eq(await M('rptFloor'), g, `「${g}」는 1단계만`);
 }

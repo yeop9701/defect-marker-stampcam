@@ -47,6 +47,7 @@ const sheet = () => ev(`(()=>{const s=document.getElementById('quickInputSheet')
 for (const [w, h] of [[390, 844], [844, 390]]) {
   console.log(`\n[휴대폰 ${w}×${h}] 퀵입력`);
   await boot(w, h, true);
+  await ev(`window.LocationTaxonomy = null; true`);   // 시트가 화면보다 길어야 스크롤을 볼 수 있다 — 층수·위치가 손글씨 칸이던 긴 배치로
   await placeMarker();
   eq(await vis('#quickInputSheet'), 1, '시트가 열린다');
   let s = await sheet();

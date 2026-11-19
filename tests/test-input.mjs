@@ -86,8 +86,8 @@ const menuItems = () => ev('[...document.querySelectorAll(".cell-menu button")].
 console.log('\n══ 1. 입력칸의 생김새 ══');
 ok(await ev('document.querySelectorAll("datalist").length') === 0,
    'datalist 를 하나도 쓰지 않는다 (칸을 누르기만 해도 열려 칸 이동을 방해한다)');
-eq(await ev('document.querySelectorAll(".marker-card")[0].querySelectorAll(".cwrap").length'), 3,
-   '카드의 부재·자재·결함이 목록 칸(▼)이다');
+eq(await ev('[...document.querySelectorAll(".marker-card")[0].querySelectorAll(".cwrap input")].map(i=>i.dataset.role)'), ['rptFloor', 'rptLoc', 'rptType', 'rptMember', 'rptDefect'],
+   '카드의 층수·위치(11-19)·부재·자재·결함이 목록 칸(▼)이다');
 ok(await ev(`[...document.querySelectorAll('.marker-card select')].every(s=>s.tabIndex===-1)`),
    '남아 있는 select(마킹 유형)는 tabindex="-1" 이라 키보드 흐름 밖에 있다');
 
