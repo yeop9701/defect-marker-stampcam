@@ -127,7 +127,7 @@ await ev(`(()=>{const c=document.createElement('canvas');c.width=320;c.height=24
   ${I}.attachStampShot('a',{canvas:c,number:12,numberText:'0012',memo:'지상3층 거실 북측벽',at:Date.UTC(2026,10,18,5,0)},{});
   x.fillStyle='#a93';x.fillRect(0,0,320,240);
   ${I}.attachStampShot('a',{canvas:c,number:13,numberText:'0013',memo:'',at:Date.UTC(2026,10,18,5,1)},{}); return true})()`); await sleep(200);
-await ev(`document.querySelector('.marker-card [data-role=info]').click(); true`); await sleep(250);
+await ev(`document.querySelector('.marker-card[data-id=a] [data-role=info]').click(); true`);   // 층이 다르면 층별로 묶여 순서가 바뀐다(11-19) — 결함 a 의 카드 await sleep(250);
 const info = () => ev(`({show:getComputedStyle(document.getElementById('markerInfoBackdrop')).display,title:document.getElementById('markerInfoTitle').textContent,ink:[...document.querySelectorAll('#markerInfoBody .mi-row:not(.shot)')].map(r=>[r.querySelector('.mi-label').textContent,r.querySelector('img').naturalWidth>0,r.querySelector('.mi-val').firstChild.textContent]),shots:[...document.querySelectorAll('#markerInfoBody .mi-row.shot')].map(r=>[r.querySelector('.mi-label').textContent,r.querySelector('.mi-val').textContent,r.querySelector('img').naturalWidth>0])})`);
 let v = await info();
 eq(v.show, 'flex', '누르면 창이 열린다');
@@ -145,7 +145,7 @@ eq(await ev(`document.querySelectorAll('#markerInfoBody .mi-empty').length`), 2,
 await ev(`${I}.closeMarkerInfo(); true`);
 
 console.log('\n[6] 유형 칸');
-const ty = await ev(`[...document.querySelectorAll('.marker-card select[data-role=type]')].map(s=>{const t=s.options[s.selectedIndex].textContent;const c=document.createElement('canvas').getContext('2d');const cs=getComputedStyle(s);c.font=cs.fontSize+' '+cs.fontFamily;return {t,fit:c.measureText(t).width<=s.clientWidth-16,title:s.title.split(' — ')[0]}})`);
+const ty = await ev(`__markerDbg.getActiveDrawing().markers.map(m=>document.querySelector('.marker-card[data-id="'+m.id+'"] select[data-role=type]')).map(s=>{const t=s.options[s.selectedIndex].textContent;const c=document.createElement('canvas').getContext('2d');const cs=getComputedStyle(s);c.font=cs.fontSize+' '+cs.fontFamily;return {t,fit:c.measureText(t).width<=s.clientWidth-16,title:s.title.split(' — ')[0]}})`);
 eq(ty.map(x => x.t), ['수직(범위)', '수평', '수직'], '카드에는 짧은 이름');
 ok(ty.every(x => x.fit), '짧은 이름이 칸 안에 다 들어간다', ty);
 eq(ty.map(x => x.title), ['수직부재(범위)', '수평부재', '수직부재'], '전체 이름은 칸 설명(title)에 남는다');

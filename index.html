@@ -266,8 +266,10 @@
   /* 열린 서랍에 딱 붙인다 : 서랍이 0.22초 동안 미끄러져 나오는 동안 탭만 먼저 건너가 떠 보이던 것을, 같은
      속도로 함께 움직이게 하고, 소수점 폭에서 생기는 실금을 막으려고 1px 겹친다. 서랍 쪽 그림자도 뺀다. */
   body.layout-tablet .tablet-edge-tab{transition:right .22s ease, left .22s ease;}
-  .tablet-edge-tab.right.tab-shifted{right:calc(min(720px,88vw) - 1px);box-shadow:-3px 2px 8px rgba(0,0,0,.22);}   /* 서랍 폭(720px)과 같이 — 바꾸면 둘 다 */
-  .tablet-edge-tab.left.tab-shifted{left:299px;box-shadow:3px 2px 8px rgba(0,0,0,.22);}
+  /* --shift = 열린 서랍의 실제 폭(openDrawer 가 잰다). 컴퓨터 화면에서 끌어 줄인 서랍 폭이 남아 있으면 720px 보다
+     좁게 열려, 고정값을 쓰던 때는 탭이 그만큼 떠 있었다(2026-11-19 사용자 캡처). */
+  .tablet-edge-tab.right.tab-shifted{right:calc(var(--shift, min(720px,88vw)) - 1px);box-shadow:-3px 2px 8px rgba(0,0,0,.22);}
+  .tablet-edge-tab.left.tab-shifted{left:calc(var(--shift, 300px) - 1px);box-shadow:3px 2px 8px rgba(0,0,0,.22);}
 
   /* 태블릿 하단 플로팅 조작바 — 실행취소·유형 선택·선택/이동/지우개처럼 자주 쓰는 조작을 서랍을
      열거나 헤더까지 손을 뻗지 않아도 캔버스 바로 아래에서 이어서 누를 수 있게 모아둔다.
@@ -672,6 +674,18 @@
   .drawing-tab:hover{background:var(--surface-hover);}
   .drawing-tab.active{background:var(--accent-soft);border-left-color:var(--accent);font-weight:600;}
   .drawing-tab .name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* 도면의 층수 — 정해 두면 그 도면에 찍는 결함에 자동으로 들어간다 */
+  .drawing-tab .dt-floor{flex:0 0 auto;min-height:26px;padding:2px 8px;border-radius:13px;border:1px dashed var(--gridline);
+    background:transparent;color:var(--muted);font-size:11.5px;font-weight:500;}
+  body.layout-tablet .drawing-tab .dt-floor{min-height:32px;font-size:12px;}
+  .drawing-tab .dt-floor.set{border-style:solid;border-color:var(--accent);color:var(--accent);font-weight:700;}
+  /* 결함 목록 층별 묶음 머리 */
+  .mc-group-head{grid-column:1/-1;display:flex;align-items:center;gap:8px;width:100%;min-height:30px;padding:2px 8px;margin-top:4px;
+    border:none;border-radius:6px;background:transparent;color:var(--accent);font-size:13.5px;font-weight:800;text-align:left;cursor:pointer;}
+  body.layout-tablet .mc-group-head{min-height:34px;}
+  .mc-group-head .gh-n{color:var(--text-secondary);font-weight:500;font-size:12px;}
+  .mc-group-head .gh-arrow{display:inline-block;width:12px;color:var(--muted);}
+  .marker-card.mc-group-hidden{display:none !important;}
   .icon-btn{padding:5px;border:none;background:transparent;color:var(--muted);border-radius:6px;}
   .icon-btn:hover{color:var(--text-primary);background:var(--surface-hover);}
   .drawing-tab .icon-btn{padding:3px;border-radius:4px;}
@@ -2818,7 +2832,7 @@
     // 열린 쪽 탭은 숨기지 않고(display:none이면 같은 자리를 다시 눌러 닫을 수 없어 배경을 따로
     // 눌러야 했다) 서랍 폭만큼 밀어 계속 보이게 한다 — 같은 자리를 한 번 더 누르면 바로 닫힌다.
     const tab = document.getElementById(side==='left' ? 'btnDrawerLeft' : 'btnDrawerRight');
-    if(tab){ tab.classList.add('tab-shifted'); tab.setAttribute('aria-expanded', 'true'); }
+    if(tab){ tab.style.setProperty('--shift', el.offsetWidth + 'px'); tab.classList.add('tab-shifted'); tab.setAttribute('aria-expanded', 'true'); }
     // 서랍이 열려 있는 동안에는 플로팅 바·퀵입력 시트를 숨겨 서랍 내용을 가리지 않게 한다.
     document.body.classList.add('drawer-open');
   }
@@ -2898,6 +2912,13 @@
     if(canvasWrapEl) new ResizeObserver(updateTabletEdgeTabTop).observe(canvasWrapEl);
   }
   window.addEventListener('resize', updateTabletEdgeTabTop);
+  // 화면을 돌리거나 서랍 폭이 바뀌면 열린 서랍에 붙은 탭도 다시 맞춘다
+  window.addEventListener('resize', ()=>{
+    [['left','btnDrawerLeft'], ['right','btnDrawerRight']].forEach(([side, id])=>{
+      const el = document.querySelector('.sidebar.' + side), tab = document.getElementById(id);
+      if(el && tab && el.classList.contains('open')) tab.style.setProperty('--shift', el.offsetWidth + 'px');
+    });
+  });
   applyTabletMode();
   window.addEventListener('resize', ()=>{
     if(getTabletModeOverride()) return; // 수동으로 켜거나 껐으면 화면 폭이 바뀌어도 자동 재판정하지 않음
@@ -4513,6 +4534,7 @@
       const el = document.createElement('div');
       el.className = 'drawing-tab' + (d.id===activeDrawingId ? ' active':'');
       el.innerHTML = `<span class="name">${escapeHTML(d.name)}</span>
+        <button type="button" class="dt-floor${d.floor ? ' set' : ''}" data-act="floor" title="이 도면의 층수 — 정해 두면 이 도면에 찍는 결함에 자동으로 들어갑니다">${escapeHTML(d.floor || '층 미정')}</button>
         <button class="icon-btn" data-act="rename" title="이름 변경"><svg class="icon"><use href="#i-edit"/></svg></button>
         <button class="icon-btn" data-act="del" title="삭제"><svg class="icon"><use href="#i-close"/></svg></button>`;
       el.addEventListener('click', (e)=>{
@@ -4520,6 +4542,21 @@
         // e.target이 버튼 자신이 아니라 안쪽 svg일 수 있음.
         const actBtn = e.target.closest && e.target.closest('[data-act]');
         const act = actBtn && actBtn.getAttribute('data-act');
+        if(act==='floor'){
+          e.stopPropagation();
+          if(!locTax()){
+            const v = prompt('이 도면의 층수 (비우면 정하지 않음)', d.floor || floorFromDrawingName(d.name));
+            if(v !== null) setDrawingFloor(d, formatFloorValue(v));
+            return;
+          }
+          const guess = floorFromDrawingName(d.name);
+          openStepPopup(actBtn, 'floor', ()=> d.floor || '', {
+            lead: guess && guess !== d.floor ? [guess] : [], leadTitle: '도면 이름에서 짐작한 층',
+            noneLabel: '(정하지 않음)',
+            onValue: v=> setDrawingFloor(d, v),
+          });
+          return;
+        }
         if(act==='rename'){
           const nn = prompt('도면 이름을 입력하세요', d.name);
           if(nn){ d.name = nn; markDirty(); renderDrawingTabs(); syncSurveyLocationField(); }
@@ -9845,8 +9882,8 @@
     delete lastCarryInk[key];
   }
   function applyCarryToNewMarker(m){
-    if(!isCarryOn() || !m) return;
-    carryKeysFor(m).forEach(k=>{
+    if(!m) return;
+    if(isCarryOn()) carryKeysFor(m).forEach(k=>{
       if(lastCarryValues[k]) m[k] = lastCarryValues[k];
       // 글자로 아직 안 바뀐 손글씨는 글씨째 물려준다(변환은 같은 글씨끼리 한 번에 된다)
       // carried : 이 칸에 새로 쓰면 이어받은 글씨에 겹치지 않고 바뀐다. 변환도 다시 예약한다
@@ -9856,6 +9893,37 @@
         scheduleInkAutoConvert();
       }
     });
+    // 도면에 층수를 정해 두었으면 그 도면에 찍는 결함은 그 층이다(이어받은 값보다 앞선다)
+    const d = getActiveDrawing();
+    const fk = locKeysOf(m).floor;
+    if(d && d.floor && fk){
+      m[fk] = d.floor;
+      if(m.ink && m.ink[fk]){ const ink = Object.assign({}, m.ink); delete ink[fk]; if(Object.keys(ink).length) m.ink = ink; else delete m.ink; }
+    }
+  }
+  // ---------- 도면마다 층수 ----------
+  // 도면 이름에서 층을 짐작한다(「지상3층 평면도」「B1 평면」「3F」「옥탑」) — 제안일 뿐, 고르는 것은 사람이 한다.
+  function floorFromDrawingName(name){
+    const s = String(name||'');
+    let m = /지하\s*(중)?\s*(\d+)/.exec(s) || /(?:^|[^A-Za-z])B\s*(\d+)\s*F?(?![0-9])/i.exec(s);
+    if(m) return m.length === 3 ? '지하' + (m[1] ? '중' : '') + Number(m[2]) + '층' : '지하' + Number(m[1]) + '층';
+    if(/옥탑/.test(s)) return '옥탑층';
+    if(/지붕/.test(s)) return '지붕층';
+    m = /지상\s*(\d+)/.exec(s) || /(\d+)\s*층/.exec(s) || /(\d+)\s*F(?![A-Za-z])/i.exec(s);
+    return m && Number(m[1]) ? '지상' + Number(m[1]) + '층' : '';
+  }
+  function setDrawingFloor(d, v){
+    v = String(v||'').trim();
+    pushMultiUndo([d]);
+    d.floor = v;
+    // 층수가 빈 결함에만 넣는다 — 이미 다른 층을 적은 결함(계단실 도면 등)은 건드리지 않는다
+    let n = 0;
+    if(v) d.markers.forEach(m=>{ const fk = locKeysOf(m).floor; if(fk && !String(m[fk]||'').trim()){ m[fk] = v; n++; } });
+    markDirty();
+    renderDrawingTabs();
+    if(d === getActiveDrawing()){ renderTable(); renderCanvas(); }
+    showToast(v ? `「${d.name}」 도면의 층수를 ${v}(으)로 정했습니다` + (n ? ` — 층수가 빈 결함 ${n}건에도 넣었습니다.` : '. 이제 이 도면에 찍는 결함에 자동으로 들어갑니다.')
+                : `「${d.name}」 도면의 층수를 정하지 않음으로 바꿨습니다(결함마다 고릅니다).`);
   }
   document.getElementById('btnCarryToggle').addEventListener('click', ()=>{
     const next = !isCarryOn();
@@ -9955,7 +10023,7 @@
   function markerTableCells(){
     // 화면에 실제로 보이는(검색으로 걸러지지 않은) 카드의 입력칸만 대상으로 한다.
     return Array.from(document.querySelectorAll('#markerTable .marker-card'))
-      .filter(c=> c.style.display !== 'none' && !c.classList.contains('mc-folded'));   // 접힌 카드의 칸은 건너뛴다
+      .filter(c=> c.style.display !== 'none' && !c.classList.contains('mc-folded') && !c.classList.contains('mc-group-hidden'));   // 접힌 카드의 칸은 건너뛴다
   }
   /* ═══ 목록 상자 ══════════════════════════════════════════════
      브라우저의 <datalist> 는 칸을 누르기만 해도 열리고, 값을 넣고 칸을 옮긴 뒤에도
@@ -10036,6 +10104,42 @@
   function closeCellMenu(){
     if(cellMenu){ cellMenu.remove(); cellMenu = null; }
   }
+  // 층수·위치 단계별 단추 창 — 결함 목록 카드의 ▼ 와 도면 목록의 「층수」가 함께 쓴다.
+  // opts : onValue(v) 값이 정해질 때, floorOf() 위치 고를 때의 층(외부면 외부 분류를 바로), lead[] 맨 앞 제안 값, noneLabel
+  function openStepPopup(anchor, kind, getVal, opts){
+    closeCellMenu();
+    opts = opts || {};
+    const st = { group:null, mezz:null, cat:null };
+    const menu = document.createElement('div');
+    menu.className = 'cell-menu cell-menu-step';
+    menu.__for = anchor;
+    const draw = ()=>{
+      const v = getVal();
+      const lead = (opts.lead || []).map(x=> `<button type="button" class="recent" data-step-v="${escapeAttr(x)}" title="${escapeAttr(opts.leadTitle || '')}">${escapeHTML(x)}</button>`).join('');
+      menu.innerHTML = '<div class="cell-step">' + lead + (kind === 'floor' ? floorChoiceHTML(v, st) : locChoiceHTML(v, opts.floorOf ? opts.floorOf() : '', st))
+        + `<button type="button" class="none" data-v="">${escapeHTML(opts.noneLabel || '(비움)')}</button></div>`;
+    };
+    draw();
+    menu.addEventListener('mousedown', e => e.preventDefault());
+    menu.addEventListener('click', e => {
+      const t = e.target;
+      const res = t.closest('button[data-v=""]') ? { value:'', done:true } : stepPickClick(t, getVal(), st);
+      if(!res) return;
+      if(res.value !== undefined && opts.onValue) opts.onValue(res.value);
+      if(res.done){ closeCellMenu(); return; }
+      draw();
+    });
+    document.body.appendChild(menu);
+    cellMenu = menu;
+    menu.__armed = false;
+    requestAnimationFrame(() => { if (cellMenu === menu) menu.__armed = true; });
+    const r = anchor.getBoundingClientRect();
+    const mw = menu.offsetWidth, mh = menu.offsetHeight;
+    let top = r.bottom + 2;
+    if(top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 2);
+    menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - mw - 8)) + 'px';
+    menu.style.top = top + 'px';
+  }
   function openCellMenu(btn){
     closeCellMenu();
     const input = btn.parentElement && btn.parentElement.querySelector('input');
@@ -10049,39 +10153,15 @@
     // 층수·위치는 퀵입력과 같은 단계별 단추(최근 · 1단계 → 2단계 → 중층 / 분류 → 위치)
     const stepKind = locTax() ? (FLOOR_FIELD_KEYS.indexOf(btn.dataset.drop) >= 0 ? 'floor' : LOC_FIELD_KEYS.indexOf(btn.dataset.drop) >= 0 ? 'loc' : '') : '';
     if(stepKind){
-      const st = { group:null, mezz:null, cat:null };
       const card = btn.closest('.marker-card');
-      const floorOf = ()=>{ const f = card && card.querySelector('[data-role="rptFloor"], [data-role="eqFloor"]'); return f ? f.value : ''; };
-      const draw = ()=>{
-        menu.innerHTML = '<div class="cell-step">' + (stepKind === 'floor' ? floorChoiceHTML(input.value, st) : locChoiceHTML(input.value, floorOf(), st))
-          + '<button type="button" class="none" data-v="">(비움)</button></div>';
-      };
-      menu.classList.add('cell-menu-step');
-      draw();
-      menu.addEventListener('mousedown', e => e.preventDefault());
-      menu.addEventListener('click', e => {
-        const t = e.target;
-        const none = t.closest('button[data-v=""]');
-        const res = none ? { value:'', done:true } : stepPickClick(t, input.value, st);
-        if(!res) return;
-        if(res.value !== undefined){
-          input.value = res.value;
+      openStepPopup(input.closest('.mc-cell') || btn, stepKind, ()=> input.value, {
+        floorOf: ()=>{ const f = card && card.querySelector('[data-role="rptFloor"], [data-role="eqFloor"]'); return f ? f.value : ''; },
+        onValue: v=>{
+          input.value = v;
           input.dispatchEvent(new Event('input', {bubbles:true}));
           input.dispatchEvent(new Event('change', {bubbles:true}));
-        }
-        if(res.done){ closeCellMenu(); return; }
-        draw();
+        },
       });
-      document.body.appendChild(menu);
-      cellMenu = menu;
-      menu.__armed = false;
-      requestAnimationFrame(() => { if (cellMenu === menu) menu.__armed = true; });
-      const r = (input.closest('.mc-cell') || btn).getBoundingClientRect();
-      const mw = menu.offsetWidth, mh = menu.offsetHeight;
-      let top = r.bottom + 2;
-      if(top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 2);
-      menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - mw - 8)) + 'px';
-      menu.style.top = top + 'px';
       return;
     }
     menu.innerHTML = (multi ? '<div class="cell-menu-hint">여러 개 고를 수 있습니다 (/ 로 이어짐)</div>' : '') +
@@ -10126,7 +10206,7 @@
   }
   document.addEventListener('mousedown', e => {
     if(!cellMenu) return;
-    if(e.target.closest && (e.target.closest('.cell-menu') || e.target.closest('.cbtn'))) return;
+    if(e.target.closest && (e.target.closest('.cell-menu') || e.target.closest('.cbtn') || e.target.closest('.dt-floor'))) return;
     closeCellMenu();
   });
   window.addEventListener('resize', closeCellMenu);
@@ -10355,7 +10435,7 @@
     const emptyNote = document.getElementById('emptyMarkerNote');
     // 헤더(.marker-list-head)가 이제 카드와 같은 .marker-table 안에 있으므로, 예전처럼
     // innerHTML=''로 통째로 비우면 헤더까지 같이 지워진다 — 카드만 골라 지운다.
-    table.querySelectorAll('.marker-card').forEach(el=>el.remove());
+    table.querySelectorAll('.marker-card, .mc-group-head').forEach(el=>el.remove());
     // 태블릿에서 툴바의 긴 안내 문구를 접을지 판단하는 표식 — 마커를 한 번이라도 찍었다면 조작법을
     // 이미 익힌 것으로 보고 그 줄을 숨겨 도면 높이를 돌려준다(CSS: body.layout-tablet.has-markers).
     document.body.classList.toggle('has-markers', !!(d && d.markers.length>0));
@@ -10369,6 +10449,7 @@
     // 렌더링 직전에 항상 seq를 배열 순서와 맞춘다 — 방금 일어난 조작(번호 직접 입력·삭제 등)으로
     // 다른 마커들의 번호가 실제로 밀렸다면 여기서 재정렬 토스트가 뜬다.
     renumberDrawingMarkers(d);
+    const built = [];
     d.markers.forEach((m, idx)=>{
       const card = document.createElement('div');
       card.className = 'marker-card' + (selectedIds.has(m.id) ? ' selected' : '');
@@ -10480,8 +10561,35 @@
       // 고치는 중인 카드는 다시 그려도 접히지 않는다
       card.addEventListener('focusin', ()=>{ cardExpandedId = m.id; });
       card.addEventListener('input', ()=>{ cardExpandedId = m.id; });
-      table.appendChild(card);
+      built.push({ card, m });
     });
+    // 한 도면에 층이 둘 이상이면 층별로 묶어 보여 준다(아래층부터, 층 미정은 맨 끝). 번호는 그대로다.
+    const floorOfMarker = m=>{ const fk = locKeysOf(m).floor; return fk ? String(m[fk]||'').trim() : ''; };
+    const groupKeys = Array.from(new Set(built.map(x=> floorOfMarker(x.m))));
+    if(groupKeys.length < 2){
+      built.forEach(x=> table.appendChild(x.card));
+    } else {
+      groupKeys.sort((a, b)=> (a === '') - (b === '') || floorSortValue(a) - floorSortValue(b) || a.localeCompare(b));
+      groupKeys.forEach(g=>{
+        const items = built.filter(x=> floorOfMarker(x.m) === g);
+        const ck = d.id + '|' + g;
+        const closed = collapsedFloorGroups.has(ck);
+        const head = document.createElement('button');
+        head.type = 'button'; head.className = 'mc-group-head'; head.dataset.group = g;
+        head.title = closed ? '눌러서 이 층 결함 펼치기' : '눌러서 이 층 결함 접기';
+        head.innerHTML = `<span class="gh-arrow">${closed ? '▸' : '▾'}</span>${escapeHTML(g || '층 미정')}<span class="gh-n">${items.length}건</span>`;
+        head.addEventListener('click', ()=>{
+          if(collapsedFloorGroups.has(ck)) collapsedFloorGroups.delete(ck); else collapsedFloorGroups.add(ck);
+          renderTable();
+        });
+        table.appendChild(head);
+        items.forEach(x=>{
+          x.card.dataset.group = g;
+          if(closed && !selectedIds.has(x.m.id)) x.card.classList.add('mc-group-hidden');
+          table.appendChild(x.card);
+        });
+      });
+    }
     applyMarkerSearchFilter();
     renderBulkFillBar(); // 고른 건수가 바뀌면 "선택한 N건에 채우기" 줄도 함께 따라간다
     // 퀵입력·손글씨·여러 건 채우기처럼 목록만 다시 그리는 길에서도, 부재 묶음(집계·범례)이 바뀌었으면 맞춘다
@@ -10522,6 +10630,7 @@
   const FOLD_DONE_KEY = 'defectMarkerFoldDone_v1';
   var foldDoneOn = (()=>{ try{ return localStorage.getItem(FOLD_DONE_KEY) !== 'off'; }catch(err){ return true; } })();
   var cardExpandedId = null;
+  var collapsedFloorGroups = new Set();   // 결함 목록에서 접어 둔 층 묶음 (도면 id + '|' + 층)
   // 다 채움 = 외관조사는 부재·자재·결함, 장비조사는 부재가 있고, 글자로 안 바뀐 손글씨가 없는 것
   function isMarkerDone(m, isEq){
     const keys = isEq ? ['eqMember'] : ['rptType','rptMember','rptDefect'];
@@ -10589,6 +10698,11 @@
       const match = (!q || (card.dataset.search||'').includes(q)) && (!m || markerMatchesFilter(m, markerListFilter));
       card.style.display = match ? '' : 'none';
       if(match) visibleCount++;
+    });
+    // 층 묶음 머리 : 그 층에 보이는 결함이 없으면(검색·거르기) 머리도 숨긴다. 접어 둔 층은 머리를 남긴다.
+    document.querySelectorAll('#markerTable .mc-group-head').forEach(h=>{
+      const any = [...document.querySelectorAll('#markerTable .marker-card')].some(c=> c.dataset.group === h.dataset.group && c.style.display !== 'none');
+      h.style.display = any ? '' : 'none';
     });
     if((q || markerListFilter !== 'all') && visibleCount===0){
       noteEl.textContent = q ? '검색 결과가 없습니다.' : '해당하는 결함이 없습니다.';
@@ -14734,6 +14848,7 @@
         nd.legendScale = (typeof dd.legendScale==='number' && dd.legendScale>0) ? dd.legendScale : null;
         nd.imgScale = (typeof dd.imgScale==='number' && dd.imgScale>0) ? clamp(dd.imgScale, IMG_SCALE_RANGE[0], IMG_SCALE_RANGE[1]) : null;
         nd.presetName = dd.presetName || nd.presetName; // 없으면 buildDrawingFromImage가 넣어둔 "지금 프리셋" 유지(구버전 파일 호환)
+        nd.floor = typeof dd.floor === 'string' ? dd.floor.trim().slice(0, 40) : '';   // 도면의 층수(2026-11-19)
         drawings.push(nd);
         settled++; finishIfDone();
       };
@@ -14766,7 +14881,7 @@
       iconSizeMult: iconSizeMult,
       seriesPresetName: activePresetName,
       seriesSnapshot: DEFECT_TYPES,
-      drawings: drawings.map(d=>({ id:d.id, name:d.name, surveyLocation:d.surveyLocation||'', imgSrc:d.imgSrc, markers:d.markers, sketch:d.sketch||[], isBlank:!!d.isBlank, legendPct:d.legendPct||null, legendFramePct:d.legendFramePct||null, legendScale:d.legendScale||null, imgScale:d.imgScale||null, presetName:d.presetName||null }))
+      drawings: drawings.map(d=>({ id:d.id, name:d.name, surveyLocation:d.surveyLocation||'', floor:d.floor||'', imgSrc:d.imgSrc, markers:d.markers, sketch:d.sketch||[], isBlank:!!d.isBlank, legendPct:d.legendPct||null, legendFramePct:d.legendFramePct||null, legendScale:d.legendScale||null, imgScale:d.imgScale||null, presetName:d.presetName||null }))
     };
   }
 
@@ -16863,7 +16978,7 @@
       seriesPresetName: activePresetName,
       seriesSnapshot: DEFECT_TYPES,
       drawings: drawings.map(d=>({
-        id: d.id, name: d.name, surveyLocation: d.surveyLocation||'', legendPct: d.legendPct||null,
+        id: d.id, name: d.name, surveyLocation: d.surveyLocation||'', floor: d.floor||'', legendPct: d.legendPct||null,
         legendFramePct: d.legendFramePct||null, imgScale: d.imgScale||null,
         legendScale: d.legendScale||null, presetName: d.presetName||null,
         // 그린 선은 벡터라 이 "가벼운 메타" 쪽에 실린다 — 30초 주기 자동저장에 그대로 따라오고,
@@ -17259,7 +17374,7 @@
       get quickInputMarkerId(){ return quickInputMarkerId; },
       get lastCarryInk(){ return lastCarryInk; },
     },
-    info: { openMarkerInfo, closeMarkerInfo, photoKey, attachStampShot, buildInkSheet, buildWorkbookSheets, buildXLSXBlob, photoZipBaseName, shortTypeLabel, allPresets, buildSheetForPreset, isMobileDevice, buildSummarySheet, buildExportChecks, checkBackupNudge, runInkConvert, get inkGoogleFailStreak(){ return inkGoogleFailStreak; } },
+    info: { openMarkerInfo, closeMarkerInfo, photoKey, attachStampShot, buildInkSheet, buildWorkbookSheets, buildXLSXBlob, photoZipBaseName, shortTypeLabel, allPresets, buildSheetForPreset, isMobileDevice, floorFromDrawingName, setDrawingFloor, get drawings(){ return drawings; }, buildSummarySheet, buildExportChecks, checkBackupNudge, runInkConvert, get inkGoogleFailStreak(){ return inkGoogleFailStreak; } },
     get frameLayout(){ return frameLayout; },
     set frameLayout(v){ frameLayout = sanitizeFrameLayout(v); },
     get docTitlePct(){ return docTitlePct; },
