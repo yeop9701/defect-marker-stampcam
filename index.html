@@ -1754,7 +1754,7 @@
               <li><span class="kbd-hint">1~4</span>유형 선택</li>
               <li><span class="kbd-hint">S</span>선택 — 마커와 그린 것을 함께 고릅니다(드래그 영역에 완전히 들어온 것만)</li>
               <li><span class="kbd-hint">M</span>이동 모드 — 마커 이동 전용, 빈 곳 클릭은 무시</li>
-              <li><span class="kbd-hint">D</span>지우개 모드 — <b>도면 원본</b>을 지웁니다(클릭으로 마커 삭제, 드래그로 흰색 브러시). 직접 그린 선은 그리기의 <b>선 지우개(E)</b>로</li>
+              <li><span class="kbd-hint">D</span>부분 삭제 — <b>도면 원본</b>을 지웁니다(클릭으로 마커 삭제, 드래그로 흰색 브러시). 직접 그린 선은 그리기의 <b>선 지우개(E)</b>로</li>
               <li><span class="kbd-hint">W</span>그리기 모드 — <span class="kbd-hint">L</span>직선 <span class="kbd-hint">R</span>사각형 <span class="kbd-hint">P</span>자유선 <span class="kbd-hint">C</span>원 <span class="kbd-hint">A</span>화살표 <span class="kbd-hint">T</span>글자 <span class="kbd-hint">E</span>선 지우개</li>
               <li><span class="kbd-hint">Shift+C</span><span class="kbd-hint">Shift+G</span><span class="kbd-hint">G</span><span class="kbd-hint">Q</span>자르기 · 모눈(격자 스냅) · 전체 보기 · 좌표 안내</li>
               <li><span class="kbd-hint">Shift+L</span><span class="kbd-hint">Shift+R</span>도면 좌회전 · 우회전 (90°씩, 마킹도 함께 돌아갑니다)</li>
@@ -1823,7 +1823,7 @@
           <div class="btn-group">
             <button id="btnSelectMode" class="tool" title="선택 — 마커와 그린 것을 같은 도구로 고릅니다. 드래그 영역에 완전히 들어온 것만 선택되며, Shift+드래그로 곧게 옮기고 Ctrl+드래그로 복제합니다 (단축키 s)"><svg class="icon"><use href="#i-select"/></svg> 선택</button>
             <button id="btnMoveMode" class="tool" title="이동 모드 — 마커 이동 전용, 빈 곳 클릭으로는 아무 것도 생기지 않음 (단축키 m)"><svg class="icon"><use href="#i-move"/></svg> 이동</button>
-            <button id="btnEraseMode" class="tool" title="지우개 모드 — 도면 원본을 지웁니다. 마커는 클릭으로 삭제, 도면 이미지는 드래그하면 흰색 브러시로 지워짐. 직접 그린 선은 그리기의 선 지우개(E)로 지웁니다 (단축키 d)"><svg class="icon"><use href="#i-eraser"/></svg> 지우개</button>
+            <button id="btnEraseMode" class="tool" title="부분 삭제 — 도면 원본(이미지)을 지웁니다. 마커는 클릭으로 삭제, 도면 이미지는 드래그하면 흰색 브러시로 지워짐. 직접 그린 선은 그리기의 선 지우개(E)로 지웁니다 (단축키 d)"><svg class="icon"><use href="#i-eraser"/></svg> 부분 삭제</button>
             <button id="btnSketchMode" class="tool" title="그리기 모드 — 도면 위에 직선·사각형·자유선·글자를 그립니다. 도면이 없으면 빈 도면을 만들어 현장에서 직접 그릴 수 있습니다 (단축키 w)"><svg class="icon"><use href="#i-pencil"/></svg> 그리기</button>
           </div>
           <button type="button" id="btnZoomFit" class="tool" title="도면 전체가 보이도록 배율을 맞추고 가운데로 되돌립니다 (단축키 F). 스크롤하다 도면을 놓쳤을 때도 이 버튼으로 돌아옵니다."><svg class="icon"><use href="#i-fit"/></svg> 화면 맞춤</button>
@@ -1917,7 +1917,7 @@
               <button type="button" class="tool sketch-tool-btn" data-sketch-tool="ellipse" title="원/타원 (C) — 드래그. Shift: 정원"><svg class="icon"><use href="#i-sk-ellipse"/></svg></button>
               <button type="button" class="tool sketch-tool-btn" data-sketch-tool="arrow"   title="화살표 (A) — 드래그한 방향으로 화살촉이 붙습니다"><svg class="icon"><use href="#i-sk-arrow"/></svg></button>
               <button type="button" class="tool sketch-tool-btn" data-sketch-tool="text"    title="글자 (T) — 클릭한 자리에 바로 입력합니다(Enter 확정, Esc 취소)"><svg class="icon"><use href="#i-sk-text"/></svg></button>
-              <button type="button" class="tool sketch-tool-btn" data-sketch-tool="sketchErase" title="선 지우개 (E) — 지나간 그린 선을 지웁니다(도면 이미지와 마커는 건드리지 않음). 골라서 지우려면 「선택」(S) 후 Delete"><svg class="icon"><use href="#i-eraser-strong"/></svg></button>
+              <button type="button" class="tool sketch-tool-btn" data-sketch-tool="sketchErase" title="선 지우개 (E) — 지나간 그린 선과 결함 마킹을 지웁니다(도면 이미지는 그대로). 골라서 지우려면 「선택」(S) 후 Delete"><svg class="icon"><use href="#i-eraser-strong"/></svg></button>
             </div>
             <div class="sketch-colors" id="sketchColorRow"></div>
             <div class="btn-group" id="sketchWidthGroup">
@@ -2052,7 +2052,7 @@
         <div class="tablet-float-sep"></div>
         <button type="button" class="tablet-float-btn" id="btnFloatSelectMode" title="선택 — 마커와 그린 것 (S)"><svg class="icon"><use href="#i-select"/></svg></button>
         <button type="button" class="tablet-float-btn" id="btnFloatMoveMode" title="이동 모드 (M)"><svg class="icon"><use href="#i-move"/></svg></button>
-        <button type="button" class="tablet-float-btn" id="btnFloatEraseMode" title="지우개 모드 (D)"><svg class="icon"><use href="#i-eraser"/></svg></button>
+        <button type="button" class="tablet-float-btn" id="btnFloatEraseMode" title="부분 삭제 — 도면 이미지 지우기 (D)"><svg class="icon"><use href="#i-eraser"/></svg></button>
         <button type="button" class="tablet-float-btn" id="btnFloatSketchMode" title="그리기 모드 (W)"><svg class="icon"><use href="#i-pencil"/></svg></button>
         <!-- 그리기 중에만 나타나는 도구·색 묶음. 그리는 손은 화면 아래쪽에 있는데 도구는 화면 맨 위
              도구줄에만 있어서, 선 하나 바꿀 때마다 손을 위로 올려야 했다. 자주 쓰는 5개와 색만 여기 둔다
@@ -2069,7 +2069,7 @@
           <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="ellipse" title="원/타원"><svg class="icon"><use href="#i-sk-ellipse"/></svg></button>
           <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="arrow" title="화살표"><svg class="icon"><use href="#i-sk-arrow"/></svg></button>
           <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="text" title="글자"><svg class="icon"><use href="#i-sk-text"/></svg></button>
-          <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="sketchErase" title="선 지우개 — 지나간 그린 선을 지웁니다"><svg class="icon"><use href="#i-eraser-strong"/></svg></button>
+          <button type="button" class="tablet-float-btn float-sketch-tool float-sketch-only" data-sketch-tool="sketchErase" title="선 지우개 — 지나간 그린 선과 결함 마킹을 지웁니다"><svg class="icon"><use href="#i-eraser-strong"/></svg></button>
           <div class="tablet-float-sep float-sketch-only"></div>
           <div class="sketch-colors float-sketch-paint" id="tabletFloatColorRow"></div>
           <button type="button" class="tablet-float-btn float-sketch-pick float-sketch-paint" id="btnFloatColorPick" title="선 색 고르기"><i class="float-pick-swatch"></i></button>
@@ -6347,6 +6347,17 @@
   }
 
   function sketchEraseAt(d, pct){
+    // 2026-11-23 사용자 요청 : 그리기 안의 지우개로 결함 마킹도 지운다(부분 삭제의 「마커는 클릭」과 같은 판정).
+    const cv = document.getElementById('mainCanvas');
+    const mk = hitTestMarker(d, pct.x/100*cv.width, pct.y/100*cv.height);
+    if(mk){
+      removeMarkersById(d, idsWithLinkedPairs(d, [mk.id]));
+      selectedIds.delete(mk.id);
+      if(pendingAction){ pendingAction.removed = (pendingAction.removed||0) + 1; pendingAction.removedMarkers = (pendingAction.removedMarkers||0) + 1; }
+      markDirty();
+      renderCanvas(); renderTable();
+      return true;
+    }
     const hit = sketchHitTest(d, pct.x, pct.y, sketchEraseTolNatural(d));
     if(!hit) return false;
     const list = getSketch(d);
@@ -6861,6 +6872,7 @@
       // 아무 선도 지나가지 않았다면 방금 쌓은 실행취소 기록은 빈 기록이므로 걷어낸다
       // (그냥 두면 Ctrl+Z를 눌러도 아무 일도 안 일어나는 "먹통 한 번"이 생긴다).
       if(!pa.removed && undoStack.length) undoStack.pop();
+      if(pa.removedMarkers) showToast(`결함 마킹 ${pa.removedMarkers}개를 지웠습니다 — 잘못 지웠으면 실행취소(Ctrl+Z)`);
       renderCanvas();
       return;
     }
@@ -7382,6 +7394,9 @@
         ctx.stroke();
         if(pts.length===1){ ctx.beginPath(); ctx.arc(pts[0].x,pts[0].y,rBrush,0,Math.PI*2); ctx.fill(); }
         ctx.restore();
+        // 흰 미리보기는 도면 이미지만 지운다는 뜻인데, 마커 층 위에 칠해 그린 선까지 덮었다 — 문지르는
+        // 동안 선이 지워지는 것처럼 보이다가 손을 떼면 되살아났다(2026-11-23 확인). 그린 선은 다시 얹는다.
+        drawSketch(ctx, d, 0, 0, w, h);
       }
       if(eraseCursorPt){
         ctx.save();
@@ -11006,7 +11021,7 @@
     if(badge){
       badge.textContent = sketchTool==='pick' ? '선택 — 마커와 그린 것을 함께 고릅니다 · Esc 해제'
         : sketchTool ? ('그리기 모드 · ' + sketchToolLabel(sketchTool) + ' — Esc 또는 유형을 고르면 해제')
-        : eraseMode ? '지우개 모드 — Esc 또는 유형을 고르면 해제'
+        : eraseMode ? '부분 삭제 — Esc 또는 유형을 고르면 해제'
         : selectMode ? '선택 모드 — Esc 또는 유형을 고르면 해제'
         : moveMode ? '이동 모드 — Esc 또는 유형을 고르면 해제'
         : '';
@@ -11071,7 +11086,7 @@
         ellipse:['드래그로 원/타원을 그립니다 (<b>Shift</b>: 정원)', ''],
         arrow: ['드래그한 방향으로 화살촉이 붙습니다', ''],
         text:  ['클릭한 자리에 바로 입력합니다 (<b>Enter</b> 확정 · <b>Esc</b> 취소)', '이미 쓴 글자는 「선택」에서 두 번 누르면 고쳐 쓸 수 있습니다'],
-        sketchErase:['지나간 <b>그린 선만</b> 지웁니다', '도면 이미지와 결함 마커는 건드리지 않습니다 — 도면 원본을 지우려면 <b>지우개(d)</b>를 쓰세요'],
+        sketchErase:['지나간 <b>그린 선과 결함 마킹</b>을 지웁니다', '도면 이미지는 그대로입니다 — 도면 원본을 지우려면 <b>부분 삭제(d)</b>를 쓰세요 · 잘못 지우면 실행취소(Ctrl+Z)'],
         pick:  ['<b>마커와 그린 것을 함께</b> 고릅니다 — 눌러 고르고 끌어서 옮깁니다',
                 '<b>Shift</b>+드래그: 곧게 · <b>Ctrl</b>(또는 Alt)+드래그: 복제 · 빈 곳 드래그: 여러 개 고르기(<b>Shift</b>: 추가)'
                 + ' · <b>Ctrl+C</b>/<b>Ctrl+V</b>: 다른 도면으로 그린 것 복사 · <b>Delete</b>: 삭제'
@@ -11097,8 +11112,8 @@
       return;
     }
     if(eraseMode){
-      renderModeHint('<b>지우개</b> (d) — <b>도면 원본</b>을 지웁니다 (마커는 클릭, 도면은 드래그)',
-        '드래그하면 브러시처럼 흰색으로 덮어 지웁니다. <b>직접 그린 선</b>은 이 지우개로 지워지지 않습니다 — 그리기의 <b>선 지우개(e)</b>를 쓰거나, 「선택」에서 골라 <b>Delete</b>를 누르세요');
+      renderModeHint('<b>부분 삭제</b> (d) — <b>도면 원본</b>을 지웁니다 (마커는 클릭, 도면은 드래그)',
+        '드래그하면 브러시처럼 흰색으로 덮어 지웁니다. <b>직접 그린 선</b>은 지워지지 않습니다 — 그리기의 <b>선 지우개(e)</b>를 쓰거나, 「선택」에서 골라 <b>Delete</b>를 누르세요');
     } else if(selectMode){
       renderModeHint('<b>선택</b> (s) — 마커와 그린 것을 함께 고릅니다',
         '빈 곳을 드래그하면 완전히 안에 들어온 것만 선택됩니다(<b>Shift</b>: 추가/해제) · <b>Shift</b>+드래그: 곧게 옮기기 · <b>Ctrl</b>+드래그: 복제');
@@ -11124,7 +11139,7 @@
       const shortcutRange = selectableCount>1 ? `1~${Math.min(selectableCount,9)}` : '1';
       renderModeHint(
         `현재 선택된 유형: <b id="activeTypeLabel">${escapeHTML(getType(activeTypeKey).label)}</b> (단축키 ${shortcutRange}) — 클릭해 추가, 드래그로 방향·길이 지정 (Shift: 수직/수평 고정)`,
-        '<b>s</b>: 선택(마커·그린 것 함께) · <b>m</b>: 이동 · <b>d</b>: 지우개 · <b>f</b>: 화면 맞춤 · <b>g</b>: 전체 보기 · <b>q</b>: 좌표안내'
+        '<b>s</b>: 선택(마커·그린 것 함께) · <b>m</b>: 이동 · <b>d</b>: 부분 삭제 · <b>f</b>: 화면 맞춤 · <b>g</b>: 전체 보기 · <b>q</b>: 좌표안내'
         + ' · <b>Shift+C</b>: 자르기 · <b>Shift+L/R</b>: 좌·우 회전'
         + ' · 그리기는 <b>l</b> 직선 · <b>r</b> 사각형 · <b>c</b> 원 · <b>a</b> 화살표 · <b>p</b> 자유선 · <b>t</b> 글자 · <b>e</b> 선 지우개 (w를 거치지 않고 바로)'
       );
@@ -11480,7 +11495,7 @@
       const cv = document.getElementById('mainCanvas');
       if(sketchHitTest(d, x/cv.width*100, y/cv.height*100, eraseBrushRadiusNatural(d))){
         sketchEraseHintShown = true;
-        showToast('이 지우개는 도면 원본과 결함 마커를 지웁니다. 직접 그린 선은 「그리기」의 선 지우개(E)로 지우세요.');
+        showToast('부분 삭제는 도면 원본과 결함 마커를 지웁니다. 직접 그린 선은 「그리기」의 선 지우개(E)로 지우세요.');
       }
     }
     return false;
@@ -16446,6 +16461,24 @@
   }
   canvas.addEventListener('mousemove', onPointerMove);
   canvas.addEventListener('pointermove', onSketchPenPointerMove);
+  // 지우개 점선 원 — 예전에는 마우스를 「누르지 않고」 움직일 때만 따라와서, 실제로 지우는 동안과
+  // 태블릿(손가락·S펜)에서는 어디를 지우는지 보이지 않았다(2026-11-23). 포인터 이벤트로 누르는 동안·
+  // 펜을 띄워 댄 상태(호버)까지 따라가게 하고, 손가락은 떼면 감춘다(손을 뗀 자리에 원이 남지 않게).
+  function eraserCursorActive(){ return eraseMode || sketchTool === 'sketchErase'; }
+  function trackEraserCursor(e){
+    if(!eraserCursorActive()) return;
+    const r = canvas.getBoundingClientRect(); if(!r.width || !r.height) return;
+    eraseCursorPt = { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) };
+    scheduleMarkerRender();
+  }
+  canvas.addEventListener('pointerdown', trackEraserCursor);
+  canvas.addEventListener('pointermove', trackEraserCursor);
+  ['pointerup','pointercancel'].forEach(t=> canvas.addEventListener(t, e=>{
+    if(e.pointerType === 'touch' && eraseCursorPt){ eraseCursorPt = null; scheduleMarkerRender(); }
+  }));
+  canvas.addEventListener('pointerleave', e=>{
+    if(e.pointerType !== 'mouse' && eraseCursorPt){ eraseCursorPt = null; scheduleMarkerRender(); }
+  });
 
   function onPointerUp(e){
     if(legendDragState){
@@ -17572,6 +17605,7 @@
     get selectedSketchIds(){ return Array.from(selectedSketchIds); },
     set selectedSketchIds(v){ selectedSketchIds = new Set(v); },
     get selectedIds(){ return Array.from(selectedIds); },
+    get eraseCursorPt(){ return eraseCursorPt ? { x:eraseCursorPt.x, y:eraseCursorPt.y } : null; },
     set selectedIds(v){ selectedIds = new Set(v); },
     get sketchClipboard(){ return sketchClipboard; },
     get pendingActionMode(){ return pendingAction ? pendingAction.mode : null; },

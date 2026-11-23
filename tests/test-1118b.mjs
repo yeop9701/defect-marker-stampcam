@@ -69,7 +69,7 @@ const eIcon = await ev(`document.querySelector('#sketchToolGroup [data-sketch-to
 const dIcon = await ev(`document.querySelector('#btnEraseMode use').getAttribute('href')`);
 eq([eIcon, dIcon], ['#i-eraser-strong', '#i-eraser'], '선 지우개(E)만 굵은 지우개 아이콘, 지우개(D)는 그대로');
 ok(await ev(`(()=>{const s=document.getElementById('i-eraser-strong'); return !!s && [...s.querySelectorAll('path')].some(p=>p.getAttribute('fill')==='currentColor');})()`), '  → 고무 쪽이 꽉 찬 지우개');
-ok(await ev(`/선 지우개/.test(document.querySelector('#sketchToolGroup [data-sketch-tool="sketchErase"]').title) && /지우개/.test(document.getElementById('btnEraseMode').textContent)`), '  → 이름(선 지우개 · 지우개)은 그대로');
+ok(await ev(`/선 지우개/.test(document.querySelector('#sketchToolGroup [data-sketch-tool="sketchErase"]').title) && /부분 삭제/.test(document.getElementById('btnEraseMode').textContent)`), '  → 이름 : 선 지우개 · 부분 삭제(11-23 「지우개」에서 바꿈)');
 
 /* ══ ② 그리기 바 겹침 (태블릿) ══ */
 console.log('\n[2] 그리기 도구 겹침');
