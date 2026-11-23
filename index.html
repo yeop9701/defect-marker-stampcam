@@ -527,6 +527,21 @@
   .ink-picker-empty{font-size:12.5px;color:var(--text-secondary);padding:4px;}
   /* 결함 목록 카드 : 글자로 아직 안 바꾼 칸에는 쓴 글씨를 그대로 그려 둔다 */
   #markerTable input.ink-only{background-repeat:no-repeat;background-position:4px center;background-size:contain;background-origin:content-box;}
+  /* 손글씨를 글자로 바꾼 칸 — 확인 전까지 ✋ (칸 왼쪽 위 모서리) */
+  #markerTable .mc-cell.has-hand{position:relative;}
+  #markerTable .hand-badge{position:absolute;left:-4px;top:-7px;z-index:2;width:20px;height:20px;min-height:0;padding:0;border:1px solid #d97706;border-radius:50%;
+    background:#fff7e6;font-size:11px;line-height:18px;text-align:center;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+  #markerTable .mc-cell.has-hand input{box-shadow:inset 0 0 0 1.5px #f59e0b;}
+  .hand-pop{position:fixed;z-index:3000;min-width:220px;max-width:min(360px,calc(100vw - 16px));padding:10px 12px;border-radius:10px;
+    background:var(--surface-1);color:var(--text-primary);border:1px solid var(--gridline);box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:13px;}
+  .hand-pop .hp-head{font-weight:700;margin-bottom:8px;}
+  .hand-pop .hp-cmp{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:var(--surface-2);margin-bottom:10px;min-width:0;}
+  .hand-pop .hp-cmp img{max-height:40px;max-width:180px;}
+  .hand-pop .hp-cmp b{font-size:15px;overflow-wrap:anywhere;}
+  .hand-pop .hp-btns{display:flex;gap:8px;}
+  .hand-pop .hp-btns button{flex:1;min-height:36px;}
+  .hand-pop .hp-btns button.strong{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+  .mc-fold-sum .fs-hand{flex:0 0 auto;padding:0 6px;border-radius:10px;background:#fff7e6;color:#9a4b00;font-size:12px;font-weight:700;}
   .ink-float-btn{position:relative;font-size:20px;}
   .ink-float-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;
     background:#b7791f;color:#fff;font-size:11px;line-height:18px;font-weight:700;}
@@ -9337,13 +9352,70 @@
     });
   }
   // 결함 목록 카드 : 글자로 아직 안 바뀐 칸에는 쓴 글씨를 칸 배경으로 그려 둔다
+  // 손글씨를 앱이 글자로 바꿔 넣은 칸 — 사람이 아직 확인하지 않았으면 ✋ 표시(2026-11-23 요청 「나중에
+  // 다시 확인해야 하니까」). 목록에서 고른 값(pick)·직접 친 값(manual)·그 뒤 손으로 고친 값·「맞음」을
+  // 누른 칸(e.ok)은 사람이 본 것이므로 표시하지 않는다.
+  function inkNeedsCheck(m, k){
+    const e = m.ink && m.ink[k];
+    if(!e || !window.Ink || !Ink.hasInk(e) || e.ok || e.st !== 'done') return false;
+    if(e.eng === 'pick' || e.eng === 'manual') return false;
+    const v = String(m[k]||'').trim();
+    return !!v && v === String(e.text||'').trim();
+  }
+  function inkCheckKeys(m){ return m.ink ? Object.keys(m.ink).filter(k=> inkNeedsCheck(m, k)) : []; }
+  function closeHandPop(){ const p = document.getElementById('handPop'); if(p) p.remove(); }
+  function openHandPop(btn, m, k){
+    closeHandPop();
+    const e = m.ink[k];
+    const color = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#111';
+    const label = (inkFieldsFor(m).find(f=> f.k === k) || {}).label || k;
+    const pop = document.createElement('div');
+    pop.id = 'handPop'; pop.className = 'hand-pop';
+    pop.innerHTML = `<div class="hp-head">✋ ${escapeHTML(label)} — 손글씨를 글자로 바꾼 값</div>`
+      + `<div class="hp-cmp"><img alt="손글씨" src="${Ink.thumbURL(e, color)}"><span class="hp-arrow">→</span><b>${escapeHTML(String(m[k]||''))}</b></div>`
+      + `<div class="hp-btns"><button type="button" class="strong" data-hp="ok">맞음 (표시 지우기)</button><button type="button" data-hp="fix">고치기</button></div>`;
+    document.body.appendChild(pop);
+    const r = btn.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+    pop.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left - 8)) + 'px';
+    pop.style.top = (r.bottom + 6 + ph > window.innerHeight - 8 ? Math.max(8, r.top - ph - 6) : r.bottom + 6) + 'px';
+    pop.addEventListener('click', ev=>{
+      const b = ev.target.closest('[data-hp]'); if(!b) return;
+      closeHandPop();
+      if(b.dataset.hp === 'ok'){
+        pushUndo();
+        m.ink = Object.assign({}, m.ink, { [k]: Object.assign({}, m.ink[k], { ok:true }) });
+        markDirty(); renderTable();
+      } else {
+        cardExpandedId = m.id;
+        renderTable();
+        const el = document.querySelector(`#markerTable .marker-card[data-id="${CSS.escape(m.id)}"] [data-role="${k}"]`);
+        if(el){ el.focus(); if(el.select) el.select(); }
+      }
+    });
+    setTimeout(()=> document.addEventListener('pointerdown', function off(ev){
+      if(ev.target.closest('#handPop')) return;
+      document.removeEventListener('pointerdown', off, true); closeHandPop();
+    }, true), 0);
+  }
   function decorateInkCells(card, m){
     if(!m.ink || !window.Ink) return;
     let color = null;
     for(const k in m.ink){
       const e = m.ink[k]; if(!Ink.hasInk(e)) continue;
       const el = card.querySelector(`[data-role="${k}"]`); if(!el) continue;
-      if(String(m[k]||'').trim()){ el.title = (el.title ? el.title + ' · ' : '') + '손글씨 원본 있음'; continue; }
+      if(String(m[k]||'').trim()){
+        el.title = (el.title ? el.title + ' · ' : '') + '손글씨 원본 있음';
+        const cell = el.closest('.mc-cell');
+        if(cell && inkNeedsCheck(m, k)){
+          cell.classList.add('has-hand');
+          const hb = document.createElement('button');
+          hb.type = 'button'; hb.className = 'hand-badge'; hb.tabIndex = -1; hb.dataset.hand = k;
+          hb.textContent = '✋'; hb.title = '손글씨를 글자로 바꾼 값 — 눌러서 원본과 비교·확인';
+          hb.addEventListener('click', ev=>{ ev.stopPropagation(); openHandPop(hb, m, k); });
+          cell.appendChild(hb);
+        }
+        continue;
+      }
       if(!color) color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1a4f8a';
       el.classList.add('ink-only');
       el.style.backgroundImage = `url("${Ink.thumbURL(e, color)}")`;
@@ -9568,6 +9640,7 @@
     if(f === 'missing') return missingFieldLabels(m).length > 0;
     if(f === 'nophoto') return markerHasNoPhoto(m);
     if(f === 'ink') return markerInkTodo(m);
+    if(f === 'hand') return inkCheckKeys(m).length > 0;
     return true;
   }
   // ---------- 저장 전 점검 ----------
@@ -10721,6 +10794,7 @@
       + `<span class="fs-what">${escapeHTML(what)}</span>`
       + (size ? `<span class="fs-size">${escapeHTML(size)}</span>` : '')
       + ((tag || photos) ? `<span class="fs-tag">${tag ? '#' + escapeHTML(tag) : ''}${photos ? ` 📷${photos}` : ''}</span>` : '')
+      + (inkCheckKeys(m).length ? `<span class="fs-hand" title="손글씨를 글자로 바꾼 칸 — 확인 필요">✋${inkCheckKeys(m).length}</span>` : '')
       + (open ? `<span class="fs-open fs-close">▴ 접기</span>` : `<span class="fs-open">▾</span>`);
   }
   function applyFoldToggleUI(){
@@ -10745,8 +10819,9 @@
     if(!row) return;
     const list = d ? d.markers : [];
     row.style.display = list.length ? '' : 'none';
-    row.innerHTML = [['all','전체'],['missing','미입력'],['nophoto','사진 없음'],['ink','손글씨 미변환']].map(([k, label])=>{
+    row.innerHTML = [['all','전체'],['missing','미입력'],['nophoto','사진 없음'],['ink','손글씨 미변환'],['hand','✋ 확인']].map(([k, label])=>{
       const n = list.filter(m=> markerMatchesFilter(m, k)).length;
+      if(k === 'hand' && !n && markerListFilter !== 'hand') return '';
       return `<button type="button" data-filter="${k}" class="${markerListFilter===k ? 'on' : ''}">${label} ${n}</button>`;
     }).join('');
   }
