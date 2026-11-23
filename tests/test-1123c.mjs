@@ -68,7 +68,7 @@ await T('touchEnd'); await sleep(120);
 eq(await cur(), null, '  떼면 감춘다');
 await ev(`__markerDbg.setSketchTool(null); true`);
 
-console.log('\n[2. 선 지우개가 결함 마킹도 지운다]');
+console.log('\n[2. 선 지우개는 그린 선만 (4차에서 되돌림)]');
 await ev(`(()=>{const d=${D};const k=__markerDbg.info.allPresets()[0].series[0].key;d.markers=[{id:'a',uid:'a',typeKey:k,xPct:30,yPct:30,seq:1},{id:'b',uid:'b',typeKey:k,xPct:70,yPct:30,seq:2,rptDefect:'균열'}];d.sketch=[{id:'s1',tool:'line',color:'#0b0b0b',width:1,pts:[{x:20,y:60},{x:80,y:60}]}];__markerDbg.renderCanvas();__markerDbg.renderTable();return true})()`);
 await ev(`__markerDbg.setSketchTool('sketchErase'); true`); await sleep(200);
 const mp = await ev(`(()=>{const r=document.getElementById('mainCanvas').getBoundingClientRect();return {x:r.left+r.width*0.30,y:r.top+r.height*0.30}})()`);
@@ -78,17 +78,16 @@ const lp = await ev(`(()=>{const r=document.getElementById('mainCanvas').getBoun
 for (let i = 1; i <= 8; i++) { await T('touchMove', mp.x + (lp.x - mp.x) * i / 8, mp.y + (lp.y + 10 - mp.y) * i / 8); await sleep(20); }
 await T('touchMove', lp.x, lp.y - 10); await sleep(20); await T('touchMove', lp.x, lp.y); await sleep(20); await T('touchMove', lp.x, lp.y + 10); await sleep(30);
 await T('touchEnd'); await sleep(300);
-eq(await ev(`[${D}.markers.map(m=>m.id), ${D}.sketch.length]`), [['b'], 0], '문지른 마킹 a 와 그린 선이 지워지고, 안 닿은 b 는 남는다');
-ok(String(await ev(`(document.querySelector('.app-toast-stack')||{}).textContent||''`)).includes('결함 마킹 1개'), '  「결함 마킹 1개를 지웠습니다」 알림');
+eq(await ev(`[${D}.markers.map(m=>m.id), ${D}.sketch.length]`), [['a', 'b'], 0], '(4차에서 되돌림) 그린 선만 지워지고 문지른 마킹 a 는 남는다');
 await ev(`__markerDbg.undo(); true`); await sleep(250);
-eq(await ev(`[${D}.markers.map(m=>m.id), ${D}.sketch.length]`), [['a', 'b'], 1], '실행취소 한 번에 마킹과 선이 함께 돌아온다');
+eq(await ev(`[${D}.markers.map(m=>m.id), ${D}.sketch.length]`), [['a', 'b'], 1], '실행취소로 선이 돌아온다');
 await ev(`__markerDbg.setSketchTool(null); true`);
 
-console.log('\n[3. 이름 「부분 삭제」]');
-eq(await ev(`document.getElementById('btnEraseMode').textContent.trim()`), '부분 삭제', '도구줄 단추');
-ok((await ev(`document.getElementById('btnFloatEraseMode').title`)).startsWith('부분 삭제'), '태블릿 하단 단추 설명');
+console.log('\n[3. 이름 「마킹/부분 삭제」]');
+eq(await ev(`document.getElementById('btnEraseMode').textContent.trim()`), '마킹/부분 삭제', '도구줄 단추');
+ok((await ev(`document.getElementById('btnFloatEraseMode').title`)).startsWith('마킹/부분 삭제'), '태블릿 하단 단추 설명');
 await ev(`document.getElementById('btnFloatEraseMode').click(); true`); await sleep(250);
-ok((await ev(`document.body.innerText`)).includes('부분 삭제 — Esc'), '켰을 때 이름표');
+ok((await ev(`document.body.innerText`)).includes('마킹/부분 삭제 — Esc'), '켰을 때 이름표');
 ok(!(await ev(`document.body.innerText`)).includes('지우개 모드'), '「지우개 모드」 문구가 남아 있지 않다');
 
 console.log('\n[4. 부분 삭제로 문질러도 그린 선은 그대로 보인다]');
