@@ -1120,6 +1120,9 @@
   .mc-fold-sum .fs-what{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:700;}
   .mc-fold-sum .fs-size,.mc-fold-sum .fs-tag{flex:0 0 auto;color:var(--text-secondary);font-variant-numeric:tabular-nums;}
   .mc-fold-sum .fs-open{flex:0 0 auto;color:var(--muted);font-size:11px;}
+  /* 펼친 「다 채운 결함」 맨 위 요약 줄 — 누르면 다시 접힌다 */
+  .marker-card.mc-unfolded .mc-fold-sum{margin-bottom:4px;border-bottom:1px solid var(--gridline);border-radius:6px 6px 0 0;}
+  .mc-fold-sum .fs-close{padding:3px 10px;border-radius:12px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;}
   /* 「마킹 전체 복사」「마킹 제외 복사」 : 좁은 서랍에서 글자가 버튼 밖으로 나가지 않게 줄을 바꿔 담는다 */
   .dup-btn{flex:1 1 0;min-width:0;padding:6px 6px;justify-content:center;gap:5px;
     white-space:normal;word-break:keep-all;text-align:center;line-height:1.2;font-size:12.5px;}
@@ -5591,7 +5594,17 @@
     }
     // pen / line / arrow — 점을 순서대로 잇는 것은 같고, arrow만 끝에 화살촉을 더 얹는다.
     ctx.beginPath();
-    for(let i=0; i<pts.length; i++){
+    if(s.tool === 'pen' && pts.length >= 3){
+      // 자유선은 점과 점 사이를 꺾은선이 아니라 곡선으로 잇는다(2026-11-23 「손글씨 쓰는 것처럼」).
+      // 이웃한 두 점의 가운데를 지나고 각 점을 조절점으로 삼는 2차 곡선 — 저장된 점은 그대로라
+      // 길이 재기·스냅·선 지우개 판정은 예전과 같다.
+      const p0 = P(0); ctx.moveTo(p0.x, p0.y);
+      for(let i=1; i<pts.length-1; i++){
+        const a = P(i), b = P(i+1);
+        ctx.quadraticCurveTo(a.x, a.y, (a.x+b.x)/2, (a.y+b.y)/2);
+      }
+      const z = P(pts.length-1); ctx.lineTo(z.x, z.y);
+    } else for(let i=0; i<pts.length; i++){
       const p = P(i);
       if(i===0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
     }
@@ -6717,16 +6730,47 @@
     pendingAction.curPct = applyGridSnap(d, pct, e);
     pendingAction.moved = true;
     if(pendingAction.tool === 'pen'){
-      // 포인터가 오는 대로 다 담지 않고 최소 간격 이상 움직였을 때만 점을 더한다(1차 솎아내기).
-      const last = pendingAction.ptsPct[pendingAction.ptsPct.length-1];
-      const stepN = Math.hypot((pct.x-last.x)/100*d.naturalW, (pct.y-last.y)/100*d.naturalH);
-      if(stepN >= Math.max(1, Math.min(d.naturalW, d.naturalH)*0.0012)) pendingAction.ptsPct.push({x:pct.x, y:pct.y});
+      // 펜이 포인터 이벤트로 중간 점까지 넘겨주고 있으면(onSketchPenPointerMove) 여기서는 더하지 않는다.
+      // 포인터 이벤트가 끊긴 기기(옛 브라우저·취소된 포인터)에서는 예전처럼 터치·마우스 좌표를 쓴다.
+      if(!(pendingAction.ptrFedAt && performance.now() - pendingAction.ptrFedAt < 80)) addPenPoint(d, pendingAction, pct);
     } else if(pendingAction.tool === 'line' || pendingAction.tool === 'arrow'){
       const snap = sketchSnapPoint(d, pct.x, pct.y, sketchSnapTolNatural(d));
       pendingAction.endSnap = snap;
       pendingAction.snapHit = snap;
     }
     scheduleMarkerRender();
+  }
+
+  // 자유선 점 하나 더하기. 손떨림을 걷어내도록 지금 펜 위치를 바로 쓰지 않고 앞 점 쪽으로 조금
+  // 끌어당긴 자리(지수 이동 평균)를 쓴다 — 펜 끝이 고무줄로 끌려오는 느낌이라 글씨가 매끄러워진다.
+  // 끝에 생기는 약간의 지연은 손을 뗄 때 마지막 실제 위치를 더해 메운다(handleSketchPointerUp).
+  const PEN_SMOOTH = 0.45;   // 0 = 그대로, 1에 가까울수록 많이 끌린다
+  function addPenPoint(d, pa, pct){
+    pa.rawLastPct = { x:pct.x, y:pct.y };
+    const prev = pa.smPct || pa.ptsPct[pa.ptsPct.length-1];
+    const sm = { x: prev.x + (pct.x-prev.x)*(1-PEN_SMOOTH), y: prev.y + (pct.y-prev.y)*(1-PEN_SMOOTH) };
+    pa.smPct = sm;
+    // 최소 간격 이상 움직였을 때만 점을 담는다(1차 솎아내기) — 중간 점이 많이 오므로 간격은 촘촘하게.
+    const last = pa.ptsPct[pa.ptsPct.length-1];
+    const stepN = Math.hypot((sm.x-last.x)/100*d.naturalW, (sm.y-last.y)/100*d.naturalH);
+    if(stepN >= Math.max(0.6, Math.min(d.naturalW, d.naturalH)*0.0006)) pa.ptsPct.push({x:sm.x, y:sm.y});
+  }
+  // 펜·손가락은 화면 갱신(초당 60번) 사이에도 위치를 여러 번 보낸다. 터치 이벤트는 그중 마지막 것만
+  // 주므로 빨리 쓰면 글씨가 각진 꺾은선이 됐다 — 포인터 이벤트의 getCoalescedEvents()로 사이 점까지 받는다.
+  function onSketchPenPointerMove(e){
+    const pa = pendingAction;
+    if(!pa || pa.mode !== 'sketch' || pa.tool !== 'pen') return;
+    const d = getActiveDrawing(); if(!d) return;
+    const cv = document.getElementById('mainCanvas');
+    const rect = cv.getBoundingClientRect();
+    if(!rect.width || !rect.height) return;
+    const evs = (e.getCoalescedEvents && e.getCoalescedEvents()) || [];
+    const list = evs.length ? evs : [e];
+    list.forEach(ce=>{
+      const p = { x:(ce.clientX-rect.left)*(cv.width/rect.width), y:(ce.clientY-rect.top)*(cv.height/rect.height) };
+      addPenPoint(d, pa, canvasPtToPct(p));
+    });
+    pa.ptrFedAt = performance.now();
   }
 
   // onPointerUp이 전역 pendingAction을 먼저 비우고 로컬 변수로 마무리하는 구조라, 여기서도
@@ -6811,7 +6855,12 @@
     const stroke = buildSketchStrokeFromAction(d, pa);
     if(!stroke || !stroke.pts || stroke.pts.length === 0){ renderCanvas(); return; }
     if(pa.tool === 'pen'){
-      stroke.pts = simplifyRDP(stroke.pts, 0.18);  // % 단위 허용오차 — 모양은 그대로, 점 수는 크게 줄어든다
+      // 끌려오던 끝을 손을 뗀 실제 자리까지 잇는다
+      const rl = pa.rawLastPct, lp = stroke.pts[stroke.pts.length-1];
+      if(rl && lp && Math.hypot((rl.x-lp.x)/100*d.naturalW, (rl.y-lp.y)/100*d.naturalH) >= 0.6) stroke.pts.push({ x:rl.x, y:rl.y });
+      // % 단위 허용오차. 예전 0.18 은 곡선이 각진 꺾은선이 될 만큼 컸다 — 곡선으로 그리는 지금은
+      // 모양을 지키도록 촘촘하게 남긴다(그래도 원래 점 수의 몇 분의 1).
+      stroke.pts = simplifyRDP(stroke.pts, 0.05);
       if(stroke.pts.length < 2){ renderCanvas(); return; }
       // 거의 직선으로 그은 자유선은 직선으로 바꾼다. tool까지 'line'으로 바꾸는 이유는, 그래야
       // 이 획의 끝점이 이후 다른 선의 끝점 스냅 대상이 되어 벽선을 계속 이어 그릴 수 있기 때문이다.
@@ -9392,18 +9441,28 @@
     if(inkBoxes && quickInputMarkerId===m.id && inkBoxes[it.k]) inkBoxes[it.k].update(next, m[it.k]);
     return next.st;
   }
-  function scheduleInkAutoConvert(delay){
+  // 「손글씨 입력」(s.on)은 이 기기에서 필기 상자를 띄울지만 정한다 — 컴퓨터에서는 대개 꺼 두지만,
+  // 태블릿에서 써 온 글씨를 JSON 으로 옮겨 오면 컴퓨터에서 바뀌어야 한다(2026-11-23). 그래서 자동 변환은
+  // s.auto 만 본다.
+  var inkAutoRetryErrors = false;
+  function scheduleInkAutoConvert(delay, opts){
     if(!window.Ink) return;
     const s = Ink.loadSettings();
-    if(!s.on || !s.auto || (s.engine==='claude' && !s.apiKey)) return;
+    if(!s.auto || (s.engine==='claude' && !s.apiKey)) return;
     if(navigator.onLine === false) return;
+    if(opts && opts.retryErrors) inkAutoRetryErrors = true;
     clearTimeout(inkAutoTimer);
-    inkAutoTimer = setTimeout(()=> runInkConvert({ auto:true }), delay==null ? 1500 : delay);
+    inkAutoTimer = setTimeout(()=>{
+      const retry = inkAutoRetryErrors; inkAutoRetryErrors = false;
+      runInkConvert({ auto:true, retryErrors: retry });
+    }, delay==null ? 1500 : delay);
   }
   async function runInkConvert(opts){
     opts = opts || {};
     if(inkConvertBusy || !window.Ink) return;
-    const items = inkItemsAll().filter(it=> inkNeedsConvert(it) && !(opts.auto && it.ink.st==='error'));
+    // 자동 변환은 한 번 실패한 칸을 다시 보내지 않는다 — 다만 파일을 새로 열었을 때는(태블릿 현장에서
+    // 인터넷이 약해 실패한 칸) 한 번 더 보낸다.
+    const items = inkItemsAll().filter(it=> inkNeedsConvert(it) && !(opts.auto && !opts.retryErrors && it.ink.st==='error'));
     if(!items.length){ if(!opts.auto) showToast('바꿀 손글씨가 없습니다.'); return; }
     const itemKey = it=> it.m.id + '|' + it.k + '|' + Ink.inkHash(it.ink);
     const sent = new Set(items.map(itemKey));
@@ -10549,13 +10608,26 @@
       }
       decorateInkCells(card, m);
       // 입력이 끝난 결함은 한 줄 요약으로 접는다(2026-11-19). 고른 결함·손대고 있는 결함은 펼친다.
-      if(!isTiltPos && !isTiltDir && !isLv && foldDoneOn && m.id !== cardExpandedId && !selectedIds.has(m.id) && isMarkerDone(m, isEq)){
-        card.classList.add('mc-folded');
+      if(!isTiltPos && !isTiltDir && !isLv && foldDoneOn && isMarkerDone(m, isEq)){
+        const open = m.id === cardExpandedId || selectedIds.has(m.id);
         const sum = document.createElement('button');
         sum.type = 'button'; sum.className = 'mc-fold-sum'; sum.dataset.role = 'fold';
-        sum.title = '눌러서 펼치기';
-        sum.innerHTML = foldSummaryHTML(m, idx, d, isEq);
-        sum.addEventListener('click', ()=>{ cardExpandedId = m.id; selectOnly(m.id); scrollCanvasToMarker(m); renderTable(); });
+        sum.innerHTML = foldSummaryHTML(m, idx, d, isEq, open);
+        if(!open){
+          card.classList.add('mc-folded');
+          sum.title = '눌러서 펼치기';
+          sum.addEventListener('click', ()=>{ cardExpandedId = m.id; selectOnly(m.id); scrollCanvasToMarker(m); renderTable(); });
+        } else {
+          // 펼친 카드도 맨 위에 같은 요약 줄을 남겨, 누르면 다시 접힌다(2026-11-23 — 예전에는 펼치면
+          // 다른 결함을 고르기 전까지 접을 방법이 없었다).
+          card.classList.add('mc-unfolded');
+          sum.title = '눌러서 다시 접기';
+          sum.addEventListener('click', ()=>{
+            cardExpandedId = null;
+            if(selectedIds.has(m.id)){ selectedIds.delete(m.id); renderCanvas(); }
+            renderTable();
+          });
+        }
         card.prepend(sum);
       }
       // 고치는 중인 카드는 다시 그려도 접히지 않는다
@@ -10636,7 +10708,7 @@
     const keys = isEq ? ['eqMember'] : ['rptType','rptMember','rptDefect'];
     return keys.every(k=> String(m[k]||'').trim()) && !markerInkTodo(m);
   }
-  function foldSummaryHTML(m, idx, d, isEq){
+  function foldSummaryHTML(m, idx, d, isEq, open){
     const t = getType(m.typeKey);
     const join = a=> a.map(v=> String(v||'').trim()).filter(Boolean).join(' ');
     const where = isEq ? join([m.eqFloor, m.eqLoc]) : join([m.rptFloor, m.rptLoc]);
@@ -10649,7 +10721,7 @@
       + `<span class="fs-what">${escapeHTML(what)}</span>`
       + (size ? `<span class="fs-size">${escapeHTML(size)}</span>` : '')
       + ((tag || photos) ? `<span class="fs-tag">${tag ? '#' + escapeHTML(tag) : ''}${photos ? ` 📷${photos}` : ''}</span>` : '')
-      + `<span class="fs-open">▾</span>`;
+      + (open ? `<span class="fs-open fs-close">▴ 접기</span>` : `<span class="fs-open">▾</span>`);
   }
   function applyFoldToggleUI(){
     const b = document.getElementById('btnFoldToggle');
@@ -14720,6 +14792,8 @@
       applyProjectData(data);
       // 방금 파일에서 연 내용은 그 파일이 곧 백업이다
       if(data && Array.isArray(data.drawings)) setTimeout(markProjectBackedUp, 0);
+      // 태블릿에서 써 온 손글씨가 아직 글자가 아니면 바로 바꾼다(앱을 켤 때만 돌던 것)
+      if(data && Array.isArray(data.drawings)) scheduleInkAutoConvert(900, { retryErrors:true });
     };
     reader.readAsText(file);
   }
@@ -16296,6 +16370,7 @@
     }
   }
   canvas.addEventListener('mousemove', onPointerMove);
+  canvas.addEventListener('pointermove', onSketchPenPointerMove);
 
   function onPointerUp(e){
     if(legendDragState){
