@@ -3662,8 +3662,8 @@
   // 배포할 때 아래 두 값을 손으로 갱신한다. APP_BUILD 는 service-worker.js 의 CACHE_VERSION 과
   // 같아야 한다(tests/test-1123d.mjs 가 대조). 「설정」 맨 아래와 결함 목록 아래에 보여, 폰에 새 버전이
   // 떴는지 사용자가 바로 확인할 수 있다(2026-11-23 — 예전 표기 "Ver 2.5 (2026-10-19)" 는 갱신이 멈춰 있었다).
-  const APP_BUILD = 'sc25';
-  const APP_BUILD_DATE = '2026-11-23';
+  const APP_BUILD = 'sc26';
+  const APP_BUILD_DATE = '2026-11-27';
   // "미저장 변경사항이 있는가"를 매번 전체 스냅샷을 JSON.stringify해서 비교하면(특히 사진·도면
   // 이미지가 많을 때) beforeunload/자동저장 틱마다 무거운 직렬화가 반복된다. 대신 마커·도면·프로젝트
   // 정보를 실제로 바꾸는 지점에서 markDirty()/markImagesDirty()를 호출해 플래그만 세우고, 파일
