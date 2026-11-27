@@ -28,6 +28,7 @@ async function boot(w = 1280, h = 800, keep = false) {
   await cdp.send('Page.navigate', { url: APP }); await sleep(800);
   if (!keep) await ev(`localStorage.clear(); localStorage.setItem('defectMarkerTabletMode_v1','on'); true`);
   await cdp.send('Page.navigate', { url: APP }); await sleep(1400);
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });   // 다른 출처로 넘어가면 꺼지므로 다시
   await ev(`__markerDbg.addBlankDrawing(); true`); await sleep(800);
   await ev(`__markerDbg.setSketchTool(null); document.querySelectorAll('.app-toast,.recovery-banner').forEach(e=>e.remove()); true`); await sleep(150);
 }

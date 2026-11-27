@@ -31,6 +31,7 @@ async function boot({ w = 1280, h = 800, tablet = true, ua = '' } = {}) {
   await cdp.send('Page.navigate', { url: APP }); await sleep(800);
   await ev(`localStorage.clear(); ${tablet ? "localStorage.setItem('defectMarkerTabletMode_v1','on');" : ''} true`);
   await cdp.send('Page.navigate', { url: APP }); await sleep(1400);
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });   // 다른 출처로 넘어가면 꺼지므로 다시
 }
 const at = (fx, fy) => ev(`(()=>{const r=document.getElementById('mainCanvas').getBoundingClientRect();return {x:Math.round(r.left+r.width*${fx}),y:Math.round(r.top+r.height*${fy})}})()`);
 
