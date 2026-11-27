@@ -114,6 +114,8 @@ const CSS = `
 .sc-btn:disabled{opacity:.4;}
 .sc-next{font-size:13px;opacity:.9;white-space:nowrap;}
 .sc-next b{font-size:17px;color:#ffd84d;}
+.sc-btn.sc-nextmk{background:rgba(0,176,80,.35);border-color:#00b050;font-weight:700;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sc-btn.sc-nextmk.hot{background:#00b050;box-shadow:0 0 0 3px rgba(0,176,80,.45);}
 .sc-memo{display:flex;gap:6px;align-items:center;padding:0 10px 8px;background:rgba(0,0,0,.6);}
 .sc-memo input{flex:1;min-width:0;min-height:40px;border-radius:9px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;padding:0 10px;font-size:15px;}
 .sc-view{min-height:0;min-width:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;touch-action:none;}
@@ -202,6 +204,8 @@ function open(opts) {
       '<button type="button" class="sc-btn" data-sc="close" title="닫기">✕ 닫기</button>' +
       '<div class="sc-title">' + escH(opts.title || '스탬프 촬영') + '</div>' +
       '<div class="sc-next">다음 번호 <b data-sc="next"></b></div>' +
+      /* opts.onNext : 카메라를 닫지 않고 다음 마킹으로 넘어간다(결함마킹의 현황사진, 2026-11-27 4차) */
+      '<button type="button" class="sc-btn sc-nextmk" data-sc="nextmk" hidden></button>' +
     '</div>' +
     '<div class="sc-memo">' +
       '<input type="text" data-sc="memo" placeholder="메모 (위치·부재) — 파일이름의 {메모}" autocomplete="off">' +
@@ -283,6 +287,36 @@ function open(opts) {
   };
   state.refreshTop = refreshTop;
   refreshTop();
+  const setNextLabel = (label) => {
+    const b = $('nextmk');
+    b.hidden = !label;
+    b.textContent = label || '';
+    b.title = label ? label + ' — 카메라를 닫지 않고 다음 마킹으로 넘어갑니다' : '';
+    b.classList.remove('hot');
+  };
+  setNextLabel(typeof opts.onNext === 'function' ? opts.nextLabel : '');
+  /* 다음 마킹으로 : onNext() 가 { title, memo, memoSuggest, nextLabel } 를 돌려주면 그 마킹으로 바꾼다 */
+  function goNextMarker() {
+    let r = null;
+    try { r = opts.onNext && opts.onNext(); } catch (e) { console.error(e); }
+    if (!r) { setNextLabel(''); toast('다음 마킹이 없습니다', 1600); return; }
+    if (r.title) ov.querySelector('.sc-title').textContent = r.title;
+    if (typeof r.memoSuggest === 'string') {
+      opts.memoSuggest = r.memoSuggest;
+      const sb = $('suggest'); if (sb) sb.title = r.memoSuggest;
+    }
+    if (typeof r.memo === 'string') {
+      const s1 = loadSettings();
+      if (typeof state.prevMemo !== 'string') state.prevMemo = s1.memo || '';
+      s1.memo = r.memo.trim();
+      saveSettings(s1);
+      $('memo').value = s1.memo;
+    }
+    refreshTop();
+    setNextLabel(r.nextLabel || '');
+    toast('▶ ' + (r.title || '다음 마킹'), 1600);
+  }
+  state.goNextMarker = goNextMarker;
 
   /* 미리보기 칸을 저장될 4:3(세로면 3:4) 모양으로 — 보이는 그대로 찍힌다 */
   const fit = () => {
@@ -345,6 +379,7 @@ function open(opts) {
         else if (r) { note = r.note || ''; back = r.undo || null; }
       } catch (e) { console.error(e); note = '결함에 붙이지 못했습니다'; }
       state.undo.push({ res, back });
+      if (!$('nextmk').hidden) $('nextmk').classList.add('hot');   // 찍었으면 다음으로 넘어가기 쉽게 눈에 띄게
       showLast();
       toast(res.numberText + (res.saved === 'download' ? ' 저장됨' : ' 스탬프 카메라 목록에 저장됨') + (note ? ' · ' + note : ''));
     } catch (e) {
@@ -584,6 +619,7 @@ function open(opts) {
     if (k === 'close') close();
     else if (k === 'shutter') shoot();
     else if (k === 'undo') undoLast();
+    else if (k === 'nextmk') goNextMarker();
     else if (LIST_ACTIONS[k]) LIST_ACTIONS[k]();
     else if (k === 'flash') {
       const s = loadSettings();

@@ -45,7 +45,7 @@ eq(await ev(`${X}.sanitizeSeriesSnapshot([...__markerDbg.info.allPresets()[0].se
 console.log('\n[결함 목록 — 결함/현황 나눔, 현황 카드는 위치·내용]');
 await ev(setup); await sleep(300);
 const order = await ev(`[...document.querySelectorAll('#markerTable > .marker-card, #markerTable > .mc-group-head')].map(e=>e.classList.contains('mc-group-head')?('['+e.textContent.replace(/[▾▸]/g,'').trim()+']'):e.dataset.id).join(' ')`);
-eq(order, '[결함2건] [지상1층1건] a [층 미정1건] b [현황2건] s1 s2', '「결함」 머리줄 아래 결함(층별 묶음은 결함 안에서 그대로), 「현황」 머리줄 아래 현황');
+eq(order.replace(/📷 없음 [0-9]+/g,''), '[결함2건] [지상1층1건] a [층 미정1건] b [현황2건] s1 s2', '「결함」 머리줄 아래 결함(층별 묶음은 결함 안에서 그대로), 「현황」 머리줄 아래 현황');
 const card = await ev(`(()=>{const c=document.querySelector('.marker-card[data-id="s1"]');return {roles:[...c.querySelectorAll('[data-role]')].map(e=>e.dataset.role).filter(r=>r!=='fold'),loc:c.querySelector('[data-role="rptLoc"]').value,note:c.querySelector('[data-role="note"]').value,drop:!!c.querySelector('[data-drop="rptLoc"]')}})()`);
 eq(card.roles, ['pos', 'type', 'rptLoc', 'note', 'photo', 'info', 'del'], '현황 카드 : 번호·유형·위치·내용·📷·ⓘ·✕');
 ok(card.loc === '주방' && card.note === '전경' && card.drop, '  값이 보이고 위치는 ▼ 목록', card);

@@ -1272,6 +1272,9 @@
   .marker-list-wrap.narrow .marker-card.mc-stat > .row-del{grid-column:span 4;}
   .mc-section-head{font-weight:800;}
   .mc-section-stat{color:#0a8a43;}
+  .mc-section-head .gh-nophoto{margin-left:8px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;
+    background:rgba(220,38,38,.12);color:#c62828;border:1px solid rgba(220,38,38,.35);cursor:pointer;}
+  .marker-filter .other-nophoto{font-weight:400;opacity:.85;}
   body.layout-tablet .marker-card.mc-rpt > .mc-seq,
   .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-seq{grid-column:span 3;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > select.mc-marktype,
@@ -2332,7 +2335,7 @@
       <div>
         <div class="panel-title">그 밖에</div>
         <div class="sidebar-btn-grid">
-          <button id="btnExportPhotosZip" style="width:100%;" title="모든 도면의 결함 사진을 zip으로 한 번에 저장합니다. 파일명은 번호·유형·부재명·결함명 순으로 자동 생성됩니다"><svg class="icon"><use href="#i-camera"/></svg> 사진 일괄저장</button>
+          <button id="btnExportPhotosZip" style="width:100%;" title="모든 도면의 사진을 zip으로 한 번에 저장합니다. 현황 사진이 있으면 결함/현황 폴더로 나누고, 파일명은 결함=번호·층수·위치·부재·자재·결함, 현황=현황(1)-번호_위치_내용"><svg class="icon"><use href="#i-camera"/></svg> 사진 일괄저장</button>
           <button id="btnShowStats" style="width:100%;"><svg class="icon"><use href="#i-chart"/></svg> 통계 보기</button>
         </div>
       </div>
@@ -3127,6 +3130,20 @@
     ];
   }
   function isStatusPhotoKey(key){ return key === 'stat_v' || key === 'stat_h'; }
+  // 현황사진 「내용」 자주 쓰는 말 (2026-11-27 4차). 이번 현장에서 쓴 말이 먼저(나중에 쓴 것부터), 그다음 기본 말.
+  const STATUS_NOTE_WORDS = ['전경','근경','원경','정면','측면','배면','상부','하부','내부','주변'];
+  function statusNoteOptions(){
+    const out = [];
+    for(let di = drawings.length - 1; di >= 0; di--){
+      const ms = drawings[di].markers;
+      for(let i = ms.length - 1; i >= 0; i--){
+        if(!isStatusPhotoKey(ms[i].typeKey)) continue;
+        const v = String(ms[i].note||'').trim();
+        if(v && out.indexOf(v) < 0) out.push(v);
+      }
+    }
+    return out.slice(0, 8).concat(STATUS_NOTE_WORDS.filter(w=> out.indexOf(w) < 0));
+  }
   // 기본 프리셋 3개. "외관조사"는 기존 4종을 그대로 이관한 것이라 프리셋을 바꾸지 않는 한 지금까지와
   // 화면·번호 표기가 완전히 동일하다(접두 없음·전역채번·circle 배지). "장비조사"·"기울기"는 라벨/색만
   // 지시대로 채운 기본값이며, 실제 현장 용어는 다를 수 있으니 좌측 "계열 편집"에서 이름을 바로 고칠
@@ -3707,7 +3724,7 @@
   // 배포할 때 아래 두 값을 손으로 갱신한다. APP_BUILD 는 service-worker.js 의 CACHE_VERSION 과
   // 같아야 한다(tests/test-1123d.mjs 가 대조). 「설정」 맨 아래와 결함 목록 아래에 보여, 폰에 새 버전이
   // 떴는지 사용자가 바로 확인할 수 있다(2026-11-23 — 예전 표기 "Ver 2.5 (2026-10-19)" 는 갱신이 멈춰 있었다).
-  const APP_BUILD = 'sc28';
+  const APP_BUILD = 'sc29';
   const APP_BUILD_DATE = '2026-11-27';
   // "미저장 변경사항이 있는가"를 매번 전체 스냅샷을 JSON.stringify해서 비교하면(특히 사진·도면
   // 이미지가 많을 때) beforeunload/자동저장 틱마다 무거운 직렬화가 반복된다. 대신 마커·도면·프로젝트
@@ -9163,6 +9180,8 @@
   }
   // 단추로 고르는 칸들 — 층수·위치 목록이 있으면 그 둘, 외관조사면 부재·자재·결함
   function quickPickFields(m){
+    // 현황사진 : 위치(목록이 있으면) + 내용(자주 쓰는 말 단추, 2026-11-27 4차)
+    if(isStatusPhotoKey(m.typeKey)) return (locTax() ? ['rptLoc'] : []).concat(['note']);
     const keys = quickInputKeys(m), lk = locKeysOf(m);
     const loc = locTax() ? [lk.floor, lk.loc].filter(Boolean) : [];
     return loc.concat(keys.indexOf('rptType') >= 0 ? TAX_FIELDS : []);
@@ -9304,7 +9323,8 @@
     const ctx = { rptType: m.rptType, rptMember: m.rptMember };
     const pickFields = quickPickFields(m), lk = locKeysOf(m);
     const rows = [[lk.floor, '층수'], [lk.loc, '위치']].filter(([k])=> k && pickFields.indexOf(k) >= 0)
-      .concat(pickFields.indexOf('rptType') >= 0 ? QUICK_TAX_ROWS : []);
+      .concat(pickFields.indexOf('rptType') >= 0 ? QUICK_TAX_ROWS : [])
+      .concat(pickFields.indexOf('note') >= 0 ? [['note', '내용']] : []);
     let html = '';
     rows.forEach(([k, label])=>{
       const val = String(m[k]||'').trim();
@@ -9338,12 +9358,13 @@
       const opts = comboOptsFor(k, ctx);
       // 지금 값이 목록에 없으면(다른 부재의 자재, 직접 친 말) 앞에 켜진 단추로 보여 준다
       const all = picked.filter(v=> opts.indexOf(v) < 0).concat(opts);
-      const chips = all.map(v=> `<button type="button" data-tax-pick="${k}" data-v="${escapeAttr(v)}" class="${picked.indexOf(v) >= 0 ? 'on' : ''}${taxKnows(k, v) ? '' : ' extra'}">${escapeHTML(v)}</button>`).join('')
+      const chips = all.map(v=> `<button type="button" data-tax-pick="${k}" data-v="${escapeAttr(v)}" class="${picked.indexOf(v) >= 0 ? 'on' : ''}${(k === 'note' || taxKnows(k, v)) ? '' : ' extra'}">${escapeHTML(v)}</button>`).join('')
         + (val ? `<button type="button" class="clear" data-tax-clear="${k}">지우기</button>` : '');
       html += `<div class="qis-tax-row open${inkHere ? ' has-ink-slot' : ''}"><span class="qis-tax-label">${label}</span><div class="qis-tax-chips">${chips}</div>${side}${slot}</div>`;
     });
     const sum = [lk.floor, lk.loc].filter(k=> k && pickFields.indexOf(k) >= 0).map(k=> m[k])
       .concat(pickFields.indexOf('rptType') >= 0 ? [m.rptType, m.rptMember, m.rptDefect] : [])
+      .concat(pickFields.indexOf('note') >= 0 ? [m.note] : [])
       .map(v=> String(v||'').trim()).filter(Boolean).join(' ');
     if(sum) html += `<div class="qis-tax-result">→ <b>${escapeHTML(sum)}</b></div>`;
     wrap.innerHTML = html;
@@ -9359,6 +9380,7 @@
   }
   function pickQuickTax(k, v){
     const m = quickInputMarker(); if(!m) return;
+    if(k === 'note'){ setQuickTaxValue(m, k, v); qisTaxOpen = null; commitQuickTax(); return; }
     if(k === 'rptDefect'){
       const list = splitDefects(m.rptDefect);
       const i = list.indexOf(v);
@@ -10498,6 +10520,7 @@
   }
   function comboOptsFor(field, ctx){
     if(field === 'type') return DEFECT_TYPES.map(t => t.label);
+    if(field === 'note') return statusNoteOptions();   // 현황사진 내용 ▼ (결함 카드의 비고에는 ▼ 가 없다)
     const isTax = TAX_FIELDS.indexOf(field) >= 0 && !!taxIndex();
     const set = new Set(isTax ? taxOptions(field, ctx || {}) : []);
     const add = v => {
@@ -10885,7 +10908,7 @@
             <input type="text" class="mc-seq" inputmode="numeric" data-role="pos" tabindex="-1" value="${m.seq||idx+1}" title="번호 — 값을 바꾸면 현황사진 안에서 그 순서로 옮깁니다"/>
             <select data-role="type" class="mc-marktype" tabindex="-1" title="${escapeAttr(getType(m.typeKey).label)} — 마킹 색상(도면에 표시되는 유형)">${typeOptionsHTML(m.typeKey, null, shortTypeLabel)}</select>
             ${locTax() ? buildReportFieldHTML('rptLoc', m.rptLoc, '위치') : `<span class="mc-cell" data-label="위치"><input type="text" data-role="rptLoc" placeholder="위치" title="위치" value="${escapeAttr(m.rptLoc||'')}"/></span>`}
-            <span class="mc-cell mc-note" data-label="내용"><input type="text" data-role="note" placeholder="내용" title="내용" value="${escapeAttr(m.note||'')}"/></span>
+            <span class="mc-cell mc-note combo cwrap" data-label="내용"><input type="text" data-role="note" placeholder="내용" title="내용" value="${escapeAttr(m.note||'')}" autocomplete="off"/><button type="button" class="cbtn" tabindex="-1" data-drop="note" title="자주 쓰는 말">▼</button></span>
             <button class="mc-photo" data-role="photo" tabindex="-1" title="사진 첨부${m.rptTag ? ' — 사진번호 ' + escapeAttr(m.rptTag) : ''}"><svg class="icon"><use href="#i-camera"/></svg>${(m.photos&&m.photos.length)?`<span class="photo-count">${m.photos.length}</span>`:''}</button>
             ${infoBtnHTML(m)}
             <button class="row-del" data-role="del" tabindex="-1" title="삭제"><svg class="icon"><use href="#i-close"/></svg></button>
@@ -11017,14 +11040,23 @@
     // 결함과 현황사진은 목록을 나눈다(2026-11-27 3차) — 둘 다 있으면 「결함 N건」「현황 N건」 머리줄.
     const statBuilt = built.filter(x=> isStatusPhotoKey(x.m.typeKey));
     const defBuilt = built.filter(x=> !isStatusPhotoKey(x.m.typeKey));
-    const sectionHead = (key, label, n)=>{
+    const sectionHead = (key, label, items)=>{
+      const n = items.length;
       const ck = d.id + '|§' + key;
       const closed = collapsedFloorGroups.has(ck);
       const head = document.createElement('button');
       head.type = 'button'; head.className = 'mc-group-head mc-section-head mc-section-' + key; head.dataset.section = key;
       head.title = closed ? '눌러서 펼치기' : '눌러서 접기';
-      head.innerHTML = `<span class="gh-arrow">${closed ? '▸' : '▾'}</span>${escapeHTML(label)}<span class="gh-n">${n}건</span>`;
-      head.addEventListener('click', ()=>{
+      // 사진 안 찍은 건수(2026-11-27 4차) — 누르면 「사진 없음」만 걸러 본다
+      const noPhoto = items.filter(x=> markerHasNoPhoto(x.m)).length;
+      head.innerHTML = `<span class="gh-arrow">${closed ? '▸' : '▾'}</span>${escapeHTML(label)}<span class="gh-n">${n}건</span>`
+        + (noPhoto ? `<span class="gh-nophoto" data-nophoto="1" title="사진을 아직 안 찍은 ${escapeAttr(label)} — 눌러서 그것만 보기">📷 없음 ${noPhoto}</span>` : '');
+      head.addEventListener('click', (e)=>{
+        if(e.target.closest('[data-nophoto]')){
+          markerListFilter = markerListFilter === 'nophoto' ? 'all' : 'nophoto';
+          if(collapsedFloorGroups.has(ck)){ collapsedFloorGroups.delete(ck); renderTable(); } else applyMarkerSearchFilter();
+          return;
+        }
         if(collapsedFloorGroups.has(ck)) collapsedFloorGroups.delete(ck); else collapsedFloorGroups.add(ck);
         renderTable();
       });
@@ -11032,7 +11064,7 @@
       return closed;
     };
     const split = statBuilt.length > 0 && defBuilt.length > 0;
-    const defClosed = split ? sectionHead('def', '결함', defBuilt.length) : false;
+    const defClosed = split ? sectionHead('def', '결함', defBuilt) : false;
     if(defClosed) defBuilt.forEach(x=>{ if(!selectedIds.has(x.m.id)) x.card.classList.add('mc-group-hidden'); });
     // 한 도면에 층이 둘 이상이면 층별로 묶어 보여 준다(아래층부터, 층 미정은 맨 끝). 번호는 그대로다.
     const floorOfMarker = m=>{ const fk = locKeysOf(m).floor; return fk ? String(m[fk]||'').trim() : ''; };
@@ -11062,7 +11094,7 @@
       });
     }
     if(statBuilt.length){
-      const stClosed = split ? sectionHead('stat', '현황', statBuilt.length) : false;
+      const stClosed = split ? sectionHead('stat', '현황', statBuilt) : false;
       statBuilt.forEach(x=>{
         if(stClosed && !selectedIds.has(x.m.id)) x.card.classList.add('mc-group-hidden');
         table.appendChild(x.card);
@@ -11153,9 +11185,16 @@
     if(!row) return;
     const list = d ? d.markers : [];
     row.style.display = list.length ? '' : 'none';
+    // 다른 도면에서 사진 안 찍은 것 — 현장을 떠나기 전에 한눈에(2026-11-27 4차)
+    const others = drawings.filter(x=> x !== d).map(x=> ({ name: x.name, n: x.markers.filter(markerHasNoPhoto).length })).filter(x=> x.n);
+    const otherN = others.reduce((a, x)=> a + x.n, 0);
     row.innerHTML = [['all','전체'],['missing','미입력'],['nophoto','사진 없음'],['ink','손글씨 미변환'],['hand','✋ 확인']].map(([k, label])=>{
       const n = list.filter(m=> markerMatchesFilter(m, k)).length;
       if(k === 'hand' && !n && markerListFilter !== 'hand') return '';
+      if(k === 'nophoto' && otherN){
+        const tip = '다른 도면에도 사진 없는 마킹이 있습니다 — ' + others.map(x=> `${x.name} ${x.n}건`).join(', ');
+        return `<button type="button" data-filter="${k}" class="${markerListFilter===k ? 'on' : ''}" title="${escapeAttr(tip)}">${label} ${n}<span class="other-nophoto"> · 다른 도면 ${otherN}</span></button>`;
+      }
       return `<button type="button" data-filter="${k}" class="${markerListFilter===k ? 'on' : ''}">${label} ${n}</button>`;
     }).join('');
   }
@@ -13838,10 +13877,18 @@
       .map(v=> String(v||'').trim()).filter(Boolean);
     return sanitizeFilename(parts.join('_'));
   }
+  // 현황사진 파일 이름 : 현황(1)-3_위치_내용 (2026-11-27 4차) — 보고서에 바로 넣도록 군더더기 없이
+  function statusPhotoZipBaseName(m, idx, d){
+    const parts = [getType(m.typeKey).label + '-' + formatMarkerLabel(m, idx, d), m.rptLoc, m.note]
+      .map(v=> String(v||'').trim()).filter(Boolean);
+    return sanitizeFilename(parts.join('_'));
+  }
   function exportAllPhotosZip(){
     if(!hasAnyPhotos()){ showToast('첨부된 사진이 없습니다.'); return; }
     renumberAllDrawings({silent:true});
     const multiDrawing = drawings.length > 1;
+    // 현황사진이 한 장이라도 있으면 맨 위를 「결함/」「현황/」 폴더로 나눈다(없으면 예전 그대로)
+    const splitKind = drawings.some(d=> d.markers.some(m=> isStatusPhotoKey(m.typeKey) && m.photos && m.photos.length));
     const entries = [];
     drawings.forEach(d=>{
       d.markers.forEach((m, idx)=>{
@@ -13849,8 +13896,9 @@
         if(photos.length===0) return;
         // 번호(seq) 뒤에 불변 uid 앞 8자리를 붙여, 같은 번호가 재정렬로 바뀌어도(또는 여러 프로젝트의
         // 사진을 한 폴더에 모아도) 파일명만으로 어느 결함의 사진인지 항상 구분할 수 있게 한다.
-        const baseName = photoZipBaseName(m, idx, d);
-        const folder = multiDrawing ? sanitizeFilename(d.name) + '/' : '';
+        const isStat = isStatusPhotoKey(m.typeKey);
+        const baseName = isStat ? statusPhotoZipBaseName(m, idx, d) : photoZipBaseName(m, idx, d);
+        const folder = (splitKind ? (isStat ? '현황/' : '결함/') : '') + (multiDrawing ? sanitizeFilename(d.name) + '/' : '');
         photos.forEach((photo, pi)=>{
           const decoded = dataURLToBytes(photo);
           if(!decoded) return;
@@ -14948,7 +14996,7 @@
     const photo = scaledPhotoDataURL(res.canvas, res.canvas.width, res.canvas.height);
     m.photos.push(photo);
     m.photoMeta = Object.assign({}, m.photoMeta, { [photoKey(photo)]: { no: res.numberText || String(res.number||''), memo: String(res.memo||'').trim(), at: res.at || Date.now() } });
-    let note = '결함에 붙임';
+    let note = isStatusPhotoKey(m.typeKey) ? '현황에 붙임' : '결함에 붙임';
     const key = photoTagKey(m);
     let filled = null;                    // 이 사진 때문에 사진번호 칸에 넣은 값
     let prev = '';                        // 그 전에 칸에 있던 값(취소하면 되돌린다)
@@ -15058,21 +15106,63 @@
     return plan && plan.change ? StampCam.numberTextFor(plan.target) : StampCam.peek().numberText;
   }
   // 이 결함으로 스탬프 카메라를 연다 — 사진 창의 「스탬프 촬영」과 퀵입력 시트의 📷 단추가 같이 쓴다
+  function stampCamTitleFor(m, d){
+    const idx = d ? d.markers.indexOf(m) : 0;
+    const label = formatMarkerLabel(m, idx, d);
+    return '스탬프 촬영 · ' + [isStatusPhotoKey(m.typeKey) ? getType(m.typeKey).label + '-' + label : label, stampMemoSuggest(m)].filter(Boolean).join(' ');
+  }
+  // 연속 촬영(2026-11-27 4차) : 현황사진을 찍는 중이면 카메라를 닫지 않고 다음 현황 마킹으로 넘어간다.
+  // 다음 = 번호 순으로 이 마킹 뒤의 사진 없는 현황 마킹(없으면 앞쪽에서 찾아 돈다). 다 찍었으면 없음.
+  function nextStatusShotTarget(m){
+    const d = getActiveDrawing();
+    if(!d || !m || !isStatusPhotoKey(m.typeKey)) return null;
+    const list = d.markers.filter(x=> isStatusPhotoKey(x.typeKey));
+    const i = list.indexOf(m);
+    const order = list.slice(i + 1).concat(list.slice(0, Math.max(0, i)));
+    return order.find(x=> !(x.photos && x.photos.length)) || null;
+  }
+  function nextStatusShotLabel(m){
+    const n = nextStatusShotTarget(m);
+    if(!n) return '';
+    const d = getActiveDrawing();
+    return '다음 ▶ ' + getType(n.typeKey).label + '-' + formatMarkerLabel(n, d.markers.indexOf(n), d);
+  }
   function openStampCamFor(m, onClose){
     if(!m || !window.StampCam) return;
     const syncMsg = syncStampCounterToProject();
-    const markerId = m.id;
+    let markerId = m.id;
     const d = getActiveDrawing();
-    const idx = d ? d.markers.indexOf(m) : 0;
-    const session = {};                   // 이번 촬영 화면 — 첫 사진이 사진번호를 넣는다
+    let session = {};                     // 이번 마킹 — 첫 사진이 사진번호를 넣는다
+    const isStat = isStatusPhotoKey(m.typeKey);
     const st = StampCam.open({
-      title: '스탬프 촬영 · ' + [formatMarkerLabel(m, idx, d), stampMemoSuggest(m)].filter(Boolean).join(' '),
+      title: stampCamTitleFor(m, d),
       memoSuggest: stampMemoSuggest(m),
       // 현황사진은 위치·내용을 스탬프 카메라 메모 자리에 바로 넣는다(2026-11-27 3차). 닫으면 원래 메모로 되돌린다.
-      memo: isStatusPhotoKey(m.typeKey) ? stampMemoSuggest(m) : undefined,
-      onShot: (res)=> attachStampShot(markerId, res, session),
-      onClose: ()=>{ if(photoModalMarkerId===markerId){ renderPhotoModal(); } if(onClose) onClose(); },
+      memo: isStat ? stampMemoSuggest(m) : undefined,
+      onShot: (res)=>{
+        const r = attachStampShot(markerId, res, session);
+        // 다음 대상은 찍을 때마다 다시 본다(방금 찍은 마킹은 이제 사진이 있다)
+        if(isStat && st && st.goNextMarker){ const b = st.ov.querySelector('[data-sc="nextmk"]'); const lab = nextStatusShotLabel(currentMarker());
+          if(b){ b.hidden = !lab; b.textContent = lab; } }
+        return r;
+      },
+      nextLabel: isStat ? nextStatusShotLabel(m) : '',
+      onNext: isStat ? ()=>{
+        const cur = currentMarker();
+        const n = nextStatusShotTarget(cur);
+        if(!n) return null;
+        markerId = n.id; session = {};
+        selectedIds.clear(); selectedIds.add(n.id);
+        renderCanvas(); renderTable();
+        return { title: stampCamTitleFor(n, getActiveDrawing()), memo: stampMemoSuggest(n), memoSuggest: stampMemoSuggest(n), nextLabel: nextStatusShotLabel(n) };
+      } : undefined,
+      onClose: ()=>{
+        if(photoModalMarkerId===m.id || photoModalMarkerId===markerId){ renderPhotoModal(); }
+        if(onClose) onClose(currentMarker());
+        checkBackupNudge();   // 사진을 찍고 나온 때가 백업을 권하기 좋은 때
+      },
     });
+    function currentMarker(){ const dd = getActiveDrawing(); return (dd && dd.markers.find(x=> x.id === markerId)) || m; }
     if(syncMsg && st && st.toast) st.toast(syncMsg, 3500);
   }
   document.getElementById('btnStampCam').addEventListener('click', ()=> openStampCamFor(currentPhotoMarker()));
@@ -15080,7 +15170,11 @@
   document.getElementById('btnQuickInputStamp').addEventListener('click', ()=>{
     const m = quickInputMarker(); if(!m) return;
     if(!window.StampCam){ showToast('스탬프 카메라 파일(stampcam/stampcam.js)을 불러오지 못했습니다.'); return; }
-    openStampCamFor(m, ()=>{ if(quickInputMarkerId === m.id){ rerenderQuickInputSheet(); } });
+    openStampCamFor(m, (last)=>{
+      if(quickInputMarkerId !== m.id) return;
+      // 연속 촬영으로 다른 현황 마킹까지 넘어갔으면 시트도 그 마킹으로
+      if(last && last.id !== m.id) openQuickInputSheetFor(last); else rerenderQuickInputSheet();
+    });
   });
   document.getElementById('btnStampNative').addEventListener('click', ()=> document.getElementById('stampNativeInput').click());
   document.getElementById('stampNativeInput').addEventListener('change', async e=>{
@@ -15213,9 +15307,11 @@
   // 자동저장은 이 기기의 브라우저 안에만 있다. 파일로 내보낸 시각과 그때의 결함 수를 프로젝트별로 기억해,
   // 백업 뒤 한 시간이 지났거나 결함이 20건 늘면 위쪽에 안내를 띄운다. 「나중에」는 30분 동안 묻지 않는다.
   const BACKUP_STORE_KEY = 'defectMarkerBackup_v1';
-  const BACKUP_NUDGE_MS = 60*60*1000, BACKUP_NUDGE_MARKERS = 20, BACKUP_SNOOZE_MS = 30*60*1000;
+  // 2026-11-27 4차 : 한 시간 → 40분, 사진도 센다(사진이 많을수록 기기에만 있는 것이 위험하다 — 15장 늘면)
+  const BACKUP_NUDGE_MS = 40*60*1000, BACKUP_NUDGE_MARKERS = 20, BACKUP_NUDGE_PHOTOS = 15, BACKUP_SNOOZE_MS = 30*60*1000;
   var backupSnoozeUntil = 0;
   function totalMarkerCount(){ return drawings.reduce((s, d)=> s + d.markers.length, 0); }
+  function totalPhotoCount(){ return drawings.reduce((s, d)=> s + d.markers.reduce((a, m)=> a + ((m.photos && m.photos.length) || 0), 0), 0); }
   function readBackupMap(){ try{ return JSON.parse(localStorage.getItem(BACKUP_STORE_KEY) || '{}') || {}; }catch(err){ return {}; } }
   function backupRecord(){ return readBackupMap()[currentAutosaveSlotId()] || { at:0, count:0 }; }
   function markProjectBackedUp(){
@@ -15223,7 +15319,7 @@
     dirtySince = 0;
     backupSnoozeUntil = 0;
     const map = readBackupMap();
-    map[currentAutosaveSlotId()] = { at: Date.now(), count: totalMarkerCount() };
+    map[currentAutosaveSlotId()] = { at: Date.now(), count: totalMarkerCount(), photos: totalPhotoCount() };
     try{ localStorage.setItem(BACKUP_STORE_KEY, JSON.stringify(map)); }catch(err){ /* 저장 실패해도 백업 파일은 이미 나갔다 */ }
     hideAppNudge('backup');
     updateAutosaveStatusLabel();
@@ -15243,8 +15339,11 @@
     if(!total || !isDirty || now < backupSnoozeUntil || appNudgeKind) return;
     const rec = backupRecord();
     const added = total - (rec.count || 0);
-    if(now - (dirtySince || now) < BACKUP_NUDGE_MS && added < BACKUP_NUDGE_MARKERS) return;
-    showAppNudge('backup', `${rec.at ? backupAgoText() : '아직 백업한 적이 없습니다'} — 지금 작업은 이 기기에만 저장되어 있습니다.`, [
+    // 예전 기록(사진 수 없음)은 사진으로는 재촉하지 않는다 — 업데이트하자마자 뜨지 않게
+    const newPhotos = (rec.at && rec.photos === undefined) ? 0 : totalPhotoCount() - (rec.photos || 0);
+    if(now - (dirtySince || now) < BACKUP_NUDGE_MS && added < BACKUP_NUDGE_MARKERS && newPhotos < BACKUP_NUDGE_PHOTOS) return;
+    const since = newPhotos > 0 ? ` 백업 뒤 사진 ${newPhotos}장이` : '';
+    showAppNudge('backup', `${rec.at ? backupAgoText() : '아직 백업한 적이 없습니다'} —${since || ' 지금 작업은'} 이 기기에만 저장되어 있습니다.`, [
       { label:'지금 백업', primary:true, run: saveProject },
       { label:'나중에', run: ()=>{ backupSnoozeUntil = Date.now() + BACKUP_SNOOZE_MS; } },
     ]);
@@ -17994,7 +18093,7 @@
   // 다른 현장조사 앱의 __exDbg·__tiltDbg 와 같은 구실을 한다.
   window.__markerDbg = {
     // 2026-11-27 (tests/test-1127.mjs)
-    t1127: { setOrthoLock, get orthoLock(){ return orthoLock; }, isStatusExportShown, deleteDrawing, isLegendEnabled, stampCounterPlan, syncStampCounterToProject, projectMaxPhotoNumber,
+    t1127: { markProjectBackedUp, markDirty, hideAppNudge, setActiveDrawing, quickInputMarker, statusNoteOptions, nextStatusShotTarget, exportAllPhotosZip, statusPhotoZipBaseName, totalPhotoCount, setOrthoLock, get orthoLock(){ return orthoLock; }, isStatusExportShown, deleteDrawing, isLegendEnabled, stampCounterPlan, syncStampCounterToProject, projectMaxPhotoNumber,
       openStampCamFor, openAddDrawingPicker, setActivePreset, sanitizeSeriesSnapshot, isMarkerDone, missingFieldLabels,
       get currentProjectUuid(){ return currentProjectUuid; }, get penBtnErase(){ return penBtnErase; },
       get DEFECT_TYPES(){ return DEFECT_TYPES; } },
