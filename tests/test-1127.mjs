@@ -39,9 +39,9 @@ await boot();
 await ev(`__markerDbg.addBlankDrawing(); true`); await sleep(800);
 const types = await ev(`${X}.DEFECT_TYPES.map(t=>[t.key,t.label,t.color,t.endStyle])`);
 eq(types.map(t => t[0]), ['wall', 'flat', 'wall_area', 'flat_area', 'stat_v', 'stat_h'], '외관조사 유형 6개 (기존 4 + 현황사진 2)');
-eq(types.slice(4), [['stat_v', '현황사진(수직부재)', '#00B050', 'arrow'], ['stat_h', '현황사진(수평부재)', '#FF8C00', 'dot']], '  초록 화살표 · 주황 점 (범위형 없음)');
+eq(types.slice(4), [['stat_v', '현황(1)', '#00B050', 'arrow'], ['stat_h', '현황(2)', '#FF8C00', 'arrow']], '  초록·주황 화살표 (범위형 없음, 3차 요청으로 이름 현황(1)·(2))');
 const grid = await ev(`[...document.querySelectorAll('#typeGrid [data-key], #typeGrid button, .type-grid button')].map(b=>b.textContent.trim()).join('|')`);
-ok(/현황사진\(수직부재\)/.test(grid) && /현황사진\(수평부재\)/.test(grid), '  좌측 유형 목록에 보인다', grid);
+ok(/현황\(1\)/.test(grid) && /현황\(2\)/.test(grid), '  좌측 유형 목록에 보인다', grid);
 
 // 번호 : 결함은 결함끼리, 현황사진은 두 색을 합쳐 따로 1,2,3
 await ev(`(()=>{const d=${D};const mk=(id,k,x)=>({id,uid:id,typeKey:k,xPct:x,yPct:40});
@@ -56,7 +56,7 @@ eq(await ev(`${D}.markers.filter(m=>m.typeKey.startsWith('stat')).map(m=>m.id+':
 eq(await ev(`${D}.markers.filter(m=>!m.typeKey.startsWith('stat')).map(m=>m.id+':'+m.seq).join(' ')`), 'a:1 b:2 c:3', '  결함 번호는 그대로');
 // 입력칸 · 점검
 eq(await ev(`${X}.missingFieldLabels(${D}.markers.find(m=>m.id==='s1'))`), [], '현황사진은 부재·자재·결함이 비어도 「빈 결함」으로 안 잡힌다');
-eq(await ev(`(()=>{const m=${D}.markers.find(m=>m.id==='s1');const a=${X}.isMarkerDone(m,false);m.rptTag='12';return [a,${X}.isMarkerDone(m,false)]})()`), [false, true], '  사진번호를 넣으면 「다 채움」');
+eq(await ev(`(()=>{const m=${D}.markers.find(m=>m.id==='s1');const a=${X}.isMarkerDone(m,false);m.rptLoc='주방';m.note='전경';const b=${X}.isMarkerDone(m,false);m.rptLoc='';m.note='';return [a,b]})()`), [false, true], '  위치·내용을 채우면 「다 채움」(3차)');
 eq(await ev(`(()=>{const s=__markerDbg.info.buildSummarySheet();return s?s.rows.find(r=>r.cells[0]==='전체').cells[2]:null})()`), 3, '  엑셀 집계 시트는 결함 3건만 센다');
 // 범례 : 현황사진은 쓴 도면에만
 await ev(`document.getElementById('legendToggle').checked=true; true`);

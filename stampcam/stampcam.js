@@ -1082,6 +1082,13 @@ function open(opts) {
   const camera = new Camera(video);
   const state = { ov, camera, opts, busy: false, shots: 0, resume: false, toastT: 0, undo: [] };
   ui = state;
+  /* opts.memo : 이번 촬영 동안 쓸 메모(결함마킹의 현황사진 = 위치·내용). 닫으면 원래 메모로 되돌린다 */
+  if (typeof opts.memo === 'string') {
+    const s0 = loadSettings();
+    state.prevMemo = s0.memo || '';
+    s0.memo = opts.memo.trim();
+    saveSettings(s0);
+  }
 
   const toast = (msg, ms) => {
     let t = ov.querySelector('.sc-toast');
@@ -1531,6 +1538,11 @@ function close() {
   const s = ui;
   if (!s) return;
   ui = null;
+  if (typeof s.prevMemo === 'string') {
+    const s1 = loadSettings();
+    s1.memo = s.prevMemo;
+    saveSettings(s1);
+  }
   try { s.camera.setTorch(false); } catch (e) {}
   s.camera.stop();
   document.removeEventListener('keydown', s.onKey, true);

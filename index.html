@@ -1246,6 +1246,32 @@
        입력칸과 아이콘 사이의 빈 자리를 없앴다. */
   body.layout-tablet .marker-card.mc-rpt,
   .marker-list-wrap.narrow .marker-card.mc-rpt{grid-template-columns:repeat(60,minmax(0,1fr));gap:4px;}
+  /* 현황사진 카드 (2026-11-27 3차) — 번호·유형·위치·내용·📷·ⓘ·✕ 한 줄.
+     넓은 표(외관조사 열) : 위치는 층수+위치 두 열, 내용은 부재~사진번호 일곱 열에 걸친다. */
+  .marker-card.mc-stat > .mc-cell:has([data-role="rptLoc"]){grid-column:3 / span 2;min-width:0;}
+  .marker-card.mc-stat > .mc-note{grid-column:5 / span 7;min-width:0;}
+  .marker-card.mc-stat > .mc-photo{grid-column:12;}
+  .marker-card.mc-stat .mc-note input{width:100%;}
+  body.layout-tablet .marker-card.mc-stat,
+  .marker-list-wrap.narrow .marker-card.mc-stat{grid-template-columns:repeat(60,minmax(0,1fr));gap:4px;}
+  body.layout-tablet .marker-card.mc-stat > *,
+  .marker-list-wrap.narrow .marker-card.mc-stat > *{min-width:0;}
+  body.layout-tablet .marker-card.mc-stat > .mc-seq,
+  .marker-list-wrap.narrow .marker-card.mc-stat > .mc-seq{grid-column:span 3;}
+  body.layout-tablet .marker-card.mc-stat > select.mc-marktype,
+  .marker-list-wrap.narrow .marker-card.mc-stat > select.mc-marktype{grid-column:span 9;}
+  body.layout-tablet .marker-card.mc-stat > .mc-cell:has([data-role="rptLoc"]),
+  .marker-list-wrap.narrow .marker-card.mc-stat > .mc-cell:has([data-role="rptLoc"]){grid-column:span 18;}
+  body.layout-tablet .marker-card.mc-stat > .mc-note,
+  .marker-list-wrap.narrow .marker-card.mc-stat > .mc-note{grid-column:span 18;}
+  body.layout-tablet .marker-card.mc-stat > .mc-photo,
+  .marker-list-wrap.narrow .marker-card.mc-stat > .mc-photo,
+  body.layout-tablet .marker-card.mc-stat > .mc-info,
+  .marker-list-wrap.narrow .marker-card.mc-stat > .mc-info,
+  body.layout-tablet .marker-card.mc-stat > .row-del,
+  .marker-list-wrap.narrow .marker-card.mc-stat > .row-del{grid-column:span 4;}
+  .mc-section-head{font-weight:800;}
+  .mc-section-stat{color:#0a8a43;}
   body.layout-tablet .marker-card.mc-rpt > .mc-seq,
   .marker-list-wrap.narrow .marker-card.mc-rpt > .mc-seq{grid-column:span 3;min-width:0;}
   body.layout-tablet .marker-card.mc-rpt > select.mc-marktype,
@@ -1293,6 +1319,13 @@
     body.layout-tablet .marker-list-wrap .marker-card.mc-rpt > .mc-photo,
     body.layout-tablet .marker-list-wrap .marker-card.mc-rpt > .mc-info{grid-column:span 6;}
     body.layout-tablet .marker-list-wrap .marker-card.mc-rpt > .row-del{grid-column:55 / span 6;}
+    body.layout-tablet .marker-list-wrap .marker-card.mc-stat > .mc-seq{grid-column:span 6;}
+    body.layout-tablet .marker-list-wrap .marker-card.mc-stat > select.mc-marktype{grid-column:span 14;}
+    body.layout-tablet .marker-list-wrap .marker-card.mc-stat > .mc-cell:has([data-role="rptLoc"]){grid-column:span 40;}
+    body.layout-tablet .marker-list-wrap .marker-card.mc-stat > .mc-note{grid-column:span 42;}
+    body.layout-tablet .marker-list-wrap .marker-card.mc-stat > .mc-photo,
+    body.layout-tablet .marker-list-wrap .marker-card.mc-stat > .mc-info,
+    body.layout-tablet .marker-list-wrap .marker-card.mc-stat > .row-del{grid-column:span 6;}
     /* 서랍이 열리면 반대쪽 탭이 밀려 온 탭과 겹친다 — 열린 쪽 탭만 남긴다 */
     body.layout-tablet.drawer-open .tablet-edge-tab:not(.tab-shifted){display:none;}
   }
@@ -3047,7 +3080,8 @@
     // 외관조사 기본 이름이 바뀌었다(벽체→수직부재, 바닥/천장→수평부재). 예전 기본 이름 그대로인
     // 것만 바꾼다 — 사용자가 계열 편집으로 직접 지은 이름은 건드리지 않는다.
     const RENAMED = { wall:['벽체','수직부재'], flat:['바닥/천장','수평부재'],
-      wall_area:['벽체(범위)','수직부재(범위)'], flat_area:['바닥/천장(범위)','수평부재(범위)'] };
+      wall_area:['벽체(범위)','수직부재(범위)'], flat_area:['바닥/천장(범위)','수평부재(범위)'],
+      stat_v:['현황사진(수직부재)','현황(1)'], stat_h:['현황사진(수평부재)','현황(2)'] };
     const relabel = (key, label)=> (RENAMED[key] && RENAMED[key][0] === label) ? RENAMED[key][1] : label;
     const out = list.slice(0, 40).map(t=>({
       key:        str(t && t.key, 'unknown'),
@@ -3067,6 +3101,8 @@
         start:  num(t && t.numbering && t.numbering.start, 1, 9999, 1),
       },
     }));
+    // 현황(2)는 처음에 점이었다가 화살표로 바뀌었다(2026-11-27 3차) — 그때 저장된 것도 화살표로
+    out.forEach(t=>{ if(t.key === 'stat_h' && t.endStyle === 'dot') t.endStyle = 'arrow'; });
     // 번호 묶음은 있을 때만 싣는다 — 빈 group 을 늘 붙이면 예전 파일을 열었다 그대로 저장해도 내용이 달라진다
     list.slice(0, 40).forEach((t, i)=>{
       const g = str(t && t.numbering && t.numbering.group, '').slice(0, 40);
@@ -3085,8 +3121,9 @@
   }
   function STATUS_PHOTO_SERIES(){
     return [
-      makeSeries({key:'stat_v', label:'현황사진(수직부재)', color:'#00B050', endStyle:'arrow', numbering:{mode:'independent', digits:0, start:1, group:'stat'}}),
-      makeSeries({key:'stat_h', label:'현황사진(수평부재)', color:'#FF8C00', endStyle:'dot', numbering:{mode:'independent', digits:0, start:1, group:'stat'}}),
+      // 2026-11-27 3차 요청 : 이름 현황(1)·현황(2), 둘 다 화살표
+      makeSeries({key:'stat_v', label:'현황(1)', color:'#00B050', endStyle:'arrow', numbering:{mode:'independent', digits:0, start:1, group:'stat'}}),
+      makeSeries({key:'stat_h', label:'현황(2)', color:'#FF8C00', endStyle:'arrow', numbering:{mode:'independent', digits:0, start:1, group:'stat'}}),
     ];
   }
   function isStatusPhotoKey(key){ return key === 'stat_v' || key === 'stat_h'; }
@@ -3670,7 +3707,7 @@
   // 배포할 때 아래 두 값을 손으로 갱신한다. APP_BUILD 는 service-worker.js 의 CACHE_VERSION 과
   // 같아야 한다(tests/test-1123d.mjs 가 대조). 「설정」 맨 아래와 결함 목록 아래에 보여, 폰에 새 버전이
   // 떴는지 사용자가 바로 확인할 수 있다(2026-11-23 — 예전 표기 "Ver 2.5 (2026-10-19)" 는 갱신이 멈춰 있었다).
-  const APP_BUILD = 'sc27';
+  const APP_BUILD = 'sc28';
   const APP_BUILD_DATE = '2026-11-27';
   // "미저장 변경사항이 있는가"를 매번 전체 스냅샷을 JSON.stringify해서 비교하면(특히 사진·도면
   // 이미지가 많을 때) beforeunload/자동저장 틱마다 무거운 직렬화가 반복된다. 대신 마커·도면·프로젝트
@@ -8561,7 +8598,7 @@
   // 카드의 유형/부재명/결함명/사진번호 값이 바뀔 때마다 검색 색인(card.dataset.search)도 함께
   // 갱신한다 — renderTable()이 다시 호출되지 않는 필드 편집에서도 검색이 최신 값을 바로 반영하도록.
   function computeCardSearchIndex(m){
-    return [getType(m.typeKey).label, m.rptFloor, m.rptLoc, m.rptType, m.rptMember, m.rptDefect, m.rptTag,
+    return [getType(m.typeKey).label, m.rptFloor, m.rptLoc, m.rptType, m.rptMember, m.rptDefect, m.rptTag, isStatusPhotoKey(m.typeKey) ? m.note : '',
         m.tiltBldg, m.lvGroup, m.eqFloor, m.eqLoc, m.eqMember, m.eqTag]
       .filter(Boolean).join(' ').toLowerCase();
   }
@@ -8879,7 +8916,7 @@
     blurQuickInputFocus();
     destroyInkBoxes(); // 아직 넘기지 않은 획이 있으면 마저 저장하고 정리한다
     const el = document.getElementById('quickInputSheet');
-    if(el) el.style.display = 'none';
+    if(el){ el.style.display = 'none'; el.style.minHeight = ''; }
     quickInputMarkerId = null;
   }
   function quickInputMarker(){
@@ -8912,11 +8949,11 @@
       {k:'lvValue', label:'측정값(cm)', kind:'num', ph:'측정값'},
       {k:'lvSpan', label:'경간(mm)', kind:'num', ph:'경간'},
     ];
-    // 현황사진 — 결함이 아니므로 층수·위치·사진번호만
+    // 현황사진 — 사진 찍은 자리만 적는다 : 위치·내용 두 칸(2026-11-27 3차 요청). 내용은 note(CSV 비고 칸).
+    // 사진번호(rptTag)는 칸으로 보이지 않지만 스탬프 촬영이 채운다(photoTagKey).
     if(isStatusPhotoKey(t)) return [
-      {k:'rptFloor', label:'층수', kind:'floor', ph:'층수 (1 → 지상1층)'},
       {k:'rptLoc', label:'위치', kind:'text', ph:'위치'},
-      {k:'rptTag', label:'사진 #', kind:'int', ph:'사진번호'},
+      {k:'note', label:'내용', kind:'text', ph:'내용'},
     ];
     if(t==='sh' || t==='ph' || t==='dm') return [
       {k:'eqFloor', label:'층수', kind:'floor', ph:'층수 (1 → 지상1층)'},
@@ -9356,9 +9393,10 @@
     if(!btn) return;
     const keys = m ? quickInputKeys(m) : [];
     const hasLast = keys.some(k=> lastQuickInputValues[k]);
-    btn.style.display = hasLast ? '' : 'none';
+    // 숨길 때 자리는 남긴다(visibility) — display 로 빼면 결함·현황을 오갈 때 앞·다음·스탬프 촬영 단추 자리가 바뀌었다(2026-11-27)
+    btn.style.display = ''; btn.style.visibility = hasLast ? '' : 'hidden';
     const copyBtn = document.getElementById('btnQuickInputCopyNext');
-    if(copyBtn) copyBtn.style.display = (m && nextQuickInputMarker()) ? '' : 'none';
+    if(copyBtn){ copyBtn.style.display = ''; copyBtn.style.visibility = (m && nextQuickInputMarker()) ? '' : 'hidden'; }
   }
   function nextQuickInputMarker(){
     const d = getActiveDrawing(); if(!d) return null;
@@ -9430,7 +9468,7 @@
     quickInputMarkerId = marker.id;
     const el = document.getElementById('quickInputSheet');
     // 높이를 재려면 먼저 그려야 한다 — 그린 뒤에 위로 올릴지 정한다(순서를 바꾸면 항상 기본값으로 판단됨).
-    if(el) el.classList.remove('pinned-top');
+    if(el){ el.classList.remove('pinned-top'); el.style.minHeight = ''; }
     renderQuickInputSheet();
     if(el) el.classList.toggle('pinned-top', quickInputSheetShouldPinTop(marker));
   }
@@ -9957,9 +9995,30 @@
     blurQuickInputFocus();
     quickInputMarkerId = m.id;
     const el = document.getElementById('quickInputSheet');
-    if(el) el.classList.remove('pinned-top');
+    if(!el){ renderQuickInputSheet(); return; }
+    // 열린 채 다른 결함으로 넘길 때(앞·다음, 목록에서 고르기) 머리줄(앞·다음·스탬프 촬영)이 오르내리지 않게 한다
+    // (2026-11-27 사용자 지적) — 칸이 적은 현황 시트는 키가 작아 아래쪽에 붙으면 머리줄이 내려가고, 위·아래
+    // 자리도 시트 키에 따라 바뀌었다. 이제 위에 있던 시트는 새 마커를 가리지 않는 한 위에 두고, 아래에 있던
+    // 시트는 키를 줄이지 않는다.
+    const wasOpen = el.style.display === 'flex';
+    const wasTop = wasOpen && el.classList.contains('pinned-top');
+    const prevH = wasOpen ? el.getBoundingClientRect().height : 0;
+    el.style.minHeight = '';
+    el.classList.remove('pinned-top');
     renderQuickInputSheet();
-    if(el) el.classList.toggle('pinned-top', quickInputSheetShouldPinTop(m));
+    if(wasOpen && !wasTop && prevH) el.style.minHeight = Math.round(prevH) + 'px';
+    let top = quickInputSheetShouldPinTop(m);
+    if(wasTop && !top && !quickInputMarkerUnderTopSheet(m)) top = true;
+    if(top) el.style.minHeight = '';
+    el.classList.toggle('pinned-top', top);
+  }
+  // 위에 붙은 시트가 이 마커를 가리는지
+  function quickInputMarkerUnderTopSheet(m){
+    const canvas = document.getElementById('mainCanvas'), sheet = document.getElementById('quickInputSheet');
+    if(!canvas || !sheet) return false;
+    const rect = canvas.getBoundingClientRect();
+    const y = rect.top + (m.yPct/100) * rect.height;
+    return y < 14 + sheet.getBoundingClientRect().height + 24;
   }
   function stepQuickInputMarker(dir){
     const d = getActiveDrawing(); if(!d) return;
@@ -10819,6 +10878,19 @@
       else if(isTiltDir) card.innerHTML = buildTiltDirCardHTML(m, idx);
       else if(isLv) card.innerHTML = buildLvCardHTML(m, idx);
       else if(isEq) card.innerHTML = buildEqCardHTML(m, idx);
+      else if(isStatusPhotoKey(m.typeKey)){
+        // 현황사진 카드 — 위치·내용만(2026-11-27 3차). 위치는 결함과 같은 ▼ 목록.
+        card.classList.add('mc-stat');
+        card.innerHTML = `
+            <input type="text" class="mc-seq" inputmode="numeric" data-role="pos" tabindex="-1" value="${m.seq||idx+1}" title="번호 — 값을 바꾸면 현황사진 안에서 그 순서로 옮깁니다"/>
+            <select data-role="type" class="mc-marktype" tabindex="-1" title="${escapeAttr(getType(m.typeKey).label)} — 마킹 색상(도면에 표시되는 유형)">${typeOptionsHTML(m.typeKey, null, shortTypeLabel)}</select>
+            ${locTax() ? buildReportFieldHTML('rptLoc', m.rptLoc, '위치') : `<span class="mc-cell" data-label="위치"><input type="text" data-role="rptLoc" placeholder="위치" title="위치" value="${escapeAttr(m.rptLoc||'')}"/></span>`}
+            <span class="mc-cell mc-note" data-label="내용"><input type="text" data-role="note" placeholder="내용" title="내용" value="${escapeAttr(m.note||'')}"/></span>
+            <button class="mc-photo" data-role="photo" tabindex="-1" title="사진 첨부${m.rptTag ? ' — 사진번호 ' + escapeAttr(m.rptTag) : ''}"><svg class="icon"><use href="#i-camera"/></svg>${(m.photos&&m.photos.length)?`<span class="photo-count">${m.photos.length}</span>`:''}</button>
+            ${infoBtnHTML(m)}
+            <button class="row-del" data-role="del" tabindex="-1" title="삭제"><svg class="icon"><use href="#i-close"/></svg></button>
+        `;
+      }
       else {
         card.classList.add('mc-rpt');   // 외관조사 카드 — 줄바꿈 배치에서 두 줄로 담는다(CSS)
         // 좁은 카드에서 「수직부재(…」로 잘리지 않게 칸에는 짧은 이름(수직·수직(범위)), 전체 이름은 title 로
@@ -10895,6 +10967,12 @@
         wireLvCard(card, m);
       } else if(isEq){
         wireEqCard(card, m);
+      } else if(isStatusPhotoKey(m.typeKey)){
+        ['rptLoc','note'].forEach(key=>{
+          card.querySelector(`[data-role="${key}"]`).addEventListener('input', (e)=>{
+            markDirty(); m[key] = e.target.value; updateCardSearchIndex(card, m);
+          });
+        });
       } else if(!isTiltDir){
         wireReportField(card, 'rptType', m);
         wireReportField(card, 'rptMember', m);
@@ -10936,15 +11014,35 @@
       card.addEventListener('input', ()=>{ cardExpandedId = m.id; });
       built.push({ card, m });
     });
+    // 결함과 현황사진은 목록을 나눈다(2026-11-27 3차) — 둘 다 있으면 「결함 N건」「현황 N건」 머리줄.
+    const statBuilt = built.filter(x=> isStatusPhotoKey(x.m.typeKey));
+    const defBuilt = built.filter(x=> !isStatusPhotoKey(x.m.typeKey));
+    const sectionHead = (key, label, n)=>{
+      const ck = d.id + '|§' + key;
+      const closed = collapsedFloorGroups.has(ck);
+      const head = document.createElement('button');
+      head.type = 'button'; head.className = 'mc-group-head mc-section-head mc-section-' + key; head.dataset.section = key;
+      head.title = closed ? '눌러서 펼치기' : '눌러서 접기';
+      head.innerHTML = `<span class="gh-arrow">${closed ? '▸' : '▾'}</span>${escapeHTML(label)}<span class="gh-n">${n}건</span>`;
+      head.addEventListener('click', ()=>{
+        if(collapsedFloorGroups.has(ck)) collapsedFloorGroups.delete(ck); else collapsedFloorGroups.add(ck);
+        renderTable();
+      });
+      table.appendChild(head);
+      return closed;
+    };
+    const split = statBuilt.length > 0 && defBuilt.length > 0;
+    const defClosed = split ? sectionHead('def', '결함', defBuilt.length) : false;
+    if(defClosed) defBuilt.forEach(x=>{ if(!selectedIds.has(x.m.id)) x.card.classList.add('mc-group-hidden'); });
     // 한 도면에 층이 둘 이상이면 층별로 묶어 보여 준다(아래층부터, 층 미정은 맨 끝). 번호는 그대로다.
     const floorOfMarker = m=>{ const fk = locKeysOf(m).floor; return fk ? String(m[fk]||'').trim() : ''; };
-    const groupKeys = Array.from(new Set(built.map(x=> floorOfMarker(x.m))));
+    const groupKeys = Array.from(new Set(defBuilt.map(x=> floorOfMarker(x.m))));
     if(groupKeys.length < 2){
-      built.forEach(x=> table.appendChild(x.card));
+      defBuilt.forEach(x=> table.appendChild(x.card));
     } else {
       groupKeys.sort((a, b)=> (a === '') - (b === '') || floorSortValue(a) - floorSortValue(b) || a.localeCompare(b));
       groupKeys.forEach(g=>{
-        const items = built.filter(x=> floorOfMarker(x.m) === g);
+        const items = defBuilt.filter(x=> floorOfMarker(x.m) === g);
         const ck = d.id + '|' + g;
         const closed = collapsedFloorGroups.has(ck);
         const head = document.createElement('button');
@@ -10961,6 +11059,13 @@
           if(closed && !selectedIds.has(x.m.id)) x.card.classList.add('mc-group-hidden');
           table.appendChild(x.card);
         });
+      });
+    }
+    if(statBuilt.length){
+      const stClosed = split ? sectionHead('stat', '현황', statBuilt.length) : false;
+      statBuilt.forEach(x=>{
+        if(stClosed && !selectedIds.has(x.m.id)) x.card.classList.add('mc-group-hidden');
+        table.appendChild(x.card);
       });
     }
     applyMarkerSearchFilter();
@@ -11006,15 +11111,16 @@
   var collapsedFloorGroups = new Set();   // 결함 목록에서 접어 둔 층 묶음 (도면 id + '|' + 층)
   // 다 채움 = 외관조사는 부재·자재·결함, 장비조사는 부재가 있고, 글자로 안 바뀐 손글씨가 없는 것
   function isMarkerDone(m, isEq){
-    const keys = isEq ? ['eqMember'] : isStatusPhotoKey(m.typeKey) ? ['rptTag'] : ['rptType','rptMember','rptDefect'];
+    const keys = isEq ? ['eqMember'] : isStatusPhotoKey(m.typeKey) ? ['rptLoc','note'] : ['rptType','rptMember','rptDefect'];
     return keys.every(k=> String(m[k]||'').trim()) && !markerInkTodo(m);
   }
   function foldSummaryHTML(m, idx, d, isEq, open){
     const t = getType(m.typeKey);
     const join = a=> a.map(v=> String(v||'').trim()).filter(Boolean).join(' ');
+    const st = isStatusPhotoKey(m.typeKey);
     const where = isEq ? join([m.eqFloor, m.eqLoc]) : join([m.rptFloor, m.rptLoc]);
-    const what = isEq ? join([m.eqMember]) : join([m.rptType, m.rptMember, m.rptDefect]);
-    const size = isEq ? '' : [m.rptWidth && m.rptLength ? `${m.rptWidth}×${m.rptLength}` : (m.rptWidth || m.rptLength || ''), m.rptCount ? m.rptCount + '개' : ''].filter(Boolean).join(' ');
+    const what = isEq ? join([m.eqMember]) : st ? join([m.note]) : join([m.rptType, m.rptMember, m.rptDefect]);
+    const size = (isEq || st) ? '' : [m.rptWidth && m.rptLength ? `${m.rptWidth}×${m.rptLength}` : (m.rptWidth || m.rptLength || ''), m.rptCount ? m.rptCount + '개' : ''].filter(Boolean).join(' ');
     const tag = isEq ? m.eqTag : m.rptTag;
     const photos = (m.photos && m.photos.length) || 0;
     return `<i class="fs-dot" style="background:${escapeAttr(t.color||'#888')}"></i><b>${escapeHTML(formatMarkerLabel(m, idx, d))}</b>`
@@ -13471,9 +13577,15 @@
     const coveredKeys = new Set();
     allPresets().forEach(preset=>{
       preset.series.forEach(s=>coveredKeys.add(s.key));
-      const items = allItems.filter(x=> preset.series.some(s=>s.key===x.m.typeKey));
+      const items = allItems.filter(x=> preset.series.some(s=>s.key===x.m.typeKey) && !isStatusPhotoKey(x.m.typeKey));
       if(items.length>0) sheets.push(buildSheetForPreset(preset, items));
     });
+    // 현황사진은 결함 시트와 따로(2026-11-27 3차)
+    const statItems = allItems.filter(x=> isStatusPhotoKey(x.m.typeKey));
+    if(statItems.length) sheets.push({ name:'현황사진', header:['도면명','NO','구분','위치','내용','사진번호','사진'],
+      rows: statItems.map(({m,idx,d})=> ({ typeKey: m.typeKey, cells: [d.name, m.seq||idx+1, getType(m.typeKey).label, m.rptLoc||'',
+        String(m.note||'').replace(/\r?\n/g,' '), m.rptTag||'', (m.photos&&m.photos.length) ? `${m.photos.length}장` : ''] })),
+      numericColIdx: new Set([1]) });
     const leftover = allItems.filter(x=> !coveredKeys.has(x.m.typeKey));
     if(leftover.length>0) sheets.push(buildGenericPresetSheet('기타', leftover));
     return sheets;
@@ -14813,12 +14925,14 @@
   // ---------- 번호 스탬프 카메라 연결 ----------
   // 이 결함의 「사진 #」 칸 이름 (결함 종류마다 rptTag / eqTag 로 다르다. 없는 종류도 있다)
   function photoTagKey(m){
+    if(m && isStatusPhotoKey(m.typeKey)) return 'rptTag';
     const f = quickInputSpecFor(m).find(x=>x.label==='사진 #');
     return f ? f.k : null;
   }
   // 스탬프 카메라의 메모(파일이름 {메모})로 쓸 만한 이 결함의 정보 : 층수·위치·부재 / 부재·결함
   function stampMemoSuggest(m){
-    const parts = (m.eqFloor||m.eqLoc||m.eqMember) ? [m.eqFloor, m.eqLoc, m.eqMember] : [m.rptFloor, m.rptLoc, m.rptType, m.rptDefect];
+    const parts = isStatusPhotoKey(m.typeKey) ? [m.rptLoc, m.note]
+      : (m.eqFloor||m.eqLoc||m.eqMember) ? [m.eqFloor, m.eqLoc, m.eqMember] : [m.rptFloor, m.rptLoc, m.rptType, m.rptDefect];
     return parts.map(v=>String(v||'').trim()).filter(Boolean).join(' ');
   }
   // 찍은 사진 한 장을 결함에 붙이고, 이번 촬영(session)의 첫 사진이면 그 번호를 사진번호 칸에 넣는다.
@@ -14954,6 +15068,8 @@
     const st = StampCam.open({
       title: '스탬프 촬영 · ' + [formatMarkerLabel(m, idx, d), stampMemoSuggest(m)].filter(Boolean).join(' '),
       memoSuggest: stampMemoSuggest(m),
+      // 현황사진은 위치·내용을 스탬프 카메라 메모 자리에 바로 넣는다(2026-11-27 3차). 닫으면 원래 메모로 되돌린다.
+      memo: isStatusPhotoKey(m.typeKey) ? stampMemoSuggest(m) : undefined,
       onShot: (res)=> attachStampShot(markerId, res, session),
       onClose: ()=>{ if(photoModalMarkerId===markerId){ renderPhotoModal(); } if(onClose) onClose(); },
     });
