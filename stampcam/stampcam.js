@@ -451,17 +451,23 @@ class Camera {
     this.facing = facing;
     // 4:3에서 가능한 가장 큰 해상도를 요청한다 (기기가 지원하는 값으로 맞춰지고,
     // 다른 비율이 오면 저장할 때 가운데를 4:3으로 자른다 — crop43)
+    // zoom: true — 크롬은 이것을 요청해야 카메라 자체 줌(getCapabilities().zoom)을 내준다. 없으면 화면만
+    // 키우는 디지털 줌이 되어 확대할수록 화질이 깨진다(2026-11-27). 지원하지 않는 브라우저는 그냥 무시한다.
     const video = {
       facingMode: { ideal: facing },
       width: { ideal: 4096 },
       height: { ideal: 3072 },
       aspectRatio: { ideal: 4 / 3 },
+      zoom: true,
     };
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
     } catch (e) {
-      if (e.name === 'OverconstrainedError') {
+      if (e.name === 'TypeError') {
+        delete video.zoom;
+        stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+      } else if (e.name === 'OverconstrainedError') {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
       } else {
         throw e;
@@ -473,6 +479,11 @@ class Camera {
     await this.video.play().catch(() => {});
     if (!this.video.videoWidth) {
       await new Promise((res) => this.video.addEventListener('loadedmetadata', res, { once: true }));
+    }
+    // 연속 자동 초점 — 기기에 따라 켜지 않으면 처음 맞춘 거리에 머물러, 가까이 가거나 확대하면 흐려진다
+    const modes = this.caps().focusMode || [];
+    if (modes.includes('continuous')) {
+      await this.track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
     }
   }
 
@@ -928,9 +939,15 @@ const CSS = `
 .sc-next b{font-size:17px;color:#ffd84d;}
 .sc-memo{display:flex;gap:6px;align-items:center;padding:0 10px 8px;background:rgba(0,0,0,.6);}
 .sc-memo input{flex:1;min-width:0;min-height:40px;border-radius:9px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;padding:0 10px;font-size:15px;}
-.sc-view{min-height:0;min-width:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
-.sc-frame{position:relative;max-width:100%;max-height:100%;overflow:hidden;background:#111;}
-.sc-frame video{width:100%;height:100%;object-fit:cover;display:block;}
+.sc-view{min-height:0;min-width:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;touch-action:none;}
+.sc-frame{position:relative;max-width:100%;max-height:100%;overflow:hidden;background:#111;touch-action:none;}
+.sc-frame video{width:100%;height:100%;object-fit:cover;display:block;transform-origin:50% 50%;}
+/* 줌 — 두 손가락으로 벌리기 또는 아래 단추. 카메라 자체 줌이 되면 그것을 쓴다(화질 유지) */
+.sc-zoom{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;
+  background:rgba(0,0,0,.45);border-radius:999px;padding:4px;z-index:2;}
+.sc-zoom button{min-width:44px;height:36px;border-radius:999px;border:0;background:transparent;color:#fff;font-size:13px;font-weight:700;cursor:pointer;}
+.sc-zoom button.on{background:rgba(255,216,77,.9);color:#000;}
+.sc-zoom .sc-zlab{font-size:12px;opacity:.85;padding:0 6px 0 2px;min-width:40px;text-align:center;}
 .sc-frame .sc-focus{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border:2px solid #ffd84d;border-radius:8px;pointer-events:none;opacity:0;transition:opacity .2s;}
 .sc-frame .sc-focus.on{opacity:1;}
 .sc-flashfx{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;}
@@ -1014,7 +1031,9 @@ function open(opts) {
       (opts.memoSuggest ? '<button type="button" class="sc-btn" data-sc="suggest" title="' + escH(opts.memoSuggest) + '">결함 정보로</button>' : '') +
     '</div>' +
     '<div class="sc-view"><div class="sc-frame" data-sc="frame"><video playsinline muted autoplay></video>' +
-      '<div class="sc-focus" data-sc="focus"></div><div class="sc-flashfx" data-sc="fx"></div></div>' +
+      '<div class="sc-focus" data-sc="focus"></div><div class="sc-flashfx" data-sc="fx"></div>' +
+      '<div class="sc-zoom" data-sc="zoom"><button type="button" data-z="1">1×</button><button type="button" data-z="2">2×</button>' +
+        '<button type="button" data-z="3">3×</button><span class="sc-zlab" data-sc="zlab"></span></div></div>' +
       '<div class="sc-msg" data-sc="msg">카메라를 켜는 중…</div></div>' +
     '<div class="sc-bot">' +
       '<div class="sc-side">' +
@@ -1107,6 +1126,7 @@ function open(opts) {
       const s = loadSettings();
       if (s.flashMode === 'on') camera.setTorch(true);
       $('flash').disabled = !camera.torchSupported;
+      applyZoom(state.zoom || 1);
     } catch (e) {
       $('msg').textContent = cameraErrorMessage(e);
       $('shutter').disabled = true;
@@ -1127,7 +1147,10 @@ function open(opts) {
       if (lit) { lit = false; await camera.setTorch(false); }
       const fx = $('fx'); fx.classList.remove('on'); void fx.offsetWidth; fx.classList.add('on');
       if (navigator.vibrate) navigator.vibrate(30);
-      const res = await stampAndStore(shot.source, shot.width, shot.height, date, crop43(shot.width, shot.height));
+      // 카메라 자체 줌이 없을 때만 화면에서 키운 만큼 가운데를 잘라 낸다(디지털 줌)
+      let area = crop43(shot.width, shot.height);
+      if (!camera.zoomRange && state.zoom > 1) area = zoomCrop(area, state.zoom);
+      const res = await stampAndStore(shot.source, shot.width, shot.height, date, area);
       state.shots++;
       res.thumbURL = res.canvas.toDataURL('image/jpeg', 0.6);
       refreshTop();
@@ -1401,8 +1424,70 @@ function open(opts) {
     if (m) { s.memoRecent = [m].concat(s.memoRecent.filter((x) => x !== m)).slice(0, 12); saveSettings(s); }
     refreshTop();
   });
-  /* 눌러서 초점 */
-  $('frame').addEventListener('pointerdown', async (e) => {
+  /* 줌 : 두 손가락 벌리기·오므리기, 1×·2×·3× 단추. 예전에는 화면 전체가 브라우저 확대로 커져서
+     영상이 깨지고 초점도 다시 잡히지 않았다(2026-11-27) — 이제 카메라에 줌을 직접 건다. */
+  const ptrs = new Map();
+  let pinch = null, tapStart = null, zoomBusy = false, zoomWant = null;
+  function zoomLimits() {
+    const hw = camera.zoomRange;
+    return hw ? { min: Math.max(1, hw.min), max: Math.min(hw.max, 10), hw } : { min: 1, max: 4, hw: null };
+  }
+  function applyZoom(z) {
+    const L = zoomLimits();
+    z = Math.min(L.max, Math.max(L.min, Number(z) || 1));
+    state.zoom = z;
+    if (L.hw) {
+      video.style.transform = '';
+      zoomWant = z;
+      if (!zoomBusy) {
+        zoomBusy = true;
+        (async () => {
+          while (zoomWant !== null) { const w = zoomWant; zoomWant = null; await camera.setZoom(w); }
+          zoomBusy = false;
+        })();
+      }
+    } else {
+      video.style.transform = z > 1 ? 'scale(' + z + ')' : '';
+    }
+    $('zlab').textContent = z.toFixed(1) + '×' + (L.hw ? '' : ' 화면');
+    $('zlab').title = L.hw ? '카메라 줌' : '이 기기는 카메라 줌을 알려 주지 않아 화면 확대(디지털 줌)로 찍는다 — 확대할수록 화질이 떨어진다';
+    $('zoom').querySelectorAll('button[data-z]').forEach((b) => {
+      const v = Number(b.dataset.z);
+      b.classList.toggle('on', Math.abs(v - z) < 0.05);
+      b.hidden = v > L.max + 0.01;
+    });
+  }
+  state.applyZoom = applyZoom;
+  state.zoom = 1;
+  $('zoom').addEventListener('pointerdown', (e) => e.stopPropagation());
+  $('zoom').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-z]');
+    if (b) applyZoom(Number(b.dataset.z));
+  });
+  const pdist = () => { const a = [...ptrs.values()]; return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1; };
+  $('frame').addEventListener('pointerdown', (e) => {
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { $('frame').setPointerCapture(e.pointerId); } catch (err) {}
+    if (ptrs.size === 2) { pinch = { d: pdist(), z: state.zoom || 1 }; tapStart = null; }
+    else if (ptrs.size === 1) tapStart = { x: e.clientX, y: e.clientY };
+  });
+  $('frame').addEventListener('pointermove', (e) => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && ptrs.size >= 2) applyZoom(pinch.z * pdist() / pinch.d);
+    else if (tapStart && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) > 12) tapStart = null;
+  });
+  const ptrEnd = (e) => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if (ptrs.size < 2) pinch = null;
+    if (e.type === 'pointerup' && tapStart && ptrs.size === 0) { tapStart = null; tapFocus(e); }
+    if (ptrs.size === 0) tapStart = null;
+  };
+  $('frame').addEventListener('pointerup', ptrEnd);
+  $('frame').addEventListener('pointercancel', ptrEnd);
+  /* 눌러서 초점 (한 손가락으로 톡) */
+  async function tapFocus(e) {
     if (!camera.active) return;
     const r = $('frame').getBoundingClientRect();
     const f = $('focus');
@@ -1411,10 +1496,12 @@ function open(opts) {
     setTimeout(() => f.classList.remove('on'), 900);
     /* 화면 칸은 영상의 가운데 4:3 이므로 영상 좌표로 되돌린다 */
     const c = crop43(video.videoWidth, video.videoHeight);
-    const nx = (c.x + (e.clientX - r.left) / r.width * c.w) / video.videoWidth;
-    const ny = (c.y + (e.clientY - r.top) / r.height * c.h) / video.videoHeight;
-    camera.focusAt(nx, ny);
-  });
+    /* 화면 확대(디지털 줌) 중이면 보이는 자리는 가운데 1/z 이다 */
+    const zf = camera.zoomRange ? 1 : (state.zoom || 1);
+    const ux = 0.5 + ((e.clientX - r.left) / r.width - 0.5) / zf;
+    const uy = 0.5 + ((e.clientY - r.top) / r.height - 0.5) / zf;
+    camera.focusAt((c.x + ux * c.w) / video.videoWidth, (c.y + uy * c.h) / video.videoHeight);
+  }
   state.onKey = (e) => {
     if (ui !== state) return;
     if (document.activeElement === $('memo')) { if (e.key === 'Enter') $('memo').blur(); return; }
@@ -1476,7 +1563,19 @@ window.StampCam = {
   open, close, stampFiles,
   isOpen: () => !!ui,
   /* 다음에 찍힐 번호 (글자 / 숫자) */
-  peek: () => { const s = loadSettings(); return { number: s.current, numberText: nextNumberText(s), sameOn: s.sameOn, saveMode: s.saveMode }; },
+  peek: () => { const s = loadSettings(); return { number: s.current, numberText: nextNumberText(s), sameOn: s.sameOn, saveMode: s.saveMode, start: s.start }; },
+  /* 번호 n 을 화면에 보일 글자로 (자릿수·접두어 그대로) */
+  numberTextFor: (n) => formatNumber(n, loadSettings(), 0),
+  /* 다음에 찍힐 번호를 n 으로 — 결함마킹이 프로젝트의 사진번호에 맞출 때 쓴다(2026-11-27). 스탬프 카메라 앱도 같은 값을 본다 */
+  setNext: (n) => {
+    n = Math.round(Number(n));
+    if (!(n >= 0) || n > 9999999) return false;
+    const s = loadSettings();
+    s.current = n; s.sub = 1;
+    const ok = saveSettings(s);
+    if (ui && ui.refreshTop) ui.refreshTop();
+    return ok;
+  },
   /* 검사용 */
   _debug: { loadSettings, saveSettings, stampAndStore, formatNumber, crop43, listShots, clearShots, get ui() { return ui; } },
 };

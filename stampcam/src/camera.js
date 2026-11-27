@@ -21,17 +21,23 @@ export class Camera {
     this.facing = facing;
     // 4:3에서 가능한 가장 큰 해상도를 요청한다 (기기가 지원하는 값으로 맞춰지고,
     // 다른 비율이 오면 저장할 때 가운데를 4:3으로 자른다 — crop43)
+    // zoom: true — 크롬은 이것을 요청해야 카메라 자체 줌(getCapabilities().zoom)을 내준다. 없으면 화면만
+    // 키우는 디지털 줌이 되어 확대할수록 화질이 깨진다(2026-11-27). 지원하지 않는 브라우저는 그냥 무시한다.
     const video = {
       facingMode: { ideal: facing },
       width: { ideal: 4096 },
       height: { ideal: 3072 },
       aspectRatio: { ideal: 4 / 3 },
+      zoom: true,
     };
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
     } catch (e) {
-      if (e.name === 'OverconstrainedError') {
+      if (e.name === 'TypeError') {
+        delete video.zoom;
+        stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+      } else if (e.name === 'OverconstrainedError') {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
       } else {
         throw e;
@@ -43,6 +49,11 @@ export class Camera {
     await this.video.play().catch(() => {});
     if (!this.video.videoWidth) {
       await new Promise((res) => this.video.addEventListener('loadedmetadata', res, { once: true }));
+    }
+    // 연속 자동 초점 — 기기에 따라 켜지 않으면 처음 맞춘 거리에 머물러, 가까이 가거나 확대하면 흐려진다
+    const modes = this.caps().focusMode || [];
+    if (modes.includes('continuous')) {
+      await this.track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
     }
   }
 

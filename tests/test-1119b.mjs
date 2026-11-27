@@ -112,7 +112,7 @@ eq(await vis('#tabletSketchPop'), 0, '고르면 닫힌다');
 eq(await ev(`document.body.classList.contains('canvas-max')`), true, '  「크게 보기」가 실제로 동작한다');
 await click('btnFloatCanvasMax');
 await tap('#btnFloatTypePick');
-eq(await vis('#tabletSketchPop .tablet-float-type-btn'), 4, '마킹 단추를 누르면 4개');
+eq(await vis('#tabletSketchPop .tablet-float-type-btn'), 6, '마킹 단추를 누르면 6개(현황사진 2 포함, 11-27)');
 await tap('#tabletSketchPop .tablet-float-type-btn:nth-child(2)');
 await tap('#btnFloatSketchMode');
 f = await fit(); ok(fits(f), '그리기 : 옆으로 밀리지 않는다', f);

@@ -154,7 +154,7 @@ for (const [w, h, n] of [[1480, 924, 4], [1280, 800, 4], [1024, 768, 4], [800, 1
   if (n) await tap('#tabletFloatTypeGrid .tablet-float-type-btn:nth-child(2)');
   else {
     await tap('#btnFloatTypePick');
-    eq(await vis('#tabletSketchPop .tablet-float-type-btn'), 4, '  단추를 누르면 고르기 창에 4개');
+    eq(await vis('#tabletSketchPop .tablet-float-type-btn'), 6, '  단추를 누르면 고르기 창에 6개(현황사진 2 포함, 11-27)');
     ok(await ev(`(()=>{const a=document.getElementById('tabletSketchPop').getBoundingClientRect(),b=document.getElementById('tabletFloatBar').getBoundingClientRect();return a.bottom<=b.top&&a.left>=0&&a.right<=innerWidth})()`), '  창이 바 위, 화면 안');
     await shot('1119-bar-800-pop.png');
     await tap('#tabletSketchPop .tablet-float-type-btn:nth-child(2)');
@@ -162,7 +162,7 @@ for (const [w, h, n] of [[1480, 924, 4], [1280, 800, 4], [1024, 768, 4], [800, 1
   }
   eq(await ev(`document.body.classList.contains('mode-sketch')`), false, '마킹 단추를 누르면 그리기가 꺼진다');
   eq(await ev(`document.querySelectorAll('#tabletFloatTypeGrid .tablet-float-type-btn')[1].classList.contains('active')`), true, '  누른 유형이 골라진다');
-  eq(await vis('#tabletFloatTypeGrid .tablet-float-type-btn'), 4, '  평소 바에는 4개가 그대로');
+  eq(await vis('#tabletFloatTypeGrid .tablet-float-type-btn'), 6, '  평소 바에는 6개 그대로(현황사진 2 포함, 11-27)');
   const before = await ev(`${D}.markers.length`);
   await placeMarker();
   eq(await ev(`${D}.markers.length`), before + 1, '  바로 찍을 수 있다');

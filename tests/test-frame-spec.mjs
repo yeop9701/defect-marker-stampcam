@@ -32,9 +32,11 @@ await cdp.send('DOM.enable');
 await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1400, deviceScaleFactor: 1, mobile: false });
 await cdp.send('Page.navigate', { url: APP });
 await sleep(1500);
+await cdp.send('Runtime.evaluate', { expression: "(()=>{const e=document.getElementById('legendToggle');if(e)e.checked=true;return true})()" }); // 범례는 2026-11-27 부터 기본 끔 — 이 검사는 범례가 든 저장물을 본다
 await ev('try{localStorage.clear()}catch(e){}; true');
 await cdp.send('Page.navigate', { url: APP });
 await sleep(1900);
+await cdp.send('Runtime.evaluate', { expression: "(()=>{const e=document.getElementById('legendToggle');if(e)e.checked=true;return true})()" }); // 범례는 2026-11-27 부터 기본 끔 — 이 검사는 범례가 든 저장물을 본다
 
 const r = await cdp.send('Runtime.evaluate', { expression: "document.querySelector('#addDrawingInput')" });
 await cdp.send('DOM.setFileInputFiles', { files: [ROOT + 'test-fixtures/plan.png'], objectId: r.result.objectId });

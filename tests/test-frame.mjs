@@ -35,9 +35,11 @@ await cdp.send('DOM.enable');
 await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1400, deviceScaleFactor: 1, mobile: false });
 await cdp.send('Page.navigate', { url: APP });
 await sleep(1500);
+await cdp.send('Runtime.evaluate', { expression: "(()=>{const e=document.getElementById('legendToggle');if(e)e.checked=true;return true})()" }); // 범례는 2026-11-27 부터 기본 끔 — 이 검사는 범례가 든 저장물을 본다
 await ev('try{localStorage.clear()}catch(e){}; true');
 await cdp.send('Page.navigate', { url: APP });
 await sleep(1800);
+await cdp.send('Runtime.evaluate', { expression: "(()=>{const e=document.getElementById('legendToggle');if(e)e.checked=true;return true})()" }); // 범례는 2026-11-27 부터 기본 끔 — 이 검사는 범례가 든 저장물을 본다
 
 /* ── 도면 한 장을 올린다 ─────────────────────────────────────────── */
 const r = await cdp.send('Runtime.evaluate', { expression: `document.querySelector('#addDrawingInput')` });
@@ -435,6 +437,7 @@ await sleep(300);
 cdp.setDialogAnswer(true);           // "저장하지 않은 변경사항" 확인 대화상자
 await cdp.send('Page.navigate', { url: APP });
 await sleep(1800);
+await cdp.send('Runtime.evaluate', { expression: "(()=>{const e=document.getElementById('legendToggle');if(e)e.checked=true;return true})()" }); // 범례는 2026-11-27 부터 기본 끔 — 이 검사는 범례가 든 저장물을 본다
 eq(await ev('__markerDbg.frameLayout.fontScale'), 1.2, '새로 고쳐도 도면틀 설정이 남는다');
 eq(await ev('__markerDbg.legendBoxStyle.bg'), 'solid', '범례 상자 모양도 남는다');
 await ev(`(()=>{ __markerDbg.frameLayout = Object.assign({}, __markerDbg.FRAME_LAYOUT_DEFAULT); __markerDbg.saveFrameLayout(); return true; })()`);

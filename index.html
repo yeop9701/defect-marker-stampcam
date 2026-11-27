@@ -409,6 +409,10 @@
   body.layout-tablet.fsb-tight .tablet-float-bar{gap:3px;}
   body.layout-tablet.fsb-tight .tablet-float-types{gap:3px;}
   body.layout-tablet.fsb-tight .tablet-float-types .tablet-float-type-btn{width:32px;}
+  /* 그리는 동안 하단 바에는 결함 마킹 4개만 — 현황사진 2개까지 놓으면 색 6개가 한 단추로 접힌다(2026-11-27).
+     현황사진은 그리기를 끄면 다시 보인다. */
+  body.layout-tablet.mode-sketch #tabletFloatBar .tablet-float-type-btn.is-status,
+  body.layout-tablet.mode-pick.pick-has-strokes #tabletFloatBar .tablet-float-type-btn.is-status{display:none;}
   .float-sketch-width{display:flex;align-items:center;justify-content:center;}
   .float-sketch-width i{display:block;width:22px;background:currentColor;border-radius:2px;}
   .float-sketch-width.active{background:var(--mode-sketch);color:#fff;}
@@ -855,6 +859,14 @@
   body.no-drawing .toolbar-row-hint{visibility:hidden;}
 
   /* 시작 화면. 도면이 없을 때 캔버스 자리에 뜨는 유일한 할 일이다. */
+  .add-drawing-picker-back{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.35);}
+  .add-drawing-picker{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9999;width:min(320px,calc(100vw - 32px));
+    background:var(--surface-1);color:var(--text-primary);border:1px solid var(--border);border-radius:14px;
+    padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 12px 40px rgba(0,0,0,.4);}
+  .add-drawing-picker .adp-title{font-weight:700;font-size:16px;margin-bottom:2px;}
+  .add-drawing-picker button{min-height:52px;border-radius:10px;font-size:16px;font-weight:700;text-align:left;padding:0 14px;
+    border:1px solid var(--border);background:var(--surface-2);color:inherit;cursor:pointer;}
+  .add-drawing-picker button.adp-cancel{min-height:42px;text-align:center;font-weight:600;font-size:14px;opacity:.85;}
   .empty-state{color:var(--text-secondary);font-size:14px;text-align:center;padding:48px 30px;max-width:420px;margin:auto;}
   .empty-state .es-title{font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:8px;}
   .empty-state .es-sub{line-height:1.7;}
@@ -1669,6 +1681,10 @@
         <label class="file-label" style="display:block;margin-top:8px;">
           <button type="button" class="add-drawing-btn" id="btnAddDrawing" title="이미지(PNG·JPG 등)와 PDF를 넣을 수 있습니다. 여러 쪽짜리 PDF는 쪽마다 도면 한 장이 됩니다">+ 도면 추가 (이미지 · PDF)</button>
           <input type="file" id="addDrawingInput" accept="image/*,application/pdf,.pdf" multiple />
+          <!-- 휴대폰·태블릿용 : 이미지와 PDF 를 한 칸으로 받으면 안드로이드가 카메라·캠코더까지 섞인
+               「작업 선택」 창을 띄우고, 「내 파일」에서는 PDF 가 안 보인다 → 따로 고르게 한다(2026-11-27) -->
+          <input type="file" id="addDrawingImageInput" accept="image/*" multiple />
+          <input type="file" id="addDrawingPdfInput" accept="application/pdf,.pdf" multiple />
         </label>
         <!-- 도면(이미지)이 아예 없는 현장을 위한 길. 백지를 한 장 만들어 두면 그 위에 「그리기」로
              평면을 직접 그린 뒤, 이미지 도면과 똑같이 결함을 찍고 내보낼 수 있다. -->
@@ -2297,7 +2313,7 @@
           <button type="button" class="tool" id="btnReopenTbPreview" style="display:none;font-size:10.5px;padding:3px 7px;" title="인쇄 미리보기 다시 열기"><svg class="icon"><use href="#i-eye"/></svg> 미리보기</button>
         </div>
         <label class="check-row" style="margin-top:6px;" title="PNG/PDF 저장·인쇄 미리보기에 NOTE 범례 박스를 포함할지 정합니다. 범례는 도면 위에 겹쳐 그려지므로 켜고 꺼도 도면의 크기·위치는 달라지지 않습니다 — 크기 조절은 미리보기 창에서 할 수 있습니다.">
-          <input type="checkbox" id="legendToggle" checked />
+          <input type="checkbox" id="legendToggle" />
           범례
         </label>
         <label class="check-row" style="margin-top:6px;margin-left:18px;" title="켜면 작업 화면의 도면 위에도 NOTE 범례를 그려서, 그 자리에서 바로 끌어 옮길 수 있습니다(방향키로 미세 이동, Esc로 선택 해제). 저장 결과에는 영향이 없습니다 — 미리보기 창 안에서도 같은 방식으로 끌어 옮길 수 있습니다.">
@@ -2990,6 +3006,8 @@
       // 배지 번호 표기에서 접두와 번호 사이에 넣는 구분자. 기본은 "SH-01"처럼 '-'. 부동침하(lv_x/lv_y)처럼
       // "P1"로 붙여 쓰고 싶은 계열은 ''로 지정한다.
       labelSep: o.labelSep!==undefined ? o.labelSep : '-',
+      // numbering.group : 계열독립 채번일 때 번호를 함께 세는 묶음 이름(없으면 계열 key 자체). 현황사진
+      // 두 계열(초록·주황)은 group 'stat' 를 같이 써서 1,2,3… 한 줄로 이어진다.
       numbering: Object.assign({mode:'global', digits:0, start:1}, o.numbering || {}),
       legendShow: o.legendShow!==false,
       // 번호 배지(원)를 아예 그리지 않는 계열 — 기울기 "측정방향"처럼 선·화살촉만 있으면 되고
@@ -3023,7 +3041,7 @@
     const RENAMED = { wall:['벽체','수직부재'], flat:['바닥/천장','수평부재'],
       wall_area:['벽체(범위)','수직부재(범위)'], flat_area:['바닥/천장(범위)','수평부재(범위)'] };
     const relabel = (key, label)=> (RENAMED[key] && RENAMED[key][0] === label) ? RENAMED[key][1] : label;
-    return list.slice(0, 40).map(t=>({
+    const out = list.slice(0, 40).map(t=>({
       key:        str(t && t.key, 'unknown'),
       label:      relabel(t && t.key, str(t && t.label, '(이름 없음)')),
       color:      hex(t && t.color) ? t.color : '#e23c3c',
@@ -3041,7 +3059,29 @@
         start:  num(t && t.numbering && t.numbering.start, 1, 9999, 1),
       },
     }));
+    // 번호 묶음은 있을 때만 싣는다 — 빈 group 을 늘 붙이면 예전 파일을 열었다 그대로 저장해도 내용이 달라진다
+    list.slice(0, 40).forEach((t, i)=>{
+      const g = str(t && t.numbering && t.numbering.group, '').slice(0, 40);
+      if(g) out[i].numbering.group = g;
+    });
+    return addStatusSeriesIfMissing(out);
   }
+  // 2026-11-27 외관조사에 현황사진 마킹 2개(초록·주황)가 더해졌다. 예전 외관조사 4종 그대로 저장된
+  // 프로젝트·자동저장·사용자 프리셋에도 붙여, 예전 프로젝트를 열어도 현황사진 마킹을 쓸 수 있게 한다.
+  // (계열 편집으로 이미 다른 계열을 더한 목록이나 다른 프리셋은 건드리지 않는다.)
+  function addStatusSeriesIfMissing(list){
+    const keys = list.map(t=> t.key);
+    const old = ['wall','flat','wall_area','flat_area'];
+    if(list.length !== 4 || !old.every(k=> keys.includes(k))) return list;
+    return list.concat(STATUS_PHOTO_SERIES().map(t=> JSON.parse(JSON.stringify(t))));
+  }
+  function STATUS_PHOTO_SERIES(){
+    return [
+      makeSeries({key:'stat_v', label:'현황사진(수직부재)', color:'#00B050', endStyle:'arrow', numbering:{mode:'independent', digits:0, start:1, group:'stat'}}),
+      makeSeries({key:'stat_h', label:'현황사진(수평부재)', color:'#FF8C00', endStyle:'dot', numbering:{mode:'independent', digits:0, start:1, group:'stat'}}),
+    ];
+  }
+  function isStatusPhotoKey(key){ return key === 'stat_v' || key === 'stat_h'; }
   // 기본 프리셋 3개. "외관조사"는 기존 4종을 그대로 이관한 것이라 프리셋을 바꾸지 않는 한 지금까지와
   // 화면·번호 표기가 완전히 동일하다(접두 없음·전역채번·circle 배지). "장비조사"·"기울기"는 라벨/색만
   // 지시대로 채운 기본값이며, 실제 현장 용어는 다를 수 있으니 좌측 "계열 편집"에서 이름을 바로 고칠
@@ -3054,6 +3094,9 @@
       makeSeries({key:'flat', label:'수평부재', color:'#0047AB', endStyle:'dot'}), // 기존보다 진한 파랑
       makeSeries({key:'wall_area', label:'수직부재(범위)', color:'#FF0000', endStyle:'rect'}),
       makeSeries({key:'flat_area', label:'수평부재(범위)', color:'#0047AB', endStyle:'rect'}),
+      // 현황사진(2026-11-27 사용자 요청) — 결함이 아니라 현황 사진 찍은 자리. 범위 없이 색만 다르다.
+      // 번호는 결함과 따로 1,2,3…(두 색이 한 줄로 이어 셈 — numbering.group 'stat').
+      ...STATUS_PHOTO_SERIES(),
     ]},
     { name:'장비조사', series:[
       // 빨강/파랑은 외관조사(wall/flat)와 완전히 같은 색상코드로 통일했다(#FF0000/#0047AB) — 예전엔
@@ -3323,6 +3366,34 @@
   //   세로 도면을 1:1로 담고도 남는 크기다(A4 가로 종이에 약 530dpi).
   // 휴대폰·태블릿은 캔버스 크기와 메모리 한도가 훨씬 낮아, 이 상한 그대로면 저장 파일을 만들다 실패한다.
   // 1600만 화소면 A4 가로 한 장에 약 340dpi 이다.
+  // 도면 추가 : 컴퓨터는 이미지·PDF 를 한 창에서 고른다. 휴대폰·태블릿은 「이미지」「PDF」를 먼저 고르게
+  // 한다 — 안드로이드 크롬은 이미지+PDF 를 함께 받는 칸을 누르면 카메라·캠코더가 섞인 「작업 선택」을
+  // 띄우고, 거기서 「내 파일」로 가면 PDF 가 걸러져 안 보인다(2026-11-27 사용자 보고).
+  function openAddDrawingPicker(anchor){
+    if(!isMobileDevice()){ document.getElementById('addDrawingInput').click(); return; }
+    closeAddDrawingPicker();
+    const pop = document.createElement('div');
+    pop.id = 'addDrawingPicker';
+    pop.className = 'add-drawing-picker';
+    pop.innerHTML = '<div class="adp-title">도면 추가</div>'
+      + '<button type="button" data-k="image">🖼 이미지 (사진·갤러리)</button>'
+      + '<button type="button" data-k="pdf">📄 PDF 파일</button>'
+      + '<button type="button" data-k="cancel" class="adp-cancel">취소</button>';
+    document.body.appendChild(pop);
+    const back = document.createElement('div');
+    back.id = 'addDrawingPickerBack'; back.className = 'add-drawing-picker-back';
+    document.body.insertBefore(back, pop);
+    back.addEventListener('click', closeAddDrawingPicker);
+    pop.addEventListener('click', e=>{
+      const b = e.target.closest('button'); if(!b) return;
+      closeAddDrawingPicker();
+      if(b.dataset.k === 'image') document.getElementById('addDrawingImageInput').click();
+      else if(b.dataset.k === 'pdf') document.getElementById('addDrawingPdfInput').click();
+    });
+  }
+  function closeAddDrawingPicker(){
+    ['addDrawingPicker','addDrawingPickerBack'].forEach(id=>{ const el = document.getElementById(id); if(el) el.remove(); });
+  }
   function isMobileDevice(){
     const ua = navigator.userAgent || '';
     return (navigator.userAgentData && navigator.userAgentData.mobile === true)
@@ -3591,7 +3662,7 @@
   // 배포할 때 아래 두 값을 손으로 갱신한다. APP_BUILD 는 service-worker.js 의 CACHE_VERSION 과
   // 같아야 한다(tests/test-1123d.mjs 가 대조). 「설정」 맨 아래와 결함 목록 아래에 보여, 폰에 새 버전이
   // 떴는지 사용자가 바로 확인할 수 있다(2026-11-23 — 예전 표기 "Ver 2.5 (2026-10-19)" 는 갱신이 멈춰 있었다).
-  const APP_BUILD = 'sc24';
+  const APP_BUILD = 'sc25';
   const APP_BUILD_DATE = '2026-11-23';
   // "미저장 변경사항이 있는가"를 매번 전체 스냅샷을 JSON.stringify해서 비교하면(특히 사진·도면
   // 이미지가 많을 때) beforeunload/자동저장 틱마다 무거운 직렬화가 반복된다. 대신 마커·도면·프로젝트
@@ -3639,6 +3710,7 @@
   // 그리기(현장 스케치) 모드. 선택/이동/지우개와 배타적이며, 이 값이 null이 아니면 그리기 모드다.
   // 불리언을 하나 더 늘리는 대신 "지금 든 도구" 하나만 문자열로 들고 있는다 — 도구가 7개라 불리언으로
   // 두면 조합이 폭발하고, 어느 하나가 꺼지지 않은 채 남는 실수가 나기 쉽다.
+  let penBtnErase = null;   // { id } — S펜 옆 버튼을 누른 채 지우는 중(아래 isPenEraseButton)
   let sketchTool = null;    // null | 'pen'|'line'|'rect'|'ellipse'|'arrow'|'text'|'sketchErase'
   // 다음에 찍을 마커의 인출선 모양(직선/ㄱ자/ㄷ자). 도구줄에서 고르며, 마커가 선택돼 있으면 그
   // 마커들에도 함께 적용된다. 새로 고르기 전까지 유지되므로 결함이 몰린 구역을 연달아 찍을 때
@@ -3685,6 +3757,11 @@
   // 내보내기 함수가 이 함수를 호출해 seq를 최신 상태로 맞춘다. changes(무엇이 몇 번에서 몇 번으로
   // 바뀌었는지)는 계속 돌려주지만, 사용자 요청으로 "번호 재정렬됨" 토스트 자체는 더 이상 띄우지
   // 않는다(opts.silent는 이제 아무 효과가 없지만, 호출부를 일일이 바꿀 필요가 없도록 그대로 둠).
+  function markerNumbering(m){ const type = getType(m.typeKey); return (type && type.numbering) || { mode:'global' }; }
+  function numberingGroupKey(m){
+    const n = markerNumbering(m);
+    return n.mode === 'independent' ? ('i:' + (n.group || m.typeKey)) : 'global';
+  }
   function renumberDrawingMarkers(d, opts){
     opts = opts || {};
     if(!d) return [];
@@ -3692,18 +3769,21 @@
     // 계열독립 채번(series numbering.mode==='independent')인 마커는 도면 전체 순서(idx+1)가 아니라
     // 그 계열끼리만 등장 순서대로 센다 — SH/PH/DM처럼 서로 다른 계열이 도면 위에 섞여 있어도
     // 번호가 간섭하지 않는다. 전역 채번(기본값, 기존 방식)인 계열은 그대로 idx+1을 쓴다.
-    const seriesCounters = new Map(); // typeKey -> 다음에 매길 번호
+    // 전역 채번은 "전역 채번 마커끼리" 센다 — 예전에는 idx+1(모든 마커 순서)이라, 외관조사 결함 사이에
+    // 따로 세는 현황사진 마커가 끼면 결함 번호가 건너뛰었다. 전역 채번만 있는 도면에서는 예전과 같다.
+    const seriesCounters = new Map(); // 묶음(numbering.group 또는 typeKey) -> 다음에 매길 번호
+    let globalSeq = 0;
     d.markers.forEach((m, idx)=>{
-      const type = getType(m.typeKey);
-      const numbering = (type && type.numbering) || { mode:'global' };
+      const numbering = markerNumbering(m);
       let newSeq;
       if(numbering.mode === 'independent'){
         const start = numbering.start || 1;
-        const next = seriesCounters.has(m.typeKey) ? seriesCounters.get(m.typeKey) : start;
+        const gk = numberingGroupKey(m);
+        const next = seriesCounters.has(gk) ? seriesCounters.get(gk) : start;
         newSeq = next;
-        seriesCounters.set(m.typeKey, next+1);
+        seriesCounters.set(gk, next+1);
       } else {
-        newSeq = idx+1;
+        newSeq = ++globalSeq;
       }
       if(typeof m.seq === 'number' && m.seq !== newSeq) changes.push({from:m.seq, to:newSeq});
       m.seq = newSeq;
@@ -3999,7 +4079,9 @@
     return !!(el && el.checked);
   }
   function overlayLegendItems(d){
-    const all = DEFECT_TYPES.filter(type=> type.legendShow!==false);
+    // 현황사진은 그 도면에 실제로 찍었을 때만 범례에 넣는다 — 결함 범례에 안 쓴 현황사진 줄이 늘 붙지 않게.
+    const usedKeys = new Set(((d && d.markers) || []).map(m=>m.typeKey));
+    const all = DEFECT_TYPES.filter(type=> type.legendShow!==false && (!isStatusPhotoKey(type.key) || usedKeys.has(type.key)));
     if(!isLegendUsedOnly() || !d || !d.markers || d.markers.length===0) return all.map(type=>({type}));
     const used = new Set(d.markers.map(m=>m.typeKey));
     const filtered = all.filter(type=> used.has(type.key));
@@ -4633,6 +4715,14 @@
     // 섞여 있어도 도면을 바꿀 때마다 색·번호가 어긋나지 않는다. 프리셋이 삭제되어 더는 존재하지
     // 않으면(커스텀 프리셋을 지운 경우 등) 조용히 지금 프리셋을 유지한다.
     const d = getActiveDrawing();
+    // 마지막 도면을 지웠으면 그리기·이동·지우개 같은 도구를 모두 놓는다 — 도면이 없는데 「그리기」가
+    // 눌린 채 남고 그리기 바·안내 띠가 떠 있었다(2026-11-27 사용자 캡처).
+    if(!d && (sketchTool || moveMode || eraseMode || selectMode)){
+      exitSketchMode();
+      moveMode = false; eraseMode = false; selectMode = false;
+      updateModeButtonsUI();
+      updateModeHint();
+    }
     if(d && d.presetName && d.presetName!==activePresetName && allPresets().some(p=>p.name===d.presetName)){
       setActivePreset(d.presetName, {fromDrawingSwitch:true});
     }
@@ -7234,7 +7324,7 @@
           + '<div class="es-or">이미지 파일을 이 창으로 끌어다 놓거나, 복사한 이미지를 Ctrl+V로 붙여넣어도 됩니다.<br/>'
           + '이어서 하던 작업이 있으면 상단 「프로젝트 불러오기」로 여세요.</div>';
         wrap.appendChild(placeholder);
-        placeholder.querySelector('#btnEmptyAdd').addEventListener('click', ()=> document.getElementById('addDrawingInput').click());
+        placeholder.querySelector('#btnEmptyAdd').addEventListener('click', e=> openAddDrawingPicker(e.currentTarget));
         placeholder.querySelector('#btnEmptyBlank').addEventListener('click', ()=> openBlankDrawingModal());
       }
       placeholder.style.display='block';
@@ -7462,7 +7552,7 @@
       }
     }
     // 선 지우개: 지워질 반경을 커서에 보여준다(이미지 지우개의 브러시 미리보기와 같은 역할).
-    if(sketchTool === 'sketchErase' && eraseCursorPt){
+    if((sketchTool === 'sketchErase' || penBtnErase) && eraseCursorPt){
       const d = getActiveDrawing();
       if(d){
         const rPx = sketchEraseTolNatural(d) * (w / d.naturalW);
@@ -8798,6 +8888,12 @@
       {k:'lvValue', label:'측정값(cm)', kind:'num', ph:'측정값'},
       {k:'lvSpan', label:'경간(mm)', kind:'num', ph:'경간'},
     ];
+    // 현황사진 — 결함이 아니므로 층수·위치·사진번호만
+    if(isStatusPhotoKey(t)) return [
+      {k:'rptFloor', label:'층수', kind:'floor', ph:'층수 (1 → 지상1층)'},
+      {k:'rptLoc', label:'위치', kind:'text', ph:'위치'},
+      {k:'rptTag', label:'사진 #', kind:'int', ph:'사진번호'},
+    ];
     if(t==='sh' || t==='ph' || t==='dm') return [
       {k:'eqFloor', label:'층수', kind:'floor', ph:'층수 (1 → 지상1층)'},
       {k:'eqLoc', label:'위치', kind:'text', ph:'위치'},
@@ -8971,7 +9067,7 @@
     const show = !!(m && photoTagKey(m));
     btn.style.display = show ? '' : 'none';
     const next = btn.querySelector('.qis-stamp-next');
-    if(next) next.textContent = (show && window.StampCam) ? '· ' + StampCam.peek().numberText : '';
+    if(next) next.textContent = (show && window.StampCam) ? '· ' + stampNextTextForProject() : '';
   }
   function wireQuickInputMore(){
     const moreBtn = document.getElementById('btnQuickInputMore');
@@ -10755,11 +10851,18 @@
         let n = parseInt(e.target.value, 10);
         const curIdx = dd.markers.findIndex(x=>x.id===m.id);
         if(isNaN(n) || curIdx<0){ e.target.value = m.seq||idx+1; return; }
-        n = clamp(n, 1, dd.markers.length);
-        if(n===curIdx+1){ e.target.value = m.seq||idx+1; return; }
+        // 번호는 같은 묶음(결함끼리 / 현황사진끼리 / SH끼리…) 안의 순서다 — 그 묶음의 n번째 자리로 옮긴다.
+        const gk = numberingGroupKey(m);
+        const peers = dd.markers.filter(x=> numberingGroupKey(x) === gk);
+        const start = markerNumbering(m).mode === 'independent' ? (markerNumbering(m).start || 1) : 1;
+        const pos = clamp(n - start, 0, peers.length - 1);
+        const curPos = peers.indexOf(m);
+        if(pos === curPos){ e.target.value = m.seq||idx+1; return; }
         pushUndo();
+        const target = peers[pos];
         const [item] = dd.markers.splice(curIdx, 1);
-        dd.markers.splice(n-1, 0, item);
+        let ti = dd.markers.indexOf(target);
+        dd.markers.splice(pos > curPos ? ti + 1 : ti, 0, item);
         renderCanvas(); renderTable();
       });
       if(isTiltPos){
@@ -10879,7 +10982,7 @@
   var collapsedFloorGroups = new Set();   // 결함 목록에서 접어 둔 층 묶음 (도면 id + '|' + 층)
   // 다 채움 = 외관조사는 부재·자재·결함, 장비조사는 부재가 있고, 글자로 안 바뀐 손글씨가 없는 것
   function isMarkerDone(m, isEq){
-    const keys = isEq ? ['eqMember'] : ['rptType','rptMember','rptDefect'];
+    const keys = isEq ? ['eqMember'] : isStatusPhotoKey(m.typeKey) ? ['rptTag'] : ['rptType','rptMember','rptDefect'];
     return keys.every(k=> String(m[k]||'').trim()) && !markerInkTodo(m);
   }
   function foldSummaryHTML(m, idx, d, isEq, open){
@@ -11620,7 +11723,7 @@
       types.forEach((type, i)=>{
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'tablet-float-type-btn' + (type.key===activeTypeKey ? ' active':'');
+        btn.className = 'tablet-float-type-btn' + (type.key===activeTypeKey ? ' active':'') + (isStatusPhotoKey(type.key) ? ' is-status' : '');
         btn.dataset.floatType = type.key;
         const shortcut = shortcutForTypeIndex(i);
         btn.title = shortcut ? `${type.label} (${shortcut})` : type.label;
@@ -14762,7 +14865,7 @@
       return;
     }
     const p = StampCam.peek();
-    if(next) next.textContent = '· 다음 ' + p.numberText;
+    if(next) next.textContent = '· 다음 ' + stampNextTextForProject();
     const m = currentPhotoMarker();
     const key = m && photoTagKey(m);
     if(hint){
@@ -14770,19 +14873,65 @@
         (key ? (String(m[key]||'').trim() ? ' · 첫 사진 번호가 사진번호 칸에 들어간다(지금 ' + m[key] + ' → 바뀜)' : ' · 첫 사진 번호가 사진번호 칸에 들어간다') : '');
     }
   }
+  // ---------- 스탬프 번호를 프로젝트에 맞추기 (2026-11-27) ----------
+  // 사용자가 현장(프로젝트)마다 스탬프 카메라 번호를 손으로 「처음부터」 되돌려 쓰던 것을 자동으로 한다.
+  // 웹앱은 다운로드 폴더를 들여다볼 수 없으므로, 이 프로젝트에 이미 들어간 사진번호(사진번호 칸 + 붙인
+  // 사진의 스탬프 번호)를 기준으로 삼는다 : 사진이 없으면 처음 번호(보통 1), 있으면 가장 큰 번호 + 1.
+  // 다만 이 프로젝트에서 마지막으로 번호를 맞춘 뒤 번호가 더 올라가 있으면(같은 현장에서 스탬프 카메라
+  // 앱으로 따로 찍은 경우 등) 내리지 않는다 — 내리면 파일 이름이 겹친다.
+  const STAMP_OWNER_KEY = 'defectMarkerStampOwner_v1';
+  function projectMaxPhotoNumber(){
+    let max = 0;
+    const take = v=> (String(v==null?'':v).match(/\d+/g) || []).forEach(t=>{ const n = parseInt(t, 10); if(n > max && n < 1e7) max = n; });
+    drawings.forEach(d=> d.markers.forEach(m=>{
+      const k = photoTagKey(m); if(k) take(m[k]);
+      // 붙어 있는 사진의 번호만 — 「방금 것 취소」로 뺀 사진의 기록(photoMeta)이 남아 있어도 세지 않는다
+      if(m.photoMeta && m.photos) m.photos.forEach(ph=>{ const x = m.photoMeta[photoKey(ph)]; if(x) take(x.no); });
+    }));
+    return max;
+  }
+  function stampCounterPlan(){
+    if(!window.StampCam || !StampCam.setNext) return null;
+    const p = StampCam.peek();
+    if(p.sameOn) return null;                 // 「같은 번호 여러 장」 중에는 손대지 않는다
+    const max = projectMaxPhotoNumber();
+    const target = max > 0 ? max + 1 : (p.start || 1);
+    let owner = null;
+    try{ owner = JSON.parse(localStorage.getItem(STAMP_OWNER_KEY) || 'null'); }catch(err){}
+    const mine = !!(owner && owner.uuid === currentProjectUuid);
+    const change = mine ? p.number < target : p.number !== target;
+    return { target, change, from: p.number, max };
+  }
+  function syncStampCounterToProject(){
+    const plan = stampCounterPlan();
+    if(!plan) return '';
+    try{ localStorage.setItem(STAMP_OWNER_KEY, JSON.stringify({ uuid: currentProjectUuid, at: Date.now() })); }catch(err){}
+    if(!plan.change) return '';
+    StampCam.setNext(plan.target);
+    const txt = StampCam.numberTextFor(plan.target);
+    return plan.max > 0 ? `번호를 이 프로젝트에 이어서 ${txt}부터` : `새 프로젝트라 번호를 ${txt}부터`;
+  }
+  // 화면에 보일 "다음 번호" — 열면 맞춰질 번호를 미리 보여 준다
+  function stampNextTextForProject(){
+    if(!window.StampCam) return '';
+    const plan = stampCounterPlan();
+    return plan && plan.change ? StampCam.numberTextFor(plan.target) : StampCam.peek().numberText;
+  }
   // 이 결함으로 스탬프 카메라를 연다 — 사진 창의 「스탬프 촬영」과 퀵입력 시트의 📷 단추가 같이 쓴다
   function openStampCamFor(m, onClose){
     if(!m || !window.StampCam) return;
+    const syncMsg = syncStampCounterToProject();
     const markerId = m.id;
     const d = getActiveDrawing();
     const idx = d ? d.markers.indexOf(m) : 0;
     const session = {};                   // 이번 촬영 화면 — 첫 사진이 사진번호를 넣는다
-    StampCam.open({
+    const st = StampCam.open({
       title: '스탬프 촬영 · ' + [formatMarkerLabel(m, idx, d), stampMemoSuggest(m)].filter(Boolean).join(' '),
       memoSuggest: stampMemoSuggest(m),
       onShot: (res)=> attachStampShot(markerId, res, session),
       onClose: ()=>{ if(photoModalMarkerId===markerId){ renderPhotoModal(); } if(onClose) onClose(); },
     });
+    if(syncMsg && st && st.toast) st.toast(syncMsg, 3500);
   }
   document.getElementById('btnStampCam').addEventListener('click', ()=> openStampCamFor(currentPhotoMarker()));
   // 퀵입력 시트의 📷 : 시트를 닫지 않고 바로 찍는다. 닫으면 시트를 다시 그려 채워진 사진번호가 보이게 한다.
@@ -14797,6 +14946,7 @@
     if(!m || !window.StampCam || !files || !files.length){ e.target.value=''; return; }
     const markerId = m.id;
     try{
+      syncStampCounterToProject();
       const session = {};
       const res = await StampCam.stampFiles(files, r=> attachStampShot(markerId, r, session));
       if(res.length) showToast(res.map(r=>r.numberText).join(', ') + ' 번호를 찍어 붙였습니다' + (res[0].saved==='download' ? ' (다운로드 폴더에도 저장)' : ' (스탬프 카메라 목록에도 저장)'));
@@ -15148,8 +15298,9 @@
   function shortTypeLabel(label){ return String(label||'').replace(/^(수직|수평)부재/, '$1'); }
 
   // ---------- 이벤트 바인딩 ----------
-  document.getElementById('addDrawingInput').addEventListener('change', e=>{ addDrawingFiles(e.target.files); e.target.value=''; });
-  document.getElementById('btnAddDrawing').addEventListener('click', ()=> document.getElementById('addDrawingInput').click());
+  ['addDrawingInput','addDrawingImageInput','addDrawingPdfInput'].forEach(id=>
+    document.getElementById(id).addEventListener('change', e=>{ addDrawingFiles(e.target.files); e.target.value=''; }));
+  document.getElementById('btnAddDrawing').addEventListener('click', e=> openAddDrawingPicker(e.currentTarget));
 
   // 배율 표시 갱신 — 라벨(#zoomPctLabel)뿐 아니라 드롭다운(#zoomSelect)의 선택값까지 함께 맞춘다.
   // 예전에는 라벨만 갱신해서, 휠로 246%까지 확대해도 드롭다운은 "100%"로 남아 있었다. 브라우저는
@@ -16563,6 +16714,49 @@
     eraseCursorPt = { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) };
     scheduleMarkerRender();
   }
+  // S펜 옆 버튼을 누른 채 그으면 그린 선을 지운다(노트 앱처럼, 2026-11-27). 어느 도구를 쓰고 있든
+  // 그 한 번만 선 지우개로 쓰고, 손을 떼면 원래 도구로 돌아간다. 지우는 범위는 선 지우개(E)와 같다 —
+  // 결함 마킹은 지우지 않는다. 크롬은 펜 옆 버튼을 오른쪽 버튼(buttons 2)으로,
+  // 지우개 끝이 있는 펜은 buttons 32 로 알린다.
+  function isPenEraseButton(e){
+    return e.pointerType === 'pen' && (((e.buttons|0) & (2|32)) !== 0 || e.button === 2 || e.button === 5);
+  }
+  canvas.addEventListener('pointerdown', e=>{
+    if(!isPenEraseButton(e)) return;
+    const d = getActiveDrawing();
+    if(!d || cropMode || gridViewMode) return;
+    e.preventDefault(); e.stopImmediatePropagation();   // 패닝(오른쪽 버튼 끌기)·그리기로 넘어가지 않게
+    if(sketchTextEditor) closeSketchTextEditor(true);
+    try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+    const p = canvasPointFromEvent(e), pct = canvasPtToPct(p);
+    pushUndo();
+    penBtnErase = { id:e.pointerId };
+    pendingAction = { mode:'sketchErase', removed:0, lastPct:{ x:pct.x, y:pct.y }, penButton:true };
+    while(sketchEraseAt(d, pct)){}
+    eraseCursorPt = { x:p.x, y:p.y };
+    scheduleMarkerRender();
+  }, true);
+  canvas.addEventListener('pointermove', e=>{
+    if(!penBtnErase || e.pointerId !== penBtnErase.id) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const d = getActiveDrawing();
+    if(!d || !pendingAction || pendingAction.mode !== 'sketchErase'){ penBtnErase = null; return; }
+    const p = canvasPointFromEvent(e);
+    handleSketchPointerMove(d, p, e);
+    eraseCursorPt = { x:p.x, y:p.y };
+    scheduleMarkerRender();
+  }, true);
+  ['pointerup','pointercancel'].forEach(t=> canvas.addEventListener(t, e=>{
+    if(!penBtnErase || e.pointerId !== penBtnErase.id) return;
+    e.stopImmediatePropagation();
+    penBtnErase = null;
+    const pa = pendingAction;
+    pendingAction = null;
+    eraseCursorPt = null;
+    const d = getActiveDrawing();
+    if(d && pa && pa.mode === 'sketchErase') handleSketchPointerUp(d, pa);
+    else renderCanvas();
+  }, true));
   canvas.addEventListener('pointerdown', trackEraserCursor);
   canvas.addEventListener('pointermove', trackEraserCursor);
   ['pointerup','pointercancel'].forEach(t=> canvas.addEventListener(t, e=>{
@@ -17642,6 +17836,11 @@
   // 검사(tests/*.mjs)가 도곽 치수와 저장 결과를 직접 확인할 수 있도록 필요한 것만 내어 둔다.
   // 다른 현장조사 앱의 __exDbg·__tiltDbg 와 같은 구실을 한다.
   window.__markerDbg = {
+    // 2026-11-27 (tests/test-1127.mjs)
+    t1127: { deleteDrawing, isLegendEnabled, stampCounterPlan, syncStampCounterToProject, projectMaxPhotoNumber,
+      openStampCamFor, openAddDrawingPicker, setActivePreset, sanitizeSeriesSnapshot, isMarkerDone, missingFieldLabels,
+      get currentProjectUuid(){ return currentProjectUuid; }, get penBtnErase(){ return penBtnErase; },
+      get DEFECT_TYPES(){ return DEFECT_TYPES; } },
     // 손글씨 (tests/test-ink.mjs)
     ink: {
       inkItemsAll, inkNeedsConvert, runInkConvert, openQuickInputSheetFor, hideQuickInputSheet,

@@ -88,6 +88,9 @@ ok(await ev('__markerDbg.getActiveDrawing().markers.length') === 1, '결함 하�
 const tagKey = await ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[0];return 'rptTag' in m || true ? (m.typeKey) : ''})()`);
 console.log('  (결함 종류 : ' + tagKey + ')');
 await ev(`(()=>{const m=__markerDbg.getActiveDrawing().markers[0]; m.rptType='벽체'; m.rptDefect='균열'; return true})()`);
+// 2026-11-27 부터 촬영 화면을 열 때 번호를 프로젝트에 맞춘다(사진 없는 새 프로젝트면 1). 이 검사는 「이 프로젝트에서
+// 이미 12 까지 이어 온」 경우를 본다 — 이 프로젝트를 번호의 주인으로 적어 두면 12 를 그대로 쓴다(맞춤 자체는 test-1127).
+await ev(`localStorage.setItem('defectMarkerStampOwner_v1', JSON.stringify({uuid: __markerDbg.t1127.currentProjectUuid})); true`);
 
 /* ── 1. 사진 창 → 스탬프 촬영 ─────────────────────────────── */
 console.log('\n[1] 스탬프 촬영');
