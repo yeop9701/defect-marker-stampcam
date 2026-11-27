@@ -300,6 +300,8 @@
     background:var(--surface-2);color:var(--text-secondary);display:flex;align-items:center;
     justify-content:center;}
   .tablet-float-btn.active{background:var(--accent);color:#fff;}
+  /* 수직·수평 고정은 마킹을 찍을 때만 뜻이 있다 — 그리는 동안에는 감춰 그리기 바 폭을 지킨다 */
+  body.mode-sketch #btnFloatOrtho, body.mode-pick.pick-has-strokes #btnFloatOrtho{display:none;}
   .tablet-float-types{display:flex;gap:6px;flex:0 0 auto;}
   .tablet-float-type-btn{flex:0 0 auto;width:44px;height:44px;border-radius:9px;border:2px solid transparent;
     background:var(--surface-2);display:flex;align-items:center;justify-content:center;}
@@ -2073,6 +2075,8 @@
         <!-- 폭이 모자라면 마킹 단추들 대신 이 단추 하나가 나오고, 누르면 고르기 창이 뜬다 -->
         <button type="button" class="tablet-float-btn float-type-pick" id="btnFloatTypePick" title="마킹 유형 고르기"></button>
         <div class="tablet-float-types" id="tabletFloatTypeGrid"></div>
+        <!-- 수직·수평 고정 (2026-11-27) — 컴퓨터의 Shift 와 같다. 켜 두면 끌어서 찍는 마킹·방향 손잡이가 위·아래·좌·우로만 -->
+        <button type="button" class="tablet-float-btn" id="btnFloatOrtho" aria-pressed="false" title="수직·수평 고정 — 켜면 끌어서 찍는 마킹과 방향 손잡이가 위·아래·왼쪽·오른쪽으로만 (컴퓨터는 Shift 를 누른 채)"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
         <div class="tablet-float-sep"></div>
         <button type="button" class="tablet-float-btn" id="btnFloatSelectMode" title="선택 — 마커와 그린 것 (S)"><svg class="icon"><use href="#i-select"/></svg></button>
         <button type="button" class="tablet-float-btn" id="btnFloatMoveMode" title="이동 모드 (M)"><svg class="icon"><use href="#i-move"/></svg></button>
@@ -2323,6 +2327,10 @@
         <label class="check-row" style="margin-top:6px;margin-left:18px;" title="켜면 이 도면에 실제로 찍은 유형만 NOTE 범례에 넣습니다. 끄면 위치도 종류의 전체 계열이 모두 표시됩니다(관행상 전 계열을 적는 경우가 많아 기본값은 끔).">
           <input type="checkbox" id="legendUsedOnlyToggle" />
           사용된 유형만
+        </label>
+        <label class="check-row" style="margin-top:6px;" title="끄면 PNG·PDF 저장과 인쇄 미리보기에서 현황사진 마킹(초록·주황)과 그 범례 줄을 뺍니다. 작업 화면과 엑셀·CSV 에는 그대로 남습니다.">
+          <input type="checkbox" id="statusExportToggle" checked />
+          현황사진 마킹 (초록·주황)
         </label>
         <button class="help-toggle" id="tbFieldsToggle" style="margin-top:10px;">표제란 입력 (도면틀에 들어갈 내용)</button>
         <div id="tbFieldsPanel" style="display:none;margin-top:8px;">
@@ -3662,7 +3670,7 @@
   // 배포할 때 아래 두 값을 손으로 갱신한다. APP_BUILD 는 service-worker.js 의 CACHE_VERSION 과
   // 같아야 한다(tests/test-1123d.mjs 가 대조). 「설정」 맨 아래와 결함 목록 아래에 보여, 폰에 새 버전이
   // 떴는지 사용자가 바로 확인할 수 있다(2026-11-23 — 예전 표기 "Ver 2.5 (2026-10-19)" 는 갱신이 멈춰 있었다).
-  const APP_BUILD = 'sc26';
+  const APP_BUILD = 'sc27';
   const APP_BUILD_DATE = '2026-11-27';
   // "미저장 변경사항이 있는가"를 매번 전체 스냅샷을 JSON.stringify해서 비교하면(특히 사진·도면
   // 이미지가 많을 때) beforeunload/자동저장 틱마다 무거운 직렬화가 반복된다. 대신 마커·도면·프로젝트
@@ -4081,7 +4089,7 @@
   function overlayLegendItems(d){
     // 현황사진은 그 도면에 실제로 찍었을 때만 범례에 넣는다 — 결함 범례에 안 쓴 현황사진 줄이 늘 붙지 않게.
     const usedKeys = new Set(((d && d.markers) || []).map(m=>m.typeKey));
-    const all = DEFECT_TYPES.filter(type=> type.legendShow!==false && (!isStatusPhotoKey(type.key) || usedKeys.has(type.key)));
+    const all = DEFECT_TYPES.filter(type=> type.legendShow!==false && (!isStatusPhotoKey(type.key) || (usedKeys.has(type.key) && isStatusExportShown())));
     if(!isLegendUsedOnly() || !d || !d.markers || d.markers.length===0) return all.map(type=>({type}));
     const used = new Set(d.markers.map(m=>m.typeKey));
     const filtered = all.filter(type=> used.has(type.key));
@@ -4201,6 +4209,22 @@
     if(rawLbs) legendBoxStyle = sanitizeLegendBoxStyle(JSON.parse(rawLbs));
   }catch(err){ /* 저장값이 깨져 있어도 기본 모양으로 연다 */ }
   const LEGEND_ON_CANVAS_STORE_KEY = 'defectMarkerLegendOnCanvas_v1';
+  // 수직·수평 고정(2026-11-27) — 태블릿에는 Shift 가 없어 끌어 찍는 마킹을 곧게 놓을 길이 없었다.
+  const ORTHO_STORE_KEY = 'defectMarkerOrtho_v1';
+  let orthoLock = false;
+  try{ orthoLock = localStorage.getItem(ORTHO_STORE_KEY) === '1'; }catch(err){}
+  function setOrthoLock(on){
+    orthoLock = !!on;
+    try{ localStorage.setItem(ORTHO_STORE_KEY, orthoLock ? '1' : '0'); }catch(err){}
+    const b = document.getElementById('btnFloatOrtho');
+    if(b){ b.classList.toggle('active', orthoLock); b.setAttribute('aria-pressed', String(orthoLock)); }
+  }
+  // 현황사진 마킹을 PNG·PDF 저장에 넣을지(2026-11-27, 기본 넣음). 작업 화면에는 늘 보인다.
+  const STATUS_EXPORT_STORE_KEY = 'defectMarkerExportStatus_v1';
+  function isStatusExportShown(){
+    const el = document.getElementById('statusExportToggle');
+    return !el || el.checked;
+  }
   function isLegendOnCanvas(){
     const el = document.getElementById('legendOnCanvasToggle');
     return !!(el && el.checked);
@@ -7491,7 +7515,7 @@
     if(pendingAction && pendingAction.mode==='create' && pendingAction.moved){
       const d = getActiveDrawing(); if(!d) return;
       const r = markerRadiusFor(d, w, h);
-      const geom = computeCreateGeom(pendingAction.startX, pendingAction.startY, pendingAction.curX, pendingAction.curY, !!pendingAction.shiftKey);
+      const geom = computeCreateGeom(pendingAction.startX, pendingAction.startY, pendingAction.curX, pendingAction.curY, !!pendingAction.shiftKey || orthoLock);
       const type = getType(activeTypeKey);
       ctx.save();
       ctx.globalAlpha = 0.62;
@@ -12526,7 +12550,9 @@
   function drawMarkersInRect(ctx, d, dx, dy, dw, dh, r){
     ctx.save();
     ctx.translate(dx, dy);
+    const hideStatus = !isStatusExportShown();
     d.markers.forEach((m, idx)=>{
+      if(hideStatus && isStatusPhotoKey(m.typeKey)) return;   // 「현황사진 마킹」을 끈 저장
       drawMarkerDispatch(ctx, d, m, formatMarkerLabel(m, idx, d), dw, dh, r, false);
     });
     ctx.restore();
@@ -15517,6 +15543,11 @@
   document.getElementById('btnEraseMode').addEventListener('click', toggleEraseMode);
   // 태블릿 하단 플로팅 바 — 같은 토글 함수를 그대로 재사용하므로 상태 관리는 완전히 공유된다.
   document.getElementById('btnFloatSelectMode').addEventListener('click', toggleSelectMode);
+  document.getElementById('btnFloatOrtho').addEventListener('click', ()=>{
+    setOrthoLock(!orthoLock);
+    showToast(orthoLock ? '수직·수평 고정 켬 — 끌어서 찍는 마킹이 위·아래·좌·우로만 놓입니다.' : '수직·수평 고정 끔');
+  });
+  setOrthoLock(orthoLock);
   document.getElementById('btnFloatMoveMode').addEventListener('click', toggleMoveMode);
   document.getElementById('btnFloatEraseMode').addEventListener('click', toggleEraseMode);
   // ── 그리기(현장 스케치) ──
@@ -15872,6 +15903,16 @@
     refreshTbPreviewIfOpen();
     renderCanvas(); // "작업 화면에도 표시"가 켜져 있으면 화면 쪽 범례도 함께 켜지고 꺼져야 한다
   });
+  (function initStatusExportToggle(){
+    const el = document.getElementById('statusExportToggle');
+    if(!el) return;
+    try{ el.checked = localStorage.getItem(STATUS_EXPORT_STORE_KEY) !== '0'; }catch(err){ /* 못 읽으면 기본(넣음) */ }
+    el.addEventListener('change', ()=>{
+      try{ localStorage.setItem(STATUS_EXPORT_STORE_KEY, el.checked ? '1' : '0'); }catch(err){}
+      refreshTbPreviewIfOpen();
+      renderCanvas();
+    });
+  })();
   // "작업 화면에도 표시" — 켜면 도면 위에 범례가 나타나고 드래그·방향키로 자리를 잡을 수 있다.
   (function initLegendOnCanvasToggle(){
     const el = document.getElementById('legendOnCanvasToggle');
@@ -16610,7 +16651,7 @@
         const w = canvas.width, h = canvas.height;
         const cx = m.xPct/100*w, cy = m.yPct/100*h;
         let ang = Math.atan2(p.y-cy, p.x-cx) * 180/Math.PI;
-        if(e.shiftKey) ang = Math.round(ang/90)*90; // 수직/수평 직각으로만 고정
+        if(e.shiftKey || orthoLock) ang = Math.round(ang/90)*90; // 수직/수평 직각으로만 고정(태블릿은 수직·수평 고정 단추)
         m.angle = ang;
         const r = markerRadiusFor(d, w, h);
         const dist = Math.hypot(p.x-cx, p.y-cy);
@@ -16835,7 +16876,7 @@
         if(!action.moved){
           addMarkerAt(action.startX, action.startY);
         } else {
-          const geom = computeCreateGeom(action.startX, action.startY, action.curX, action.curY, !!(action.shiftKey || e.shiftKey));
+          const geom = computeCreateGeom(action.startX, action.startY, action.curX, action.curY, !!(action.shiftKey || e.shiftKey) || orthoLock);
           addMarkerWithGesture(geom);
         }
       } else if(action.mode==='erase'){
@@ -17837,7 +17878,7 @@
   // 다른 현장조사 앱의 __exDbg·__tiltDbg 와 같은 구실을 한다.
   window.__markerDbg = {
     // 2026-11-27 (tests/test-1127.mjs)
-    t1127: { deleteDrawing, isLegendEnabled, stampCounterPlan, syncStampCounterToProject, projectMaxPhotoNumber,
+    t1127: { setOrthoLock, get orthoLock(){ return orthoLock; }, isStatusExportShown, deleteDrawing, isLegendEnabled, stampCounterPlan, syncStampCounterToProject, projectMaxPhotoNumber,
       openStampCamFor, openAddDrawingPicker, setActivePreset, sanitizeSeriesSnapshot, isMarkerDone, missingFieldLabels,
       get currentProjectUuid(){ return currentProjectUuid; }, get penBtnErase(){ return penBtnErase; },
       get DEFECT_TYPES(){ return DEFECT_TYPES; } },
